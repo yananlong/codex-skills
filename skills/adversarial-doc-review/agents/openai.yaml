@@ -1,0 +1,7 @@
+interface:
+  display_name: "Adversarial Doc Review"
+  short_description: "Pedantic review + current fact-checking"
+  default_prompt: "Use $adversarial-doc-review to adversarially review this document and verify time-sensitive claims with up-to-date sources."
+
+policy:
+  allow_implicit_invocation: true
