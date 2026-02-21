@@ -1,7 +1,7 @@
 interface:
   display_name: "Adversarial Doc Review"
   short_description: "Pedantic review + current fact-checking"
-  default_prompt: "Use $adversarial-doc-review to adversarially review this document and verify time-sensitive claims with up-to-date sources."
+  default_prompt: "Use $adversarial-doc-review to adversarially review this document (often a `.md` file path), verify time-sensitive claims with up-to-date sources, and return a structured report in chat by default. For Markdown inputs, cite findings as `path:line` plus the nearest heading. If a file report is requested, write `<docname>.review.md` next to the input document."
 
 policy:
   allow_implicit_invocation: true
