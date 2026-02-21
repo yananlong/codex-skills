@@ -78,3 +78,8 @@ Use this as a “nothing gets a free pass” checklist. Prefer concrete, traceab
 - Flag claims hidden in footnotes/captions/parentheticals.
 - Check that each section earns its existence; flag repetition and missing transitions.
 
+## 11) Markdown-specific checks (if `.md`)
+
+- Cite findings with `path:line` plus the nearest heading for traceability.
+- Check that internal anchors and external links resolve (where feasible).
+- Treat code fences and tables as semantics-bearing; avoid “fixes” that change meaning.

@@ -6,6 +6,7 @@
 - Version: (date / commit / edition)
 - Review date:
 - Reviewer constraints: (may browse web? yes/no; time limit; sections prioritized)
+- Output: chat (default) / file `<docname>.review.md` next to the input document (if requested)
 
 ## 1) Executive summary
 
@@ -25,7 +26,7 @@ For each claim, include a traceable pointer (section/page/quote), the claim type
 
 Suggested columns:
 - ID
-- Location
+- Location (Markdown: `path:line` + nearest heading; PDF: page; LaTeX: section; web: URL + heading)
 - Claim (verbatim-ish)
 - Type (definitional/factual/quantitative/normative/causal/speculative)
 - Time sensitivity (stable/time-sensitive)
@@ -57,4 +58,3 @@ For each issue:
 ## 8) Fact-check log (optional but recommended)
 
 - Claim → query terms → sources checked (with dates) → result
-
