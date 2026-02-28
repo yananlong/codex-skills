@@ -1,0 +1,4 @@
+interface:
+  display_name: "Exposition to Notebook"
+  short_description: "Prose → product-ready Jupyter notebooks"
+  default_prompt: "Use $exposition-to-notebook to turn this exposition into a runnable Jupyter notebook prototype."
