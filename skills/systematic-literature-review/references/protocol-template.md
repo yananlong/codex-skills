@@ -25,6 +25,7 @@ Use this file to define the review protocol before running discovery or screenin
 - Define eligible study designs.
 - Define eligible outcomes.
 - Define date range and language.
+- Prefer peer-reviewed published versions; use preprints only when no published version exists or when recency is essential, and label them as preprints.
 
 ### Exclusion criteria
 

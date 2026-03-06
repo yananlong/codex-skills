@@ -32,10 +32,10 @@ Keep metric keys unchanged for parser compatibility.
 | --- | ---: |
 | wrong-endpoint | 0 |
 | unresolved-method-issues | 0 |
-| duplicate-publication | 0 |
+| duplicate-publication (e.g., preprint superseded by published version) | 0 |
 
 ## Decision ledger
 
-| study_id | stage | decision | reason | reviewer | date | notes |
-| --- | --- | --- | --- | --- | --- | --- |
-| | title_abstract | include/exclude | | | YYYY-MM-DD | |
+| study_id | record_type | canonical_citation | doi | venue | preprint_id | stage | decision | reason | reviewer | date | notes |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| | published/preprint | | | | | title_abstract | include/exclude | | | YYYY-MM-DD | |

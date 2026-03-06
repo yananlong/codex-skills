@@ -52,8 +52,9 @@ def _defaults(topic: str, domain: str) -> Dict[str, str]:
     return {
         "question": f"What does current evidence show about {topic} in {domain}?",
         "inclusion_criteria": (
-            "Include peer-reviewed primary studies and high-quality preprints directly "
-            "relevant to topic and domain."
+            "Include peer-reviewed primary studies (published) directly relevant to topic and domain. "
+            "Use high-quality preprints only when no published version exists or when recency is essential, "
+            "and label them as preprints."
         ),
         "exclusion_criteria": (
             "Exclude off-topic sources, narrative-only commentary without methods, and "
@@ -186,6 +187,14 @@ def _search_log_md(inputs: ReviewInputs) -> str:
 | --- | --- | ---: | ---: | ---: | --- |
 | dedup-001 | exact-title-doi | 0 | 0 | 0 | |
 
+## Version resolution ledger (preprint → published)
+
+Use this ledger to resolve preprints (e.g., arXiv/bioRxiv/SSRN) to their peer-reviewed published versions when available.
+
+| mapping_id | preprint_citation | preprint_id | resolved_published_citation | doi | status | notes |
+| --- | --- | --- | --- | --- | --- | --- |
+| map-001 | | | | | resolved/unresolved | |
+
 ## Coverage notes
 
 - TODO: Document coverage limitations, source outages, or inaccessible corpora.
@@ -232,9 +241,9 @@ def _screening_log_md(inputs: ReviewInputs) -> str:
 
 ## Decision ledger
 
-| study_id | citation_key | stage | decision | reason | reviewer | date | notes |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| | | title_abstract | include/exclude | | | {inputs.today} | |
+| study_id | record_type | canonical_citation | doi | venue | preprint_id | stage | decision | reason | reviewer | date | notes |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| | published/preprint | | | | | title_abstract | include/exclude | | | {inputs.today} | |
 """
 
 
@@ -243,9 +252,9 @@ def _evidence_md(inputs: ReviewInputs) -> str:
 
 ## Extraction matrix
 
-| study_id | citation | year | population_or_context | study_design | sample_size | intervention_or_exposure | comparator | outcomes | key_result | effect_size | risk_of_bias | notes |
-| --- | --- | ---: | --- | --- | ---: | --- | --- | --- | --- | --- | --- | --- |
-| | | 0 | {inputs.population_context} | | 0 | | | {inputs.outcomes} | | | low/moderate/high | |
+| study_id | canonical_citation | year | venue | doi | publication_status | preprint_id | population_or_context | study_design | sample_size | intervention_or_exposure | comparator | outcomes | key_result | effect_size | risk_of_bias | notes |
+| --- | --- | ---: | --- | --- | --- | --- | --- | --- | ---: | --- | --- | --- | --- | --- | --- | --- |
+| | | 0 | | | published/preprint | | {inputs.population_context} | | 0 | | | {inputs.outcomes} | | | low/moderate/high | |
 
 ## Extraction notes
 
@@ -276,6 +285,7 @@ def _report_md(inputs: ReviewInputs, flow_relative_path: str) -> str:
 - Sources searched: TODO
 - Query logic: TODO
 - Deduplication approach: TODO
+- Publication status policy: prefer peer-reviewed published versions; treat preprints as supplemental unless no published version exists.
 
 ## Screening Decisions
 
