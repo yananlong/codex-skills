@@ -1,0 +1,7 @@
+interface:
+  display_name: "Research Novelty Review"
+  short_description: "Pressure-test novelty against prior art"
+  default_prompt: "Use $research-novelty-review to map prior art, compare competing framings, and pressure-test a research novelty claim."
+
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Document Memory"
+  short_description: "Read documents and build reusable memory"
+  default_prompt: "Use $document-memory-builder to read the provided documents and create a source-grounded memory pack."

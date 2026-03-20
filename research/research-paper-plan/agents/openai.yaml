@@ -1,0 +1,7 @@
+interface:
+  display_name: "Research Paper Plan"
+  short_description: "Outline papers with claims and evidence"
+  default_prompt: "Use $research-paper-plan to structure a paper around claims, evidence, failure modes, and required figures and tables."
+
+policy:
+  allow_implicit_invocation: true

@@ -1,0 +1,7 @@
+interface:
+  display_name: "Research Experiment Plan"
+  short_description: "Design minimal decisive experiment plans"
+  default_prompt: "Use $research-experiment-plan to convert a research claim into the minimum experiment matrix needed to test it decisively."
+
+policy:
+  allow_implicit_invocation: true

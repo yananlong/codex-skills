@@ -1,0 +1,7 @@
+interface:
+  display_name: "Research Review Loop"
+  short_description: "Iterative adversarial review for research"
+  default_prompt: "Use $research-review-loop to run iterative adversarial review over a research plan, experiment output, or draft with tracked issue state."
+
+policy:
+  allow_implicit_invocation: true

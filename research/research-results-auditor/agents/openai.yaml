@@ -1,0 +1,7 @@
+interface:
+  display_name: "Research Results Auditor"
+  short_description: "Audit results for validity and claim support"
+  default_prompt: "Use $research-results-auditor to audit experiment outputs for validity, confounds, statistics, and support for the claimed conclusion."
+
+policy:
+  allow_implicit_invocation: true

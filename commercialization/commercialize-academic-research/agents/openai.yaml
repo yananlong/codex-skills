@@ -1,0 +1,4 @@
+interface:
+  display_name: "Research Commercialization"
+  short_description: "Commercialize academic research"
+  default_prompt: "Use $commercialize-academic-research to develop and iterate a commercialization strategy for this research project."

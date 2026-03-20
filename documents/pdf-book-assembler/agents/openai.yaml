@@ -1,0 +1,4 @@
+interface:
+  display_name: "PDF Book Assembler"
+  short_description: "Merge and finish book-style PDFs"
+  default_prompt: "Use $pdf-book-assembler to merge ordered PDFs, normalize orientation, add bookmarks, and optionally crop whitespace."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Expand Prose Reduce Bullets"
+  short_description: "Rewrite list-heavy, terse drafts into natural prose"
+  default_prompt: "Use $expand-prose-reduce-bullets to rewrite this bullet-heavy draft into clear, well-paced prose."
