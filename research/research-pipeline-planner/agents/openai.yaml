@@ -1,7 +1,7 @@
 interface:
   display_name: "Research Pipeline Planner"
-  short_description: "Stage research plans with tracked artifacts"
-  default_prompt: "Use $research-pipeline-planner to turn a research direction into a staged plan with artifacts, checkpoints, and decision logs."
+  short_description: "Coordinate staged research with optional skill handoffs"
+  default_prompt: "Use $research-pipeline-planner to inspect the current research state, choose the next stage, and either answer directly or coordinate a reusable multi-skill research workflow."
 
 policy:
   allow_implicit_invocation: true

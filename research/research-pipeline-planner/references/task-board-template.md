@@ -1,9 +1,10 @@
 # Task Board Template
 
-| Stage | Task | Status | Dependency | Output | Exit criterion |
-| --- | --- | --- | --- | --- | --- |
-| framing | | todo | | | |
-| evidence | | todo | | | |
-| planning | | todo | | | |
-| execution | | todo | | | |
-| review | | todo | | | |
+| Stage | Objective | Status | Dependency | Canonical output | Next action | Checkpoint |
+| --- | --- | --- | --- | --- | --- | --- |
+| literature review | | todo | | ./literature-review/ | | |
+| novelty review | | todo | | ./novelty-review/ | | |
+| experiment plan | | todo | | ./experiment-plan/ | | |
+| execution / results audit | | todo | | | | |
+| review loop | | todo | | ./review-loop/ | | |
+| paper plan | | todo | | ./paper-plan/ | | |

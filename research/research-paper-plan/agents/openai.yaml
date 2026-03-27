@@ -1,7 +1,7 @@
 interface:
   display_name: "Research Paper Plan"
-  short_description: "Outline papers with claims and evidence"
-  default_prompt: "Use $research-paper-plan to structure a paper around claims, evidence, failure modes, and required figures and tables."
+  short_description: "Turn evidence into a paper plan with optional collaboration"
+  default_prompt: "Use $research-paper-plan to turn supported claims and evidence into a paper plan that works directly or as the paper stage inside a larger research workflow."
 
 policy:
   allow_implicit_invocation: true

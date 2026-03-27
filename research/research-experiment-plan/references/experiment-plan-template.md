@@ -1,20 +1,38 @@
 # Experiment Plan Template
 
-## Claim and Decision Rule
+## Context
 
-- Claim:
-- What result would support it:
-- What result would weaken it:
-- What result would refute it:
+- Problem:
+- Evaluation goal:
+- Operating mode: standalone / orchestrated
+- Upstream artifacts used:
 
-## Minimum Experiment Matrix
+## Claim Map
 
-| Experiment | Purpose | Baseline/control | Output artifact | Decision impact |
+| Claim | Type | Why it matters | Minimum convincing evidence | Anti-claim to rule out |
 | --- | --- | --- | --- | --- |
-| | | | | |
+| | primary / supporting | | | |
 
-## Risks
+## Experiment Blocks
 
-- Confound:
-- Missing artifact:
-- Stop condition:
+### Block 1
+
+- Claim tested:
+- Why this block exists:
+- Dataset / split / task:
+- Systems compared:
+- Metrics:
+- Success criterion:
+- Failure interpretation:
+- Priority: must-run / nice-to-have / defer
+
+## Run Order
+
+| Order | Block | Purpose | Dependency | Stop / go gate | Est. cost |
+| --- | --- | --- | --- | --- | --- |
+| 1 | | | | | |
+
+## Risks and Confounds
+
+- Risk:
+- Mitigation:

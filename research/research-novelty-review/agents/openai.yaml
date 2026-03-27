@@ -1,7 +1,7 @@
 interface:
   display_name: "Research Novelty Review"
-  short_description: "Pressure-test novelty against prior art"
-  default_prompt: "Use $research-novelty-review to map prior art, compare competing framings, and pressure-test a research novelty claim."
+  short_description: "Run adversarial novelty review against prior art"
+  default_prompt: "Use $research-novelty-review to run a skeptical, falsification-first novelty review that can recommend abandonment, reframing, or proceed."
 
 policy:
   allow_implicit_invocation: true

@@ -3,7 +3,9 @@
 ## Entry
 
 - Date:
+- Stage:
 - Decision:
+- Status: proceed / revise / stop
 - Context:
 - Alternatives considered:
 - Rationale:

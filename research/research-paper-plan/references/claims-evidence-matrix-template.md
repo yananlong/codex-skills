@@ -1,5 +1,5 @@
 # Claims-Evidence Matrix Template
 
-| Claim | Evidence artifact | Section | Figure/table | Limitation or caveat |
-| --- | --- | --- | --- | --- |
-| | | | | |
+| Claim | Status | Evidence artifact | Planned section | Figure or table | Limitation or caveat |
+| --- | --- | --- | --- | --- | --- |
+| | supported / partial / blocked | | | | |

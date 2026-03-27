@@ -1,7 +1,0 @@
-interface:
-  display_name: "Systematic Literature Review"
-  short_description: "PRISMA review with adversarial checks"
-  default_prompt: "Use $systematic-literature-review to run a PRISMA 2020-style literature review in <domain>, including discovery, screening, synthesis, and adversarial stress-testing."
-
-policy:
-  allow_implicit_invocation: true

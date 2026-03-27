@@ -1,7 +1,7 @@
 interface:
   display_name: "Research Experiment Plan"
-  short_description: "Design minimal decisive experiment plans"
-  default_prompt: "Use $research-experiment-plan to convert a research claim into the minimum experiment matrix needed to test it decisively."
+  short_description: "Design tracked decisive experiments with optional collaboration"
+  default_prompt: "Use $research-experiment-plan to turn a concrete claim into a decisive experiment plan that works directly or as the experiment stage inside a larger research workflow."
 
 policy:
   allow_implicit_invocation: true

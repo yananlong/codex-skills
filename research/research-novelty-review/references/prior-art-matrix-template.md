@@ -1,5 +1,5 @@
 # Prior Art Matrix Template
 
-| Work | Problem framing | Method novelty | Evaluation novelty | Artifact/dataset novelty | Closest overlap | Material difference |
-| --- | --- | --- | --- | --- | --- | --- |
-| | | | | | | |
+| Work | Venue / year | Closest overlap | Threat level | What still looks new | What could kill the claim |
+| --- | --- | --- | --- | --- | --- |
+| | | | low / medium / high | | |

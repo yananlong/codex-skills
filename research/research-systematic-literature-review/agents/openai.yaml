@@ -1,0 +1,7 @@
+interface:
+  display_name: "Research Systematic Literature Review"
+  short_description: "PRISMA review with suite-friendly outputs"
+  default_prompt: "Use $research-systematic-literature-review to run a PRISMA 2020-style literature review directly or as the literature stage inside a coordinated research workflow."
+
+policy:
+  allow_implicit_invocation: true

@@ -1,12 +1,19 @@
 # Research Brief Template
 
-## Core Question
+## Project Frame
 
 - Project:
 - Main question:
-- Falsifiable thesis:
+- Working thesis:
 - Intended audience:
-- Stakes:
+- Desired end state:
+
+## Current State
+
+- Operating mode: standalone / orchestrated
+- Current stage:
+- Existing artifacts:
+- Missing artifacts:
 
 ## Success Criteria
 
@@ -21,12 +28,15 @@
 - Data/tool constraints:
 - Non-goals:
 
-## Required Artifacts
+## Stage Plan
 
-- Canonical brief:
-- Experiment plan:
-- Review artifact:
-- Draft/manuscript artifact:
+| Stage | Goal | Canonical path | Owner skill | Status |
+| --- | --- | --- | --- | --- |
+| literature review | | ./literature-review/ | research-systematic-literature-review | optional |
+| novelty review | | ./novelty-review/ | research-novelty-review | optional |
+| experiment plan | | ./experiment-plan/ | research-experiment-plan | optional |
+| paper plan | | ./paper-plan/ | research-paper-plan | optional |
+| review loop | | ./review-loop/ | research-review-loop | optional |
 
 ## Open Questions
 
