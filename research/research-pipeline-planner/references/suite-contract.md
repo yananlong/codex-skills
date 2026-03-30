@@ -15,6 +15,7 @@ Use this contract only when the work benefits from shared stage artifacts. Do no
 | experiment plan | `./experiment-plan/` | outputs from `research-experiment-plan` |
 | paper plan | `./paper-plan/` | outputs from `research-paper-plan` |
 | review loop | `./review-loop/` | outputs from `research-review-loop` |
+| rebuttal | `./rebuttal/` | outputs from `research-rebuttal` |
 
 ## Operating rules
 
@@ -33,6 +34,7 @@ Use this contract only when the work benefits from shared stage artifacts. Do no
 | result sanity check | `research-results-auditor` | result artifact plus target claim |
 | iterative red-team review | `research-review-loop` | artifact under review |
 | manuscript structuring | `research-paper-plan` | claims plus supporting evidence |
+| venue-aware author response or rebuttal | `research-rebuttal` | concrete reviews plus target venue |
 
 ## Collaboration rules
 

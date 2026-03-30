@@ -21,6 +21,7 @@ REQUIRED_DIRS = [
     "experiment-plan",
     "paper-plan",
     "review-loop",
+    "rebuttal",
 ]
 
 REQUIRED_INDEX_ROWS = [
@@ -32,6 +33,7 @@ REQUIRED_INDEX_ROWS = [
     "./experiment-plan/",
     "./paper-plan/",
     "./review-loop/",
+    "./rebuttal/",
 ]
 
 

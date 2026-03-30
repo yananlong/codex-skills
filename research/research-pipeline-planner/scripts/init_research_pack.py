@@ -13,6 +13,7 @@ STAGE_DIRS = [
     "experiment-plan",
     "paper-plan",
     "review-loop",
+    "rebuttal",
 ]
 
 FILE_TEMPLATES = {
@@ -55,6 +56,7 @@ FILE_TEMPLATES = {
 | experiment plan | | ./experiment-plan/ | research-experiment-plan | optional |
 | paper plan | | ./paper-plan/ | research-paper-plan | optional |
 | review loop | | ./review-loop/ | research-review-loop | optional |
+| rebuttal | | ./rebuttal/ | research-rebuttal | optional |
 
 ## Open Questions
 
@@ -70,8 +72,9 @@ FILE_TEMPLATES = {
 | novelty review | | todo | | ./novelty-review/ | | |
 | experiment plan | | todo | | ./experiment-plan/ | | |
 | execution / results audit | | todo | | | | |
-| review loop | | todo | | ./review-loop/ | | |
 | paper plan | | todo | | ./paper-plan/ | | |
+| review loop | | todo | | ./review-loop/ | | |
+| rebuttal | | todo | | ./rebuttal/ | | |
 """,
     "decision-log.md": """# Decision Log
 
@@ -99,6 +102,7 @@ FILE_TEMPLATES = {
 | experiment plan | ./experiment-plan/ | pending | outputs from research-experiment-plan |
 | paper plan | ./paper-plan/ | pending | outputs from research-paper-plan |
 | review loop | ./review-loop/ | pending | outputs from research-review-loop |
+| rebuttal | ./rebuttal/ | pending | outputs from research-rebuttal |
 | results audit |  | optional | outputs from research-results-auditor |
 """,
 }

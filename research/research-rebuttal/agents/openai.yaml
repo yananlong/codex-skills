@@ -1,0 +1,7 @@
+interface:
+  display_name: "Research Rebuttal"
+  short_description: "Draft venue-aware author responses to reviews"
+  default_prompt: "Use $research-rebuttal to analyze reviews, build an issue board, and draft a venue-aware rebuttal or author response."
+
+policy:
+  allow_implicit_invocation: true

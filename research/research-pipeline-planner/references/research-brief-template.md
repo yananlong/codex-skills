@@ -37,6 +37,7 @@
 | experiment plan | | ./experiment-plan/ | research-experiment-plan | optional |
 | paper plan | | ./paper-plan/ | research-paper-plan | optional |
 | review loop | | ./review-loop/ | research-review-loop | optional |
+| rebuttal | | ./rebuttal/ | research-rebuttal | optional |
 
 ## Open Questions
 

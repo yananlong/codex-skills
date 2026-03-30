@@ -6,5 +6,6 @@
 | novelty review | | todo | | ./novelty-review/ | | |
 | experiment plan | | todo | | ./experiment-plan/ | | |
 | execution / results audit | | todo | | | | |
-| review loop | | todo | | ./review-loop/ | | |
 | paper plan | | todo | | ./paper-plan/ | | |
+| review loop | | todo | | ./review-loop/ | | |
+| rebuttal | | todo | | ./rebuttal/ | | |

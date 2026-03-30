@@ -1,6 +1,6 @@
 ---
 name: research-pipeline-planner
-description: Coordinate research as either a standalone staged planning pass or an orchestrated multi-skill workflow with shared artifacts, stage gates, and optional collaboration with literature review, novelty review, experiment planning, auditing, review, and paper planning. Use when asked to scope a research direction, inspect existing research artifacts, choose the next research stage, create a research brief or task board, or coordinate a reusable research workflow.
+description: Coordinate research as either a standalone staged planning pass or an orchestrated multi-skill workflow with shared artifacts, stage gates, and optional collaboration with literature review, novelty review, experiment planning, result auditing, review, paper planning, and venue-response drafting. Use when asked to scope a research direction, inspect existing research artifacts, choose the next research stage, create a research brief or task board, or coordinate a reusable research workflow.
 ---
 
 # Research Pipeline Planner
@@ -78,6 +78,7 @@ description: Coordinate research as either a standalone staged planning pass or 
   - result sanity check -> `research-results-auditor`
   - iterative red-team pass -> `research-review-loop`
   - manuscript structuring -> `research-paper-plan`
+  - venue-aware author response or rebuttal -> `research-rebuttal`
 - If a sibling skill would improve the answer materially, say so explicitly and collaborate instead of staying artificially local.
 
 ### 5) Make checkpoints explicit

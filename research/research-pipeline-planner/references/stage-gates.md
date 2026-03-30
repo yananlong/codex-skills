@@ -37,3 +37,9 @@ Use these gates to decide whether to proceed, revise scope, or stop.
 - Proceed when there is enough supported evidence to build a coherent paper story.
 - Revise when claims still outrun the evidence.
 - Stop when the user is asking for manuscript structure without any credible support.
+
+## Rebuttal gate
+
+- Proceed when there are concrete reviews or decision-relevant committee comments to answer.
+- Revise when the venue route, policy constraints, or supporting evidence are still too unclear to draft safely.
+- Stop when the response would require fabricated results, invented manuscript changes, or guessed reviewer positions.
