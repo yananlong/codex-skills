@@ -35,6 +35,7 @@
 | literature review | | ./literature-review/ | research-systematic-literature-review | optional |
 | novelty review | | ./novelty-review/ | research-novelty-review | optional |
 | experiment plan | | ./experiment-plan/ | research-experiment-plan | optional |
+| paper review | | ./paper-review/ | research-paper-review | optional |
 | paper plan | | ./paper-plan/ | research-paper-plan | optional |
 | review loop | | ./review-loop/ | research-review-loop | optional |
 | rebuttal | | ./rebuttal/ | research-rebuttal | optional |

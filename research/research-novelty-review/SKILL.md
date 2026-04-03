@@ -1,6 +1,6 @@
 ---
 name: research-novelty-review
-description: Run a stringent, adversarial novelty review over a concrete research idea, method, protocol, artifact, or claimed finding. Use when asked to assess novelty, position a paper or project, build a prior-art matrix, decide whether something is incremental, or pressure-test whether the right move is to proceed, reframe, or abandon.
+description: Run a stringent, adversarial novelty review over a concrete research idea, method, protocol, artifact, or claimed finding. Use when asked to assess novelty, position a paper or project, build a prior-art matrix, decide whether something is incremental, or pressure-test whether the right move is to proceed, reframe, or abandon. Prefer `research-paper-review` for first-pass technical critique of a single paper artifact and `research-rebuttal` when the task is to answer concrete reviewer comments rather than establish novelty positioning from scratch.
 ---
 
 # Research Novelty Review

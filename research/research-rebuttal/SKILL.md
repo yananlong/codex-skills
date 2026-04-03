@@ -1,6 +1,6 @@
 ---
 name: research-rebuttal
-description: Draft venue-aware academic rebuttals and author responses from reviewer comments, scores, and paper artifacts. Use when asked to analyze reviews, build a reviewer issue board, plan evidence or manuscript fixes, draft a rebuttal, respond to AC or meta-review feedback, manage multi-round author-reviewer discussion, or prepare a paste-ready response for conference or journal review systems.
+description: Draft venue-aware academic rebuttals and author responses from reviewer comments, scores, and paper artifacts. Use when concrete reviewer comments already exist and Codex needs to analyze reviews, build a reviewer issue board, plan evidence or manuscript fixes, draft a rebuttal, respond to AC or meta-review feedback, manage multi-round author-reviewer discussion, or prepare a paste-ready response for conference or journal review systems. Prefer `research-paper-review` for initial manuscript diagnosis before reviews arrive, `research-review-loop` for internal tracked review without external reviewer comments, and `research-novelty-review` for prior-art positioning disputes.
 ---
 
 # Research Rebuttal
@@ -26,6 +26,22 @@ description: Draft venue-aware academic rebuttals and author responses from revi
 - Prefer the canonical directory `./rebuttal/`.
 - Read upstream context from `research-brief.md`, `artifact-index.md`, `./paper-plan/`, `./review-loop/`, and relevant result artifacts when present.
 - Keep outputs legible to later manuscript revision, camera-ready planning, or follow-up review rounds.
+
+## Relationship to sibling skills
+
+- `research-paper-review` should usually happen before rebuttal if the paper still needs a first-pass technical diagnosis.
+- `research-review-loop` should track internal revision rounds and issue closure between rebuttal iterations.
+- `research-rebuttal` starts when there are concrete reviewer comments and a venue-specific response artifact to produce.
+- `research-novelty-review` is a helper when the central dispute is novelty or prior-art overlap rather than general reviewer response.
+
+## Handling review inputs
+
+- Pasted text: use directly, but check whether the paste is complete.
+- PDF review bundles: extract all review text, scores, and confidence values before analysis.
+- Screenshots: transcribe visible review content and flag truncation or unreadable regions.
+- OpenReview or CMT links: treat raw platform access as unreliable; ask for pasted review text if needed.
+- Paper PDF or source: read as needed to cross-reference challenged claims, tables, or sections.
+- If review metadata is incomplete, proceed conservatively and label the missing fields rather than inventing them.
 
 ## Input contract
 
@@ -76,12 +92,26 @@ description: Draft venue-aware academic rebuttals and author responses from revi
 
 - Summarize each reviewer's decision logic, score, confidence, and likely AC-facing concern in `review-analysis.md`.
 - Build `issue-board.md` using `references/issue_board_guide.md`.
+- Extract a score matrix first. As a default heuristic, treat reviewers as:
+  - Champion: strong accept signal or clearly positive language
+  - Persuadable: mixed review or borderline score
+  - Entrenched: strongly negative decision logic unlikely to flip
+- Spend most rebuttal budget on Persuadable reviewers and committee-facing concerns, while maintaining Champion support.
 - Group shared concerns across reviewers and mark severity aggressively:
   - Major-Blocking
   - Major-Addressable
   - Minor
   - Misunderstanding
 - Classify reviewer stance as Champion, Persuadable, or Entrenched using `references/writing_principles.md`.
+- Use an explicit issue-board shape rather than free-form notes. For example:
+
+```text
+issue_id | reviewer | severity          | category   | strategy | status | shared_with
+R1-1     | R1       | Major-Blocking    | baselines  | TBD      | open   |
+R2-1     | R2       | Misunderstanding  | novelty    | TBD      | open   |
+R3-1     | R3       | Major-Addressable | ablations  | TBD      | open   | R1-1
+```
+
 - If the user asked only for triage or analysis, stop after the analysis and issue board.
 
 ### 3) Choose response strategies per issue
@@ -95,6 +125,11 @@ description: Draft venue-aware academic rebuttals and author responses from revi
   - Out of scope
   - Escalate to AC
 - Strategy choice must depend on factual correctness, acceptance impact, and venue policy constraints, not rhetorical preference.
+- Compound strategies are often correct:
+  - clarify misunderstanding + accept a presentation fix
+  - accept and fix + provide new evidence
+  - partial agree + narrow the claim
+- Do not promise evidence you do not have. Missing evidence becomes a task, not a rhetorical flourish.
 
 ### 4) Convert strategy into an execution plan
 
@@ -115,6 +150,24 @@ description: Draft venue-aware academic rebuttals and author responses from revi
   - rolling venues: emphasize revision plan over argument
 - Use direct answer -> evidence -> implication structure.
 - Keep every response self-contained enough that the reviewer or AC can scan it without hunting through the manuscript.
+- For venues with strict character budgets, allocate rough space before writing:
+  - opener or global summary: 10-15%
+  - per-reviewer core responses: 75-80%
+  - closing or summary of changes: 5-10%
+- Use the working draft as the evidence-rich version and the paste-ready draft as the platform-safe compressed artifact.
+- Example of a good response shape:
+
+```text
+[R2] Missing comparison to MethodX
+Direct answer: We agree this comparison is decision-relevant and have now run it.
+Evidence: Table 2 below shows +2.1 points over MethodX on Dataset A.
+Implication: This resolves the concern that our gains came only from benchmark selection.
+```
+
+- Avoid defensive responses such as:
+  - "the reviewer failed to notice"
+  - "it is obvious"
+  - "we will fix this in the camera-ready" without evidence or a venue-legal commitment
 
 ### 6) Run mandatory safety gates
 
@@ -125,6 +178,7 @@ description: Draft venue-aware academic rebuttals and author responses from revi
 - Coverage gate:
   - every Major-Blocking and Major-Addressable issue must be closed, deferred with justification, or explicitly accepted as a risk
 - Verify size limits with `scripts/count_limits.sh <file> [--chars|--words|--pages] [--limit N]`.
+- If `paper-review/final_issues.json` or `review-loop/REVIEW_STATE.json` exists, cross-check that the rebuttal does not quietly contradict the internal diagnosis.
 
 ### 7) Handle follow-up rounds carefully
 
@@ -132,6 +186,7 @@ description: Draft venue-aware academic rebuttals and author responses from revi
 - Reply only to new or still-open points.
 - Increase technical specificity, not argumentative intensity.
 - If a disagreement persists after repeated rounds, summarize the positions cleanly and let the committee adjudicate.
+- In multi-round venues, treat the issue board as the source of truth and write delta replies only.
 
 ## Scripts
 
@@ -145,3 +200,4 @@ description: Draft venue-aware academic rebuttals and author responses from revi
 - `references/response_strategies.md`
 - `references/venue_rule_matrix.md`
 - `references/writing_principles.md`
+- `../research-pipeline-planner/references/review-stage-contract.md`

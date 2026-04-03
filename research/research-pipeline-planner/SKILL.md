@@ -1,6 +1,6 @@
 ---
 name: research-pipeline-planner
-description: Coordinate research as either a standalone staged planning pass or an orchestrated multi-skill workflow with shared artifacts, stage gates, and optional collaboration with literature review, novelty review, experiment planning, result auditing, review, paper planning, and venue-response drafting. Use when asked to scope a research direction, inspect existing research artifacts, choose the next research stage, create a research brief or task board, or coordinate a reusable research workflow.
+description: Coordinate research as either a standalone staged planning pass or an orchestrated multi-skill workflow with shared artifacts, stage gates, and optional collaboration with literature review, novelty review, experiment planning, paper review, result auditing, review, paper planning, and venue-response drafting. Use when asked to scope a research direction, inspect existing research artifacts, choose the next research stage, create a research brief or task board, or coordinate a reusable research workflow.
 ---
 
 # Research Pipeline Planner
@@ -44,7 +44,7 @@ description: Coordinate research as either a standalone staged planning pass or 
 
 ### 1) Inspect existing state first
 
-- Look for problem statements, literature notes, novelty assessments, experiment plans, result artifacts, review notes, and draft outlines.
+- Look for problem statements, literature notes, novelty assessments, experiment plans, paper-review artifacts, result artifacts, review notes, and draft outlines.
 - Distinguish:
   - no structured artifacts yet
   - partial standalone artifacts
@@ -75,6 +75,7 @@ description: Coordinate research as either a standalone staged planning pass or 
   - evidence gathering or systematic search -> `research-systematic-literature-review`
   - adversarial novelty pressure test -> `research-novelty-review`
   - decisive validation plan -> `research-experiment-plan`
+  - deep single-paper review -> `research-paper-review`
   - result sanity check -> `research-results-auditor`
   - iterative red-team pass -> `research-review-loop`
   - manuscript structuring -> `research-paper-plan`
@@ -102,6 +103,7 @@ description: Coordinate research as either a standalone staged planning pass or 
 - `references/task-board-template.md`
 - `references/decision-log-template.md`
 - `references/suite-contract.md`
+- `references/review-stage-contract.md`
 - `references/stage-gates.md`
 - `references/tabmol-ddi-ood-adapter.md`
 

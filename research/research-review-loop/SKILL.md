@@ -1,6 +1,6 @@
 ---
 name: research-review-loop
-description: Run iterative adversarial review over research plans, experiment outputs, and drafts with claim ledgers, issue tracking, evidence checks, and explicit closure criteria. Use when asked to red-team a research artifact, run recurring review rounds, maintain review state across revisions, or pressure-test whether results and prose actually support a claim.
+description: Run iterative adversarial review over research plans, experiment outputs, and drafts with claim ledgers, issue tracking, evidence checks, and explicit closure criteria. Use when asked to red-team a research artifact across multiple rounds, maintain issue state across revisions, or pressure-test whether revised results and prose actually support a claim. Prefer `research-paper-review` for an initial single-paper critique or OCR/extraction workflow, and prefer `research-rebuttal` when concrete external reviewer comments already exist and the task is to draft a venue response.
 ---
 
 # Research Review Loop
@@ -13,6 +13,30 @@ description: Run iterative adversarial review over research plans, experiment ou
 4. Review for internal consistency, evidence quality, and external verifiability.
 5. Update `REVIEW_STATE.json`, `AUTO_REVIEW.md`, and `NARRATIVE_REPORT.md` after each round.
 
+## Relationship to sibling skills
+
+- `research-paper-review` should usually run before this skill when the artifact is a paper that has not yet received a first-pass critique.
+- `research-review-loop` owns tracked iterative review: issue carry-forward, resolution checks, accepted risks, and round discipline.
+- `research-rebuttal` owns responses to external reviewer comments and venue-constrained discussion artifacts.
+- `adversarial-doc-review` is broader and lighter-weight; use it for one-off document critique without a tracked research review state.
+
+## Input contract
+
+- Minimum:
+  - one concrete artifact under review
+- Prefer:
+  - an existing review pack or tracked issue state
+  - upstream `paper-review` artifacts such as `summary.md`, `final_issues.json`, and `overall_assessment.txt`
+  - revision diffs or an explicit statement of what changed since the last round
+
+## Output contract
+
+- Primary tracked artifacts:
+  - `REVIEW_STATE.json`
+  - `AUTO_REVIEW.md`
+  - `NARRATIVE_REPORT.md`
+- If upstream `paper-review` artifacts exist, keep explicit references to their file paths in the round state rather than rewriting the whole first-pass critique from scratch.
+
 ## Workflow
 
 ### 1) Treat review as an iterative stateful process
@@ -20,6 +44,7 @@ description: Run iterative adversarial review over research plans, experiment ou
 - Carry unresolved, resolved, and accepted issues across rounds.
 - Never collapse multiple review rounds into one untracked summary.
 - Require each issue to have severity, status, evidence, and a concrete fix or follow-up.
+- If `paper-review/final_issues.json` exists, initialize the first tracked issue set from that file instead of inventing a new initial ledger.
 
 ### 2) Build the claim ledger first
 
@@ -53,6 +78,7 @@ description: Run iterative adversarial review over research plans, experiment ou
 - Use `references/report-template.md` for each round.
 - Separate major issues from minor issues and open questions.
 - Include targeted rewrites when wording is the real problem.
+- Record what changed since the prior round and why each formerly-open issue is now resolved, deferred, or still open.
 
 ## References
 
@@ -60,6 +86,7 @@ description: Run iterative adversarial review over research plans, experiment ou
 - `references/report-template.md`
 - `references/review-state-schema.md`
 - `references/tabmol-ddi-ood-adapter.md`
+- `../research-pipeline-planner/references/review-stage-contract.md`
 
 ## Script
 

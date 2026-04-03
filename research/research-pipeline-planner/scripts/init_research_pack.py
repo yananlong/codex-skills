@@ -11,6 +11,7 @@ STAGE_DIRS = [
     "literature-review",
     "novelty-review",
     "experiment-plan",
+    "paper-review",
     "paper-plan",
     "review-loop",
     "rebuttal",
@@ -54,6 +55,7 @@ FILE_TEMPLATES = {
 | literature review | | ./literature-review/ | research-systematic-literature-review | optional |
 | novelty review | | ./novelty-review/ | research-novelty-review | optional |
 | experiment plan | | ./experiment-plan/ | research-experiment-plan | optional |
+| paper review | | ./paper-review/ | research-paper-review | optional |
 | paper plan | | ./paper-plan/ | research-paper-plan | optional |
 | review loop | | ./review-loop/ | research-review-loop | optional |
 | rebuttal | | ./rebuttal/ | research-rebuttal | optional |
@@ -71,6 +73,7 @@ FILE_TEMPLATES = {
 | literature review | | todo | | ./literature-review/ | | |
 | novelty review | | todo | | ./novelty-review/ | | |
 | experiment plan | | todo | | ./experiment-plan/ | | |
+| paper review | | todo | | ./paper-review/ | | |
 | execution / results audit | | todo | | | | |
 | paper plan | | todo | | ./paper-plan/ | | |
 | review loop | | todo | | ./review-loop/ | | |
@@ -100,6 +103,7 @@ FILE_TEMPLATES = {
 | literature review | ./literature-review/ | pending | outputs from research-systematic-literature-review |
 | novelty review | ./novelty-review/ | pending | outputs from research-novelty-review |
 | experiment plan | ./experiment-plan/ | pending | outputs from research-experiment-plan |
+| paper review | ./paper-review/ | pending | outputs from research-paper-review |
 | paper plan | ./paper-plan/ | pending | outputs from research-paper-plan |
 | review loop | ./review-loop/ | pending | outputs from research-review-loop |
 | rebuttal | ./rebuttal/ | pending | outputs from research-rebuttal |

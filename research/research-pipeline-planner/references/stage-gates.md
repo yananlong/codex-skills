@@ -20,6 +20,12 @@ Use these gates to decide whether to proceed, revise scope, or stop.
 - Revise when the plan still mixes multiple claims or confounded interventions.
 - Stop when the evaluation target is undefined.
 
+## Paper review gate
+
+- Proceed when there is a concrete paper artifact or URL worth scrutinizing closely.
+- Revise when the draft is so incomplete that section-level critique would mostly produce noise.
+- Stop when the requested review would require guessing missing paper content or fabricating evidence.
+
 ## Results audit gate
 
 - Proceed when there is a real result artifact to inspect.

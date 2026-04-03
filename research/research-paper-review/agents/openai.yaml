@@ -1,0 +1,7 @@
+interface:
+  display_name: "Research Paper Review"
+  short_description: "Deep paper review with OCR and viz"
+  default_prompt: "Use $research-paper-review to run an OpenAIReview-style deep review of a paper, draft, PDF, or arXiv URL and save browsable results."
+
+policy:
+  allow_implicit_invocation: true
