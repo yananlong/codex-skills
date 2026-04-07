@@ -1,5 +1,5 @@
 # Prior Art Matrix Template
 
-| Work | Venue / year | Closest overlap | Threat level | What still looks new | What could kill the claim |
+| Work | Venue / year | Closest overlap | Threat rating (1-5) | What still looks new | What could kill the claim |
 | --- | --- | --- | --- | --- | --- |
-| | | | low / medium / high | | |
+| | | | 1-5 | | |

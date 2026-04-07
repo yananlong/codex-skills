@@ -45,7 +45,8 @@ Write findings as a JSON array. Each issue is a JSON object with:
 - `quote`
 - `explanation`
 - `comment_type`
-- `confidence`
+- `impact_rating`
+- `confidence_rating`
 - `source_section`
 - `related_sections`
 

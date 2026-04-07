@@ -10,6 +10,7 @@ Use this contract only when the work benefits from shared stage artifacts. Do no
 | task board | `./task-board.md` | stage tracker and next actions |
 | decision log | `./decision-log.md` | checkpoint decisions |
 | artifact index | `./artifact-index.md` | canonical path registry |
+| zotero | `./zotero/` | outputs from `research-zotero` |
 | literature review | `./literature-review/` | outputs from `research-systematic-literature-review` |
 | novelty review | `./novelty-review/` | outputs from `research-novelty-review` |
 | experiment plan | `./experiment-plan/` | outputs from `research-experiment-plan` |
@@ -29,6 +30,7 @@ Use this contract only when the work benefits from shared stage artifacts. Do no
 
 | Need | Preferred skill | Minimum upstream context |
 | --- | --- | --- |
+| curated Zotero corpus or citation export | `research-zotero` | API key or Zotero access, optionally collection/tags/query |
 | broad evidence gathering | `research-systematic-literature-review` | topic, domain, and review question |
 | skeptical novelty pressure test | `research-novelty-review` | concrete method or claim description |
 | decisive validation design | `research-experiment-plan` | frozen claim and evaluation goal |

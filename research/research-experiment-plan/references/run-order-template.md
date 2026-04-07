@@ -1,9 +1,9 @@
 # Run Order Template
 
-| Order | Stage | Block | Purpose | Dependency | Stop / go gate | Expected artifact |
-| --- | --- | --- | --- | --- | --- | --- |
-| 1 | sanity | | | | | |
-| 2 | baseline | | | | | |
-| 3 | main method | | | | | |
-| 4 | decision | | | | | |
-| 5 | polish | | | | | |
+| Order | Stage | Block | Purpose | Dependency | Gate ID | Stop / go gate | Expected artifact | Est. cost |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | sanity | | | | G0 | | | |
+| 2 | baseline | | | | G1 | | | |
+| 3 | main method | | | | G2 | | | |
+| 4 | decision | | | | G3 | | | |
+| 5 | polish | | | | G4 | | | |

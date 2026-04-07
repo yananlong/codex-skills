@@ -187,6 +187,14 @@ def _search_log_md(inputs: ReviewInputs) -> str:
 | --- | --- | ---: | ---: | ---: | --- |
 | dedup-001 | exact-title-doi | 0 | 0 | 0 | |
 
+## Zotero library sync
+
+Use this section when Zotero is acting as a curated discovery source or citation-validation source.
+
+| sync_id | date | access_mode | library_type | library_id | collection_key | tags | query | items_retrieved | notes |
+| --- | --- | --- | --- | --- | --- | --- | --- | ---: | --- |
+| zot-001 | {inputs.today} | api-key / oauth-key / mcp | user / group | | | | | 0 | |
+
 ## Version resolution ledger (preprint → published)
 
 Use this ledger to resolve preprints (e.g., arXiv/bioRxiv/SSRN) to their peer-reviewed published versions when available.

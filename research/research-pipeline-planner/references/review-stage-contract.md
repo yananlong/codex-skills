@@ -22,6 +22,7 @@ Required files:
 
 - `<review_dir>/summary.md`
 - `<review_dir>/final_issues.json`
+- `<review_dir>/review_summary.json`
 - `<review_dir>/overall_assessment.txt`
 
 Required support files:
@@ -38,14 +39,15 @@ Optional but preferred:
 ## Review-loop consumption rules
 
 - Initialize the first tracked issue set from `paper-review/final_issues.json` when available.
+- Use `paper-review/review_summary.json` as the numeric first-pass summary for round initialization and routing.
 - Preserve source paths back to the original paper-review artifacts.
-- Do not silently rewrite issue titles or severities unless new evidence justifies the change.
+- Do not silently rewrite issue titles or impact/confidence ratings unless new evidence justifies the change.
 - Record what changed between rounds and whether each inherited issue is now resolved, still open, or accepted as a risk.
 
 ## Rebuttal consumption rules
 
 - External reviewer comments are primary. Paper-review artifacts are supporting internal evidence, not substitutes for reviewer text.
-- Use `summary.md` and `final_issues.json` to cross-check reviewer concerns, locate evidence quickly, and detect contradictions.
+- Use `summary.md`, `final_issues.json`, and `review_summary.json` to cross-check reviewer concerns, locate evidence quickly, and detect contradictions.
 - If `review-loop/REVIEW_STATE.json` exists, use it to avoid re-opening already-resolved internal issues without cause.
 - Keep a clear distinction between:
   - internal diagnosis

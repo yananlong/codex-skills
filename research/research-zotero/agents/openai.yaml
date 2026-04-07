@@ -1,0 +1,7 @@
+interface:
+  display_name: "Research Zotero"
+  short_description: "Sync and export Zotero research corpora"
+  default_prompt: "Use $research-zotero to sync my Zotero library, export citations, or prepare a literature corpus for other research skills."
+
+policy:
+  allow_implicit_invocation: true

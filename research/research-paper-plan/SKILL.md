@@ -24,7 +24,7 @@ description: Turn supported claims and evidence into a research paper plan that 
 ### Orchestrated mode
 
 - Prefer the canonical directory `./paper-plan/`.
-- Read upstream context from `research-brief.md`, `artifact-index.md`, `./novelty-review/`, `./experiment-plan/`, and `./review-loop/` when present.
+- Read upstream context from `research-brief.md`, `artifact-index.md`, `./novelty-review/`, `./experiment-plan/`, `./review-loop/`, and `./zotero/` when present.
 - Keep the paper outputs legible to later drafting and review passes.
 
 ## Input contract
@@ -37,6 +37,7 @@ description: Turn supported claims and evidence into a research paper plan that 
   - known weaknesses or reviewer objections
   - desired exhibit list
   - existing novelty, experiment, results-audit, or review-loop artifacts
+  - existing Zotero exports or library artifacts
 
 ## Hard stops
 
@@ -84,6 +85,7 @@ description: Turn supported claims and evidence into a research paper plan that 
 ### 4) Build the citation plan carefully
 
 - Use `references/citation-verification-rules.md`.
+- If a Zotero library already exists for the project, invoke `research-zotero` or consume `./zotero/` artifacts before inventing citation structure from memory.
 - Record which claims need citations versus which require empirical evidence.
 - Keep citation verification explicit instead of inventing references from memory.
 
@@ -92,6 +94,7 @@ description: Turn supported claims and evidence into a research paper plan that 
 - Pull in `research-results-auditor` when the evidence quality is unclear.
 - Pull in `research-review-loop` when the story needs an adversarial pass.
 - Pull in `research-novelty-review` when positioning remains unstable.
+- Pull in `research-zotero` when citation grounding, BibTeX export, or CSL-JSON export would materially improve the paper plan.
 - Missing evidence remains a block in every mode. Do not write unsupported paper stories.
 
 ## References

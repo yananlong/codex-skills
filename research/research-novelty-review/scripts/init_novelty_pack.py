@@ -28,7 +28,7 @@ FILE_TEMPLATES = {
 
 ## Strongest Overlaps
 
-| Work | Threat level | Why it matters |
+| Work | Threat rating (1-5) | Why it matters |
 | --- | --- | --- |
 | | | |
 
@@ -39,21 +39,30 @@ FILE_TEMPLATES = {
 
 ## Decision
 
-- Recommendation: ABANDON / REFRAME / PROCEED
+- Novelty decision rating (1-5):
+- Decision confidence rating (1-5):
 - Narrowest defensible positioning:
 - What would change the decision:
 """,
     "prior-art-matrix.md": """# Prior Art Matrix
 
-| Work | Venue / year | Closest overlap | Threat level | What still looks new | What could kill the claim |
+| Work | Venue / year | Closest overlap | Threat rating (1-5) | What still looks new | What could kill the claim |
 | --- | --- | --- | --- | --- | --- |
-| | | | low / medium / high | | |
+| | | | 1-5 | | |
 """,
     "search-log.md": """# Search Log
 
 | Query | Source | Filters | Purpose | Closest hits | Notes |
 | --- | --- | --- | --- | --- | --- |
 | | | | falsify framing / method / protocol / artifact / result | | |
+""",
+    "novelty-decision.json": """{
+  "novelty_decision_rating": 3,
+  "decision_confidence_rating": 3,
+  "narrowest_defensible_positioning": "",
+  "what_would_change_the_decision": "",
+  "top_kill_shot_objections": []
+}
 """,
 }
 

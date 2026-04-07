@@ -1,6 +1,6 @@
 ---
 name: research-pipeline-planner
-description: Coordinate research as either a standalone staged planning pass or an orchestrated multi-skill workflow with shared artifacts, stage gates, and optional collaboration with literature review, novelty review, experiment planning, paper review, result auditing, review, paper planning, and venue-response drafting. Use when asked to scope a research direction, inspect existing research artifacts, choose the next research stage, create a research brief or task board, or coordinate a reusable research workflow.
+description: Coordinate research as either a standalone staged planning pass or an orchestrated multi-skill workflow with shared artifacts, stage gates, and optional collaboration with Zotero library sync, literature review, novelty review, experiment planning, paper review, result auditing, review, paper planning, and venue-response drafting. Use when asked to scope a research direction, inspect existing research artifacts, choose the next research stage, create a research brief or task board, or coordinate a reusable research workflow.
 ---
 
 # Research Pipeline Planner
@@ -72,6 +72,7 @@ description: Coordinate research as either a standalone staged planning pass or 
 
 - Prefer the next blocking stage over speculative long todo lists.
 - Use the canonical handoff map:
+  - curated Zotero library sync or citation export -> `research-zotero`
   - evidence gathering or systematic search -> `research-systematic-literature-review`
   - adversarial novelty pressure test -> `research-novelty-review`
   - decisive validation plan -> `research-experiment-plan`

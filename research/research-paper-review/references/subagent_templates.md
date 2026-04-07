@@ -24,6 +24,7 @@ Favor well-developed arguments over surface observations. Merge observations onl
 
 Output:
 Write findings as a JSON array to <REVIEW_DIR>/comments/<DESCRIPTIVE_NAME>.json
+Use 1-5 `impact_rating` and `confidence_rating` fields in each issue object.
 Return a brief summary with the issue count and one-line titles.
 ```
 
@@ -49,6 +50,7 @@ Make the strongest version of the most important arguments. Merge findings only 
 
 Output:
 Write findings as a JSON array to <REVIEW_DIR>/comments/<DESCRIPTIVE_NAME>.json
+Use 1-5 `impact_rating` and `confidence_rating` fields in each issue object.
 Return a brief summary with the issue count and one-line titles.
 ```
 

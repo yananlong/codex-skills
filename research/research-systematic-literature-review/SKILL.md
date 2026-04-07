@@ -9,10 +9,11 @@ description: Full systematic literature review (PRISMA 2020 core) with discovery
 
 1. Require `domain` before substantive review work. Stop and ask if missing.
 2. Collect optional inputs **including whether the user wants deep technical/mathematical exposition**. If `technical_exposition` is not provided, explicitly ask the user to choose between `standard` vs `detailed_math`. Apply defaults for missing non-domain inputs and log assumptions.
-3. Check tool access. If web browsing/search is unavailable and no corpus is provided, stop and ask for browsing access or a user corpus.
+3. Check tool access. If web browsing/search is unavailable and no corpus or Zotero access is provided, stop and ask for browsing access, `research-zotero`, or a user corpus.
 4. Initialize the review artifact pack with `scripts/init_review_pack.py`.
-5. Run discovery, deduplication (including preprint→published version resolution), screening, extraction, synthesis, and adversarial checks.
-6. Generate PRISMA flow accounting with `scripts/prisma_flow_md.py` and insert it into `<topic>.review.md`.
+5. If Zotero is relevant, invoke `research-zotero` first or consume existing `./zotero/` artifacts.
+6. Run discovery, deduplication (including preprint→published version resolution), screening, extraction, synthesis, and adversarial checks.
+7. Generate PRISMA flow accounting with `scripts/prisma_flow_md.py` and insert it into `<topic>.review.md`.
 7. Validate the full pack with `scripts/validate_review_pack.py` before returning output.
 
 ## Input contract
@@ -33,11 +34,17 @@ description: Full systematic literature review (PRISMA 2020 core) with discovery
 - `outcomes`: default to efficacy/performance, robustness, safety, and transferability outcomes where applicable.
 - `quality_threshold`: default to retain studies with at least moderate methodological quality and transparent reporting.
 - `technical_exposition`: default to `standard`. If set to `detailed_math`, the `<topic>.review.md` **must** include formal definitions/notation, key equations/objectives, and (when relevant) theorem statements or proof sketches in the `Synthesis` section.
+- `zotero_library_type`: optional. `user` or `group` when Zotero should be used as a source.
+- `zotero_library_id`: optional. Zotero user ID or group ID.
+- `zotero_collection_key`: optional. Restrict Zotero sync to a collection.
+- `zotero_query`: optional. Zotero free-text query for item discovery.
+- `zotero_tags`: optional. Restrict Zotero items by tag.
+- `zotero_access_mode`: optional. `api-key`, `oauth-key`, or `mcp`.
 
 ## Hard-stop and failover rules
 
 - Stop immediately if `domain` is missing.
-- Stop immediately if web browsing/search is unavailable and no user-provided corpus is available.
+- Stop immediately if web browsing/search is unavailable and there is no user-provided corpus and no `research-zotero` artifact or Zotero API/MCP path.
 - Continue with soft defaults only for non-domain fields and explicitly log all defaults under "Assumptions applied".
 
 ## Default output contract
@@ -50,6 +57,10 @@ Supporting files:
 `<topic>.search-log.md`
 `<topic>.screening-log.md`
 `<topic>.evidence-table.md`
+
+Optional support files when Zotero is used:
+`<topic>.zotero-items.json`
+`<topic>.zotero-sync.md`
 
 Required sections in `<topic>.review.md`:
 `Protocol`
@@ -80,6 +91,13 @@ Required sections in `<topic>.review.md`:
 
 - Use `references/search-strategy-template.md`.
 - Search multiple relevant sources and log exact query strings, filters, and retrieval dates.
+- If Zotero access is available, use `research-zotero` or consume its artifacts and decide whether Zotero is:
+  - a curated seed library
+  - a citation cross-check source
+  - a discovery source for saved collections/tags
+- If `./zotero/zotero-items.json` already exists, prefer consuming it over re-syncing.
+- If Zotero MCP is available in the runtime, `research-zotero` should prefer it for interactive library inspection.
+- If Zotero MCP is unavailable but API access is available, `research-zotero` should export items and log the sync before this skill consumes them.
 - For major ML conferences hosted on OpenReview (e.g., ICLR/NeurIPS, and others when applicable), include **OpenReview as a first-class discovery source** (especially for 2025+ venue years when recency matters). Use the OpenReview API v2 (`api2.openreview.net`) for reproducible queries (e.g., `notes/search` + `notes?id=...`), and log venue group(s), query terms/fields (title/abstract), and whether you filtered to accepted papers.
 - Prefer published/peer-reviewed indexing and publisher sources over preprint aggregators when both exist (e.g., venue/publisher pages, PubMed, ACL Anthology, ACM DL, IEEE Xplore, SpringerLink, etc.).
 - Use preprint servers (arXiv/bioRxiv/medRxiv/SSRN) primarily for discovery and open-access full text.
@@ -87,6 +105,7 @@ Required sections in `<topic>.review.md`:
 - If an accepted full conference/journal version exists (publisher page, proceedings, or an accepted OpenReview venue record), treat the preprint as a duplicate publication: keep the accepted/published version as the canonical record/citation; optionally retain the preprint URL only as a full-text access link in notes.
 - **arXiv ↔ OpenReview canonicalization rule (ML conferences):** when both an arXiv preprint and an OpenReview forum record exist for the same paper, prefer the OpenReview record **only if** it corresponds to an accepted full venue paper (use `venue` / `venueid` cues; avoid treating `Rejected_Submission` / `Withdrawn_Submission` / “Submitted to …” as canonical). Keep arXiv as an access copy when helpful.
 - Track deduplication decisions explicitly.
+- Treat Zotero as a curated discovery aid, not as proof that a paper meets the final inclusion criteria. Every included paper still needs screening and evidence extraction.
 
 ### 3) Screen records and account for flow
 
@@ -141,3 +160,4 @@ Required sections in `<topic>.review.md`:
 - `references/adversarial-literature-checklist.md`
 - `references/domain-adapters.md`
 - `references/report-template.md`
+- `../research-zotero/references/zotero-artifact-contract.md`

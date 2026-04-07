@@ -1,6 +1,6 @@
 ---
 name: research-paper-review
-description: Run OpenAIReview-style academic paper review with OCR extraction, multi-method CLI review, local visualization, and deep section-level critique workflows integrated into the research skill suite. Use when Codex needs an initial or first-pass review of one paper artifact or arXiv URL, including OCR, extraction, section-level critique, or viz JSON generation. Prefer `research-review-loop` once a tracked review state or revised artifact already exists, `research-novelty-review` for prior-art and positioning questions, `research-rebuttal` when concrete reviewer comments already exist, and `adversarial-doc-review` for non-paper documents.
+description: Run academic paper review with OCR extraction, multi-method CLI review, local visualization, and deep section-level critique workflows integrated into the research skill suite. Use when Codex needs an initial or first-pass review of one paper artifact or arXiv URL, including OCR, extraction, section-level critique, or viz JSON generation. Prefer `research-review-loop` once a tracked review state or revised artifact already exists, `research-novelty-review` for prior-art and positioning questions, `research-rebuttal` when concrete reviewer comments already exist, and `adversarial-doc-review` for non-paper documents.
 ---
 
 # Research Paper Review
@@ -14,6 +14,7 @@ description: Run OpenAIReview-style academic paper review with OCR extraction, m
 2. Bootstrap the upstream engine once with `python3 scripts/install_engine.py`.
 3. For orchestrated research packs, prefer `./paper-review/` as the canonical stage root and record non-canonical output paths in `artifact-index.md`.
 4. Use `references/engine-usage.md` for flags, provider environment variables, and OCR engine details.
+5. Use `references/rating-rubric.md` and the 1-5 issue/output scales instead of coarse three-bucket judgments.
 
 ## Modes
 
@@ -72,6 +73,7 @@ description: Run OpenAIReview-style academic paper review with OCR extraction, m
 - Required handoff files for downstream stages:
   - `<review_dir>/summary.md`
   - `<review_dir>/final_issues.json`
+  - `<review_dir>/review_summary.json`
   - `<review_dir>/overall_assessment.txt`
 - Required support files:
   - `<review_dir>/metadata.json`
@@ -81,6 +83,11 @@ description: Run OpenAIReview-style academic paper review with OCR extraction, m
   - `<review_dir>/comments/all_comments.json`
   - `./review_results/<slug>_skill.json`
 - Record the exact active review workspace path and any viz JSON path in `artifact-index.md` so later skills do not guess.
+- `review_summary.json` is the numeric summary artifact for downstream routing. It should include:
+  - `overall_paper_rating` (1-5)
+  - `decision_relevance_rating` (1-5)
+  - `rating_confidence` (1-5)
+  - `top_blockers`
 
 ## Workflow
 
@@ -196,16 +203,12 @@ python3 scripts/consolidate_comments.py <review_dir>
   - `claim_accuracy`
   - `presentation`
   - `missing_information`
-- Assign severity as:
-  - `major`
-  - `moderate`
-  - `minor`
-- Use this calibration:
-  - `major`: threatens a paper-level conclusion, evaluation claim, or core methodological validity
-  - `moderate`: real error or missing support, but localized and fixable
-  - `minor`: framing, overclaim, or ambiguity that does not materially alter the main decision
+- Assign:
+  - `impact_rating` on a 1-5 scale
+  - `confidence_rating` on a 1-5 scale
+- Use `references/rating-rubric.md`.
 - Keep singleton findings unless a concrete check disproves them.
-- As a calibration check, a thorough deep review of a publishable paper usually yields a double-digit total issue count across severities. If you have only a handful of findings, check whether you over-merged or skipped cross-cutting passes. If you have an implausibly large number of majors, re-check whether some are really localized moderates.
+- As a calibration check, a thorough deep review of a publishable paper usually yields a double-digit total issue count across impact levels. If you have only a handful of findings, check whether you over-merged or skipped cross-cutting passes. If you rate nearly everything `4` or `5`, re-check whether some issues are really localized `2` or `3` findings.
 
 ### 7) Save final results for browsing and downstream use
 
@@ -214,7 +217,13 @@ python3 scripts/consolidate_comments.py <review_dir>
   - `quote`
   - `explanation`
   - `comment_type`
-  - `severity`
+  - `impact_rating`
+  - `confidence_rating`
+- Write `review_summary.json` in the review directory with:
+  - `overall_paper_rating`
+  - `decision_relevance_rating`
+  - `rating_confidence`
+  - `top_blockers`
 - Write `overall_assessment.txt` as one short paragraph.
 - Build viz JSON:
 
@@ -224,12 +233,14 @@ python3 scripts/save_viz_json.py <review_dir> --slug-suffix _skill
 
 - The output lands in `./review_results/` unless overridden.
 - Use `python3 scripts/run_openaireview.py serve` to browse results locally.
-- Treat `summary.md`, `final_issues.json`, and `overall_assessment.txt` as the canonical handoff bundle for `research-review-loop`, `research-paper-plan`, and `research-rebuttal`.
+- Run `python3 scripts/validate_review_bundle.py --review-dir <review_dir>` before treating the bundle as stable.
+- Treat `summary.md`, `final_issues.json`, `review_summary.json`, and `overall_assessment.txt` as the canonical handoff bundle for `research-review-loop`, `research-paper-plan`, and `research-rebuttal`.
 
 ## References
 
 - `references/engine-usage.md`
 - `references/criteria.md`
+- `references/rating-rubric.md`
 - `references/subagent_templates.md`
 - `../research-pipeline-planner/references/review-stage-contract.md`
 
@@ -238,5 +249,6 @@ python3 scripts/save_viz_json.py <review_dir> --slug-suffix _skill
 - `scripts/install_engine.py`: create or update a virtualenv with the upstream OpenAIReview engine
 - `scripts/run_openaireview.py`: mirror the upstream `openaireview` CLI
 - `scripts/prepare_workspace.py`: delegate to the packaged deep-review workspace preparer
+- `scripts/validate_review_bundle.py`: validate required handoff files and 1-5 rating fields for downstream use
 - `scripts/consolidate_comments.py`: delegate to the packaged consolidation helper
 - `scripts/save_viz_json.py`: delegate to the packaged viz JSON helper
