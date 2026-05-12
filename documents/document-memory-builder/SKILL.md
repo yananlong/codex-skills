@@ -1,6 +1,6 @@
 ---
 name: document-memory-builder
-description: Read a specified set of documents and distill them into a reusable, source-grounded memory pack. Use when Codex is asked to ingest project documents, papers, specs, notes, policies, or mixed corpora and create durable memory artifacts such as canonical facts, terminology, workflows, constraints, entity maps, and open questions for later reuse.
+description: Read a specified set of documents and distill them into a reusable, source-grounded memory pack. Use when Codex is asked to ingest project documents, papers, specs, notes, policies, or mixed corpora and create durable memory artifacts such as canonical facts, terminology, workflows, constraints, entity maps, and open questions for later reuse. Also use for long-form or chaptered material such as books, long reports, multi-section drafts, or large corpus updates that require section-aware extraction and synthesis.
 ---
 
 # Document Memory Builder
@@ -69,6 +69,18 @@ When two sources disagree, prefer the higher-authority source. If authority is e
 
 Prefer compression over exhaustiveness. The goal is reusable memory, not a complete summary of every paragraph.
 
+### 4b) Long materials and subagents
+
+- For long-form material, build a section or chapter map before extraction.
+- Split by meaningful units such as chapters, sections, appendices, scenes, or argument arcs, not by arbitrary size.
+- If one unit is too large, split at subheadings or clear conceptual turns, not mid-argument.
+- When runtime and user permissions explicitly allow subagents, delegate independent chunks in parallel.
+- If subagents are unavailable or not allowed, run the same chunk workflow serially in the main agent.
+- Give every chunk pass a shared brief: user goal, source-authority rules, terminology constraints, and locked facts.
+- For subagent runs, require each subagent to return extracted memory candidates for the assigned chunk with source pointers.
+- Also require brief notes on preserved facts, unresolved continuity or conflict issues, and cross-chunk transition needs.
+- Integrate all chunk outputs in the main agent: normalize voice and terminology, resolve or surface conflicts, remove duplicates, smooth cross-section continuity, and run a whole-corpus final pass before writing the pack.
+
 ### 5) Extract only memory-worthy content
 
 Use `references/extraction-rules.md` when deciding what to keep. By default, preserve:
@@ -135,4 +147,4 @@ When asked to refresh memory from new documents:
 
 - `scripts/init_memory_pack.py`: initialize the standard memory pack directory and files.
 - `references/memory-pack-template.md`: required output structure.
-- `references/extraction-rules.md`: rules for deciding what belongs in durable memory.
+- `references/extraction-rules.md`: rules for deciding what belongs in durable memory, plus long-form chunking and integration guidance.
