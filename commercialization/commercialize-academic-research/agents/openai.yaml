@@ -1,4 +1,4 @@
 interface:
   display_name: "Research Commercialization"
-  short_description: "Commercialize academic research"
-  default_prompt: "Use $commercialize-academic-research to develop and iterate a commercialization strategy for this research project."
+  short_description: "Evidence-gated research commercialization"
+  default_prompt: "Use $commercialize-academic-research to evaluate this research asset, separate evidence from assumptions, compare commercialization paths, and define the next validation tests."
