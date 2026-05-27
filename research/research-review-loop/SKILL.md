@@ -11,7 +11,8 @@ description: Run iterative adversarial review over research plans, experiment ou
 2. Initialize review state with `scripts/init_review_loop.py` unless a review pack already exists.
 3. Build a claim ledger before issuing conclusions.
 4. Review for internal consistency, evidence quality, and external verifiability.
-5. Update `REVIEW_STATE.json`, `AUTO_REVIEW.md`, and `NARRATIVE_REPORT.md` after each round.
+5. Preserve previous rounds and append or version new outputs instead of overwriting prior review artifacts.
+6. Update the latest `REVIEW_STATE.json`, `AUTO_REVIEW.md`, and `NARRATIVE_REPORT.md` after each round only after preserving prior versions.
 
 ## Relationship to sibling skills
 
@@ -31,6 +32,8 @@ description: Run iterative adversarial review over research plans, experiment ou
 
 ## Output contract
 
+- For future research-review-loop runs: preserve previous rounds and append/version new outputs instead of overwriting prior review artifacts.
+- Preserve prior rounds. Before writing a new round, copy, archive, or write into a round-specific directory so earlier `REVIEW_STATE.json`, `AUTO_REVIEW.md`, and `NARRATIVE_REPORT.md` artifacts remain available.
 - Primary tracked artifacts:
   - `REVIEW_STATE.json`
   - `AUTO_REVIEW.md`
@@ -43,6 +46,7 @@ description: Run iterative adversarial review over research plans, experiment ou
 
 - Carry unresolved, resolved, and accepted issues across rounds.
 - Never collapse multiple review rounds into one untracked summary.
+- Never overwrite earlier round artifacts without first preserving them in a versioned or timestamped location.
 - Require each issue to have severity, status, evidence, and a concrete fix or follow-up.
 - If `paper-review/final_issues.json` exists, initialize the first tracked issue set from that file instead of inventing a new initial ledger.
 

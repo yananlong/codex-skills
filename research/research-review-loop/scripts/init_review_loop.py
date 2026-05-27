@@ -28,6 +28,7 @@ FILE_TEMPLATES = {
 - Version:
 - Review round:
 - Review date:
+- Prior round artifacts:
 - Reviewer constraints:
 
 ## Executive Summary
