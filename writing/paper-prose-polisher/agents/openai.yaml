@@ -1,0 +1,4 @@
+interface:
+  display_name: "Paper Prose Polisher"
+  short_description: "Turn research drafts into paper prose"
+  default_prompt: "Use $paper-prose-polisher to revise this draft into clear, audience-facing academic paper prose while preserving the evidence and technical meaning."
