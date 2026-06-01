@@ -85,4 +85,6 @@ These local wrappers call the upstream packaged skill scripts after installation
 - `python3 scripts/consolidate_comments.py ...`
 - `python3 scripts/save_viz_json.py ...`
 
-The upstream `install-skill` command is intentionally not mirrored here because this research skill already replaces that Claude-specific install surface.
+The upstream `install-skill` command is intentionally not mirrored here because it installs a Claude Code slash command under `~/.claude/commands/openaireview`. Codex should use this skill's own `SKILL.md`, references, and wrappers instead.
+
+`scripts/save_viz_json.py` adds Codex-specific defaults on top of the packaged helper: it passes `openaireview__codex` / `OpenAIReview (Codex)` unless overridden, temporarily maps 1-5 `impact_rating` values to upstream `severity` tiers for visualization, and marks the saved viz method as `codex`.

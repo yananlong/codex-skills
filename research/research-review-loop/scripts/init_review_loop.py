@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import copy
 import json
 from pathlib import Path
 
@@ -14,6 +15,7 @@ STATE_TEMPLATE = {
     "round": 1,
     "status": "open",
     "summary": "",
+    "source_artifacts": [],
     "open_issues": [],
     "resolved_issues": [],
     "accepted_risks": [],
@@ -29,6 +31,7 @@ FILE_TEMPLATES = {
 - Review round:
 - Review date:
 - Prior round artifacts:
+- Source artifacts:
 - Reviewer constraints:
 
 ## Executive Summary
@@ -44,11 +47,18 @@ FILE_TEMPLATES = {
 
 ## Major Issues
 
+- ID:
+- Source artifact:
+- Impact / confidence:
 - Location:
 - Problem:
 - Why it matters:
 - Evidence:
 - Suggested fix:
+
+## Moderate Issues
+
+-
 
 ## Minor Issues
 
@@ -85,7 +95,70 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("target_dir", type=Path, help="Directory where the review pack will be created.")
     parser.add_argument("--force", action="store_true", help="Overwrite existing files.")
+    parser.add_argument("--target", default="", help="Short description of the reviewed artifact.")
+    parser.add_argument(
+        "--from-paper-review",
+        type=Path,
+        help="Seed open issues from a paper-review directory or final_issues.json file.",
+    )
     return parser.parse_args()
+
+
+def _severity_from_impact(value: object) -> str:
+    if isinstance(value, int):
+        if value >= 4:
+            return "major"
+        if value <= 2:
+            return "minor"
+    return "moderate"
+
+
+def _paper_review_issue_path(path: Path) -> Path:
+    path = path.expanduser().resolve()
+    if path.is_dir():
+        return path / "final_issues.json"
+    return path
+
+
+def _existing_support_artifacts(review_dir: Path) -> list[str]:
+    names = ["summary.md", "final_issues.json", "review_summary.json", "overall_assessment.txt"]
+    return [str((review_dir / name).resolve()) for name in names if (review_dir / name).exists()]
+
+
+def _seed_from_paper_review(path: Path) -> tuple[list[dict], list[str]]:
+    issues_path = _paper_review_issue_path(path)
+    if not issues_path.exists():
+        raise SystemExit(f"paper-review issues file not found: {issues_path}")
+
+    issues = json.loads(issues_path.read_text(encoding="utf-8"))
+    if not isinstance(issues, list):
+        raise SystemExit(f"paper-review issues file must contain a JSON array: {issues_path}")
+
+    review_dir = issues_path.parent
+    seeded: list[dict] = []
+    for idx, issue in enumerate(issues, start=1):
+        if not isinstance(issue, dict):
+            continue
+        impact = issue.get("impact_rating")
+        confidence = issue.get("confidence_rating")
+        seeded.append(
+            {
+                "id": f"PR{idx}",
+                "severity": _severity_from_impact(impact),
+                "impact_rating": impact,
+                "confidence_rating": confidence,
+                "title": issue.get("title", f"Paper-review issue {idx}"),
+                "status": "open",
+                "evidence": issue.get("explanation", ""),
+                "required_action": "Revise the artifact, add evidence, narrow the claim, or explicitly accept the risk.",
+                "source_quote": issue.get("quote", ""),
+                "source_section": issue.get("source_section", ""),
+                "related_sections": issue.get("related_sections", []),
+                "origin": str(issues_path),
+            }
+        )
+
+    return seeded, _existing_support_artifacts(review_dir)
 
 
 def main() -> None:
@@ -100,8 +173,16 @@ def main() -> None:
             "Refusing to overwrite existing files without --force: " + ", ".join(sorted(existing))
         )
 
+    state = copy.deepcopy(STATE_TEMPLATE)
+    state["target"] = args.target
+    if args.from_paper_review:
+        state["open_issues"], state["source_artifacts"] = _seed_from_paper_review(
+            args.from_paper_review
+        )
+        state["summary"] = f"Seeded {len(state['open_issues'])} issues from paper-review artifacts."
+
     state_path = args.target_dir / "REVIEW_STATE.json"
-    state_path.write_text(json.dumps(STATE_TEMPLATE, indent=2) + "\n", encoding="utf-8")
+    state_path.write_text(json.dumps(state, indent=2) + "\n", encoding="utf-8")
     print(f"created {state_path}")
 
     for name, content in FILE_TEMPLATES.items():

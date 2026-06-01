@@ -41,13 +41,15 @@ Reference standard results or conventions when they materially affect the judgme
 
 Write findings as a JSON array. Each issue is a JSON object with:
 
-- `title`
-- `quote`
-- `explanation`
-- `comment_type`
-- `impact_rating`
-- `confidence_rating`
-- `source_section`
-- `related_sections`
+- `title`: short descriptive title
+- `quote`: exact verbatim quote from the paper, character-for-character, preserving LaTeX when present
+- `explanation`: what concerned you, what context you checked, what remains problematic, and what would fix it
+- `comment_type`: one of `methodology`, `claim_accuracy`, `presentation`, or `missing_information`
+- `impact_rating`: integer 1-5 using `references/rating-rubric.md`
+- `confidence_rating`: integer 1-5 using `references/rating-rubric.md`
+- `source_section`: section name where the issue appears
+- `related_sections`: list of other sections involved, or `[]`
+
+If a finding is real but low stakes, keep it with a low `impact_rating`; do not hide it by dropping it during the pass.
 
 If there are no issues, write `[]`.

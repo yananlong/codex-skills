@@ -12,6 +12,12 @@
 - Are definitions and assumptions explicit?
 - Are claims separated into factual, quantitative, causal, normative, and speculative?
 
+## Imported paper-review issues
+
+- If `paper-review/final_issues.json` exists, were issue titles, quotes, explanations, impact ratings, confidence ratings, and source sections preserved?
+- Were `impact_rating` values mapped consistently to major, moderate, or minor tracked issues?
+- Does each imported issue still point to its origin file instead of being rewritten as an untraceable summary?
+
 ## Internal checks
 
 - Are there contradictions or definitional drift?
@@ -29,3 +35,4 @@
 - Which issues are major?
 - What evidence or rewrite would resolve each issue?
 - Which risks remain accepted rather than fixed?
+- For each resolved imported issue, is there a concrete revision diff, new evidence artifact, narrowed claim, or accepted-risk rationale?

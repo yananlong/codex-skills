@@ -7,14 +7,57 @@ description: Full systematic literature review (PRISMA 2020 core) with discovery
 
 ## Quick start
 
-1. Require `domain` before substantive review work. Stop and ask if missing.
-2. Collect optional inputs **including whether the user wants deep technical/mathematical exposition**. If `technical_exposition` is not provided, explicitly ask the user to choose between `standard` vs `detailed_math`. Apply defaults for missing non-domain inputs and log assumptions.
+1. Require `domain` before substantive review work. In paper-context mode, infer it from the target paper summary only when the field is clear; otherwise stop and ask.
+2. Collect optional inputs **including whether the user wants deep technical/mathematical exposition**. If `technical_exposition` is not provided, explicitly ask the user to choose between `standard` vs `detailed_math` for full systematic reviews; in paper-context mode default to `standard` unless the paper-review task requests mathematical positioning. Apply defaults for missing non-domain inputs and log assumptions.
 3. Check tool access. If web browsing/search is unavailable and no corpus or Zotero access is provided, stop and ask for browsing access, `research-zotero`, or a user corpus.
-4. Initialize the review artifact pack with `scripts/init_review_pack.py`.
+4. Initialize the full review artifact pack with `scripts/init_review_pack.py` for full systematic mode; in paper-context mode, create the smaller paper-context files from `references/paper-context-template.md`.
 5. If Zotero is relevant, invoke `research-zotero` first or consume existing `./zotero/` artifacts.
 6. Run discovery, deduplication (including preprint→published version resolution), screening, extraction, synthesis, and adversarial checks.
-7. Generate PRISMA flow accounting with `scripts/prisma_flow_md.py` and insert it into `<topic>.review.md`.
-7. Validate the full pack with `scripts/validate_review_pack.py` before returning output.
+7. For paper-review integration, use paper-context mode when the task is bounded related-work/impact contextualization rather than a full systematic review.
+8. Generate PRISMA flow accounting with `scripts/prisma_flow_md.py` and insert it into `<topic>.review.md` for full systematic mode.
+9. Validate the full pack with `scripts/validate_review_pack.py` before returning output when full systematic mode is used; in paper-context mode, validate manually that all four paper-context output files exist and include the required decision fields.
+
+## Modes
+
+### Full systematic review mode
+
+- Use this when the user asks for a systematic literature review, evidence synthesis, state-of-the-art survey with explicit methods, or a decision that requires broad coverage.
+- Follow the full PRISMA-oriented workflow and output contract below.
+- This mode should not be silently substituted with a quick related-work scan.
+
+### Paper-context evidence map mode
+
+- Use this mode when `research-paper-review` needs external context for one paper's novelty, impact, related-work adequacy, benchmark coverage, or SOTA claims.
+- This is a bounded evidence map, not a full systematic review, unless the user explicitly asks for full PRISMA coverage.
+- Inputs should come from `research-paper-review/summary.md` when available:
+  - paper title and domain
+  - one-sentence contribution claim
+  - claimed novelty dimensions
+  - cited closest prior work
+  - benchmark/evaluation context
+  - 3-8 targeted context questions
+- Output may be smaller than a full review pack, but must still log sources, queries, inclusion decisions, and confidence limits.
+- Preferred paper-context outputs:
+  - `literature-context.md`
+  - `literature-context-search-log.md`
+  - `literature-context-evidence-table.md`
+  - `literature-context-decision.json`
+- `literature-context-decision.json` should include:
+  - `contextualization_rating` (1-5): how well the paper situates itself against the located evidence
+  - `impact_evidence_rating` (1-5): how strongly the external literature supports the paper's stated significance or impact
+  - `coverage_confidence_rating` (1-5): confidence in the search coverage
+  - `closest_prior_work`
+  - `related_work_omissions`
+  - `benchmark_context_gaps`
+  - `limits_of_search`
+
+## Relationship to sibling skills
+
+- `research-paper-review` owns technical critique of a single paper. When it needs external grounding for related-work, impact, SOTA, benchmark, or significance claims, this skill supplies a paper-context evidence map or full systematic review.
+- `research-novelty-review` owns adversarial novelty and positioning decisions. It should consume this skill's paper-context evidence map when available instead of duplicating broad discovery.
+- `research-zotero` owns library sync and citation export. This skill may consume Zotero artifacts but should still screen records against the protocol.
+- `research-review-loop` may consume literature-context artifacts as evidence for whether a revised paper has fixed related-work or overclaim issues.
+- `research-paper-plan` may consume the synthesis and confidence assessment to decide how strongly the manuscript can frame its contribution.
 
 ## Input contract
 
@@ -44,6 +87,7 @@ description: Full systematic literature review (PRISMA 2020 core) with discovery
 ## Hard-stop and failover rules
 
 - Stop immediately if `domain` is missing.
+- In paper-context mode, `domain` may be inferred from `research-paper-review/summary.md` only when unambiguous; log the inference under assumptions.
 - Stop immediately if web browsing/search is unavailable and there is no user-provided corpus and no `research-zotero` artifact or Zotero API/MCP path.
 - Continue with soft defaults only for non-domain fields and explicitly log all defaults under "Assumptions applied".
 
@@ -72,6 +116,29 @@ Required sections in `<topic>.review.md`:
 `Limitations`
 `Confidence Assessment`
 `PRISMA flow accounting`
+
+## Paper-context output contract
+
+When invoked from `research-paper-review` for bounded context, the minimum output is:
+
+- `literature-context.md`
+- `literature-context-search-log.md`
+- `literature-context-evidence-table.md`
+- `literature-context-decision.json`
+
+`literature-context.md` must include:
+
+- `Scope`
+- `Target paper claims being contextualized`
+- `Search strategy`
+- `Closest prior work`
+- `Related-work coverage assessment`
+- `Benchmark or evaluation context`
+- `Impact/significance context`
+- `Claims that need qualification`
+- `Confidence and limitations`
+
+This mode must clearly state: "This is a bounded paper-context evidence map, not a full systematic review" unless the full PRISMA workflow was actually completed.
 
 ## Artifact naming rules
 
@@ -125,6 +192,11 @@ Required sections in `<topic>.review.md`:
 - Use `references/report-template.md`.
 - Separate high-confidence findings, mixed evidence, and unresolved questions.
 - State confidence rationale from consistency, quality, directness, and risk of bias.
+- In paper-context mode, separate:
+  - closest prior work that should be cited or discussed
+  - context that weakens the target paper's novelty or impact claim
+  - context that strengthens the paper's significance
+  - benchmark or evaluation norms the paper may be missing
 - If `technical_exposition=detailed_math`, make the `Synthesis` section math-forward: define the core objects precisely, write the primary learning objectives/constraints, and summarize theoretical results using correct formal statements (without over-quoting).
 
 ### 6) Run adversarial stress-test
@@ -140,9 +212,10 @@ Required sections in `<topic>.review.md`:
 
 ### 8) Validate and finalize
 
-- Generate PRISMA flow markdown with `scripts/prisma_flow_md.py`.
-- Validate structural integrity and count consistency with `scripts/validate_review_pack.py`.
-- Return the full review pack with explicit assumptions and known limitations.
+- In full systematic mode, generate PRISMA flow markdown with `scripts/prisma_flow_md.py`.
+- In full systematic mode, validate structural integrity and count consistency with `scripts/validate_review_pack.py`.
+- In paper-context mode, check that `literature-context.md`, `literature-context-search-log.md`, `literature-context-evidence-table.md`, and `literature-context-decision.json` exist and that the decision JSON includes `contextualization_rating`, `impact_evidence_rating`, `coverage_confidence_rating`, and `limits_of_search`.
+- Return the full review pack or bounded paper-context map with explicit assumptions and known limitations.
 
 ## Scripts
 
@@ -160,4 +233,5 @@ Required sections in `<topic>.review.md`:
 - `references/adversarial-literature-checklist.md`
 - `references/domain-adapters.md`
 - `references/report-template.md`
+- `references/paper-context-template.md`
 - `../research-zotero/references/zotero-artifact-contract.md`

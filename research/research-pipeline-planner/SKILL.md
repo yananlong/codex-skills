@@ -77,6 +77,7 @@ description: Coordinate research as either a standalone staged planning pass or 
   - adversarial novelty pressure test -> `research-novelty-review`
   - decisive validation plan -> `research-experiment-plan`
   - deep single-paper review -> `research-paper-review`
+  - paper-review novelty, impact, or literature contextualization -> `research-paper-review` plus `research-systematic-literature-review` paper-context mode and `research-novelty-review`
   - result sanity check -> `research-results-auditor`
   - iterative red-team pass -> `research-review-loop`
   - manuscript structuring -> `research-paper-plan`

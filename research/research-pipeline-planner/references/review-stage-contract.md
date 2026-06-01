@@ -1,16 +1,19 @@
 # Review Stage Contract
 
-Use this contract to keep `paper-review`, `review-loop`, and `rebuttal` interoperable.
+Use this contract to keep `paper-review`, literature context, novelty review, review-loop, and rebuttal interoperable.
 
 ## Canonical ownership
 
 - `research-paper-review`: initial ingestion, OCR, first-pass critique, and viz output for a single paper
+- `research-systematic-literature-review`: external literature context for related-work, benchmark, impact, and SOTA claims; full PRISMA review only when explicitly needed
+- `research-novelty-review`: adversarial prior-art and contribution-positioning assessment
 - `research-review-loop`: tracked iterative review across revisions
 - `research-rebuttal`: venue-constrained response to external reviewer comments
 
 If more than one of these appears applicable, route by the artifact that already exists:
 
 - no review artifacts yet -> `research-paper-review`
+- paper-review summary exists and external novelty/context is needed -> `research-systematic-literature-review` paper-context mode, then `research-novelty-review`
 - existing internal issue ledger or revision rounds -> `research-review-loop`
 - concrete external reviewer comments and venue response task -> `research-rebuttal`
 
@@ -33,8 +36,72 @@ Required support files:
 
 Optional but preferred:
 
+- `<review_dir>/context/context-plan.md`
+- `<review_dir>/context/literature-context.md`
+- `<review_dir>/context/novelty-context.md`
 - `<review_dir>/comments/all_comments.json`
 - `./review_results/<slug>_skill.json`
+
+## Literature-context handoff
+
+Use this when `research-paper-review` needs external grounding for novelty, impact, benchmark, related-work, SOTA, or significance claims.
+
+Preferred inputs:
+
+- `<review_dir>/summary.md`
+- `<review_dir>/context/context-plan.md`
+- cited closest prior work from the target paper
+- domain and target community
+
+Preferred outputs:
+
+- `literature-context.md`
+- `literature-context-search-log.md`
+- `literature-context-evidence-table.md`
+- `literature-context-decision.json`
+
+Minimum decision fields:
+
+- `contextualization_rating`
+- `impact_evidence_rating`
+- `coverage_confidence_rating`
+- `closest_prior_work`
+- `related_work_omissions`
+- `benchmark_context_gaps`
+- `limits_of_search`
+
+Do not label a bounded paper-context evidence map as a full systematic review unless the PRISMA workflow was completed.
+
+## Novelty-context handoff
+
+Use this after a paper summary exists, preferably after the literature-context handoff.
+
+Preferred inputs:
+
+- `<review_dir>/summary.md`
+- `<review_dir>/context/literature-context.md`
+- `literature-context-decision.json`
+- `prior-art` or Zotero artifacts when present
+
+Preferred outputs:
+
+- `novelty-report.md`
+- `prior-art-matrix.md`
+- `search-log.md`
+- `novelty-decision.json`
+- optional `<review_dir>/context/novelty-context.md` summary
+
+Minimum decision fields:
+
+- `novelty_decision_rating`
+- `impact_positioning_rating`
+- `decision_confidence_rating`
+- `narrowest_defensible_positioning`
+- `claims_to_qualify`
+- `missing_prior_work`
+- `review_findings_to_add`
+
+Paper-review should convert `review_findings_to_add` into raw comment JSON before consolidation.
 
 ## Review-loop consumption rules
 

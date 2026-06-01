@@ -11,7 +11,8 @@ description: Run a stringent, adversarial novelty review over a concrete researc
 2. Decompose the claim into searchable units before looking at any literature.
 3. Search strongest overlaps first, not flattering long-tail analogies.
 4. Write down novelty-killing objections explicitly before giving any green light.
-5. End with a 1-5 novelty decision rating, not a coarse ternary label, plus the narrowest defensible positioning.
+5. When reviewing a paper, consume `research-paper-review` and `research-systematic-literature-review` artifacts before deciding.
+6. End with a 1-5 novelty decision rating, not a coarse ternary label, plus the narrowest defensible positioning.
 
 ## Modes
 
@@ -27,6 +28,26 @@ description: Run a stringent, adversarial novelty review over a concrete researc
 - Read upstream context from `research-brief.md`, `artifact-index.md`, `./literature-review/`, and `./zotero/` when present.
 - Keep outputs legible to downstream experiment planning and paper planning.
 
+### Paper-review integrated mode
+
+- Use this mode when `research-paper-review` asks for novelty, impact, or contribution-positioning context for a concrete paper.
+- Consume:
+  - `<review_dir>/summary.md`
+  - `<review_dir>/context/literature-context.md` when present
+  - `./literature-review/` artifacts when present
+  - the paper's cited closest prior work from `summary.md` or the full text
+- Do not re-run broad literature discovery if a fresh paper-context evidence map already exists and is adequate. Instead, search only the remaining kill-shot gaps.
+- Output a bottom-line `novelty-context.md` or copy the key decision into `<review_dir>/context/novelty-context.md` for the paper-review bundle.
+- Rate novelty and impact separately: a paper can be useful or important while still not being novel.
+
+## Relationship to sibling skills
+
+- `research-paper-review` owns first-pass technical critique of one paper. This skill should be invoked from paper review only for novelty, contribution positioning, impact framing, or prior-art pressure testing.
+- `research-systematic-literature-review` owns broader evidence discovery. Use its paper-context evidence map before this skill when novelty or impact claims depend on external literature coverage.
+- `research-zotero` supplies curated prior-art seeds when the user has a relevant library or collection.
+- `research-review-loop` can track whether novelty/positioning issues have been resolved across revisions.
+- `research-paper-plan` can use the narrowest defensible positioning from this skill as the contribution statement for a manuscript.
+
 ## Input contract
 
 - Minimum: a concrete method, protocol, artifact, finding, or contribution claim.
@@ -35,6 +56,7 @@ description: Run a stringent, adversarial novelty review over a concrete researc
   - closest known prior work
   - scope of novelty under consideration
   - existing literature or review artifacts
+  - existing `research-paper-review` summary and context artifacts
   - existing Zotero library artifacts
 
 ## Hard stops
@@ -54,6 +76,13 @@ description: Run a stringent, adversarial novelty review over a concrete researc
 - In orchestrated mode, these live under `./novelty-review/`.
 - In standalone mode, any target directory is valid.
 - `novelty-decision.json` should capture the final 1-5 novelty rating, confidence rating, and the exact narrow positioning that survives the review.
+- In paper-review integrated mode, `novelty-decision.json` should also capture:
+  - `impact_positioning_rating` (1-5)
+  - `literature_context_used`
+  - `paper_review_summary_used`
+  - `claims_to_qualify`
+  - `missing_prior_work`
+  - `review_findings_to_add`
 
 ## Workflow
 
@@ -72,6 +101,7 @@ description: Run a stringent, adversarial novelty review over a concrete researc
 
 - Use `references/adversarial-query-patterns.md` and `references/search-log-template.md`.
 - If the user maintains a relevant Zotero library or collection, invoke `research-zotero` first or consume `./zotero/zotero-items.json` as a curated seed corpus.
+- If a `research-systematic-literature-review` paper-context evidence map exists, use it as the first prior-art source and search only for obvious missing overlaps or decision-critical gaps.
 - Search the strongest plausible overlaps first.
 - Prioritize recent literature and venue-appropriate sources before padding with weaker analogies.
 - Log exact queries, filters, and what each search was trying to falsify.
@@ -110,6 +140,20 @@ description: Run a stringent, adversarial novelty review over a concrete researc
 - If deeper retrieval would materially improve confidence, collaborate with `research-systematic-literature-review`.
 - If a second adversarial pass would help and delegation is explicitly available and permitted, an independent review pass is allowed. Do not assume that permission.
 
+### 6) Feed findings back to paper review when integrated
+
+- In paper-review integrated mode, write a short handoff section with:
+  - issue title to add to `final_issues.json`
+  - exact paper quote or location
+  - explanation grounded in the prior-art matrix
+  - suggested `comment_type`
+  - suggested `impact_rating`
+  - suggested `confidence_rating`
+- Use `claim_accuracy` for overstated novelty or significance.
+- Use `missing_information` for omitted closest prior work or absent benchmark context.
+- Use `presentation` for framing issues that do not materially affect a core claim.
+- Use `methodology` when the novelty/impact claim depends on an evaluation protocol that is not competitive with field norms.
+
 ## References
 
 - `references/novelty-checklist.md`
@@ -120,6 +164,7 @@ description: Run a stringent, adversarial novelty review over a concrete researc
 - `references/overlap-scoring-rubric.md`
 - `references/reviewer-objection-rubric.md`
 - `references/tabmol-ddi-ood-adapter.md`
+- `references/paper-review-integration.md`
 
 ## Script
 

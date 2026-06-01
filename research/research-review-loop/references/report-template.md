@@ -7,6 +7,7 @@
 - Review round:
 - Review date:
 - Prior round artifacts:
+- Source artifacts:
 - Reviewer constraints:
 
 ## Executive Summary
@@ -22,11 +23,18 @@
 
 ## Major Issues
 
+- ID:
+- Source artifact:
+- Impact / confidence:
 - Location:
 - Problem:
 - Why it matters:
 - Evidence:
 - Suggested fix:
+
+## Moderate Issues
+
+-
 
 ## Minor Issues
 

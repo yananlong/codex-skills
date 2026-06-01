@@ -32,7 +32,9 @@ Use this contract only when the work benefits from shared stage artifacts. Do no
 | --- | --- | --- |
 | curated Zotero corpus or citation export | `research-zotero` | API key or Zotero access, optionally collection/tags/query |
 | broad evidence gathering | `research-systematic-literature-review` | topic, domain, and review question |
+| bounded paper-context evidence map | `research-systematic-literature-review` | paper-review summary, domain, contribution claim, and targeted context questions |
 | skeptical novelty pressure test | `research-novelty-review` | concrete method or claim description |
+| paper novelty/impact positioning | `research-novelty-review` | paper-review summary plus literature-context artifacts when available |
 | decisive validation design | `research-experiment-plan` | frozen claim and evaluation goal |
 | deep paper critique with OCR and viz | `research-paper-review` | concrete paper artifact or URL |
 | result sanity check | `research-results-auditor` | result artifact plus target claim |
@@ -50,6 +52,8 @@ Use this contract only when the work benefits from shared stage artifacts. Do no
 
 - Use `references/review-stage-contract.md` for the file-level handoff between:
   - `research-paper-review`
+  - `research-systematic-literature-review`
+  - `research-novelty-review`
   - `research-review-loop`
   - `research-rebuttal`
 - Do not let downstream stages reconstruct upstream review artifacts from memory when a concrete bundle already exists.

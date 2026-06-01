@@ -8,11 +8,12 @@ description: Run iterative adversarial review over research plans, experiment ou
 ## Quick start
 
 1. Identify the target artifact, stakes, and intended audience.
-2. Initialize review state with `scripts/init_review_loop.py` unless a review pack already exists.
+2. Initialize review state with `scripts/init_review_loop.py` unless a review pack already exists. Use `--from-paper-review <review_dir-or-final_issues.json>` when a first-pass paper-review bundle is available.
 3. Build a claim ledger before issuing conclusions.
 4. Review for internal consistency, evidence quality, and external verifiability.
 5. Preserve previous rounds and append or version new outputs instead of overwriting prior review artifacts.
 6. Update the latest `REVIEW_STATE.json`, `AUTO_REVIEW.md`, and `NARRATIVE_REPORT.md` after each round only after preserving prior versions.
+7. If a `research-paper-review` bundle exists, import its issue IDs, quotes, ratings, and summary path rather than re-summarizing or downgrading the first-pass critique.
 
 ## Relationship to sibling skills
 
@@ -27,7 +28,7 @@ description: Run iterative adversarial review over research plans, experiment ou
   - one concrete artifact under review
 - Prefer:
   - an existing review pack or tracked issue state
-  - upstream `paper-review` artifacts such as `summary.md`, `final_issues.json`, and `overall_assessment.txt`
+  - upstream or Codex-adapted `paper-review` artifacts such as `summary.md`, `final_issues.json`, `review_summary.json`, and `overall_assessment.txt`
   - revision diffs or an explicit statement of what changed since the last round
 
 ## Output contract
@@ -39,6 +40,7 @@ description: Run iterative adversarial review over research plans, experiment ou
   - `AUTO_REVIEW.md`
   - `NARRATIVE_REPORT.md`
 - If upstream `paper-review` artifacts exist, keep explicit references to their file paths in the round state rather than rewriting the whole first-pass critique from scratch.
+- Preserve `impact_rating`, `confidence_rating`, `quote`, `source_section`, and `related_sections` from `paper-review/final_issues.json` when importing first-pass paper-review issues. Map `impact_rating >= 4` to major-tracked issues, `impact_rating == 3` to moderate tracked issues, and `impact_rating <= 2` to minor tracked issues.
 
 ## Workflow
 
@@ -47,8 +49,8 @@ description: Run iterative adversarial review over research plans, experiment ou
 - Carry unresolved, resolved, and accepted issues across rounds.
 - Never collapse multiple review rounds into one untracked summary.
 - Never overwrite earlier round artifacts without first preserving them in a versioned or timestamped location.
-- Require each issue to have severity, status, evidence, and a concrete fix or follow-up.
-- If `paper-review/final_issues.json` exists, initialize the first tracked issue set from that file instead of inventing a new initial ledger.
+- Require each issue to have severity or impact rating, confidence, status, evidence, and a concrete fix or follow-up.
+- If `paper-review/final_issues.json` exists, initialize the first tracked issue set from that file instead of inventing a new initial ledger. Keep the paper-review issue title, quote, explanation, source section, and ratings traceable in the state.
 
 ### 2) Build the claim ledger first
 
@@ -75,6 +77,7 @@ description: Run iterative adversarial review over research plans, experiment ou
 
 - Do not mark a major issue resolved without new evidence, a revised artifact, or an explicit accepted risk.
 - Treat “future work” as a resolution only when the claim has been narrowed accordingly.
+- Do not resolve an imported paper-review issue by paraphrase alone; cite the revision diff, new analysis, narrowed claim, or accepted-risk rationale that changes its status.
 - Prefer fewer high-signal issues over long undifferentiated lists.
 
 ### 5) Keep the report actionable
@@ -94,4 +97,4 @@ description: Run iterative adversarial review over research plans, experiment ou
 
 ## Script
 
-- `scripts/init_review_loop.py`: create deterministic state and report scaffolds for repeated review rounds.
+- `scripts/init_review_loop.py`: create deterministic state and report scaffolds for repeated review rounds; optionally seed open issues from `research-paper-review` output with `--from-paper-review`.

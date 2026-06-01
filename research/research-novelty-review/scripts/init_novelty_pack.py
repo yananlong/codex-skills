@@ -15,6 +15,7 @@ FILE_TEMPLATES = {
 - One-sentence claim:
 - Operating mode: standalone / orchestrated
 - Upstream artifacts used:
+- Literature-context artifacts used:
 
 ## Claim Decomposition
 
@@ -40,9 +41,16 @@ FILE_TEMPLATES = {
 ## Decision
 
 - Novelty decision rating (1-5):
+- Impact positioning rating (1-5):
 - Decision confidence rating (1-5):
 - Narrowest defensible positioning:
 - What would change the decision:
+
+## Paper-Review Handoff
+
+| Finding to add | Paper location / quote | Comment type | Impact | Confidence | Evidence basis |
+| --- | --- | --- | ---: | ---: | --- |
+| | | claim_accuracy / missing_information / presentation / methodology | 1-5 | 1-5 | |
 """,
     "prior-art-matrix.md": """# Prior Art Matrix
 
@@ -58,10 +66,16 @@ FILE_TEMPLATES = {
 """,
     "novelty-decision.json": """{
   "novelty_decision_rating": 3,
+  "impact_positioning_rating": 3,
   "decision_confidence_rating": 3,
   "narrowest_defensible_positioning": "",
   "what_would_change_the_decision": "",
-  "top_kill_shot_objections": []
+  "top_kill_shot_objections": [],
+  "literature_context_used": [],
+  "paper_review_summary_used": "",
+  "claims_to_qualify": [],
+  "missing_prior_work": [],
+  "review_findings_to_add": []
 }
 """,
 }
