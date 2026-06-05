@@ -12,7 +12,7 @@ description: Run evidence-gated commercialization analysis for academic research
 3. Use this required chain before recommending anything: `research claim -> workflow pain -> current workaround -> buyer/budget -> why now -> evidence -> weak link -> validation test`.
 4. Choose the evidence posture early: `user-facts-only`, `light desk research`, or `source-grounded diligence`. If current industry, regulatory, reimbursement, funding, pricing, or competitive facts materially affect the answer and live research is available, verify them and cite sources; if not available, label them as assumptions.
 5. Initialize a working pack with `python3 scripts/init_case_pack.py <case-name> --path <output-dir>` when the user wants persistent artifacts.
-6. For persistent packs, maintain `<case>.source-log.md` and validate the pack with `python3 scripts/validate_case_pack.py <case-dir>` before returning it.
+6. For persistent packs, create `<case>.source-log.md` if missing with `python3 scripts/add_source_log.py <case-dir>`, maintain it, and validate the pack with `python3 scripts/validate_case_pack.py <case-dir>` before returning it.
 7. Compare at least two plausible commercialization paths before recommending one; do not default to startup formation.
 8. End every pass with assumptions, evidence strength, weak links, cheapest next tests, and a `kill / pivot / continue` decision.
 
@@ -212,9 +212,10 @@ Before finalizing, remove or flag:
 ## Resources
 
 - `scripts/init_case_pack.py`: scaffold a repeatable commercialization working pack.
+- `scripts/add_source_log.py`: create `<case>.source-log.md` for persistent packs when the scaffold lacks one.
 - `scripts/validate_case_pack.py`: validate required case-pack files, sections, source logging, and decision fields.
 - `references/discovery-question-bank.md`: I-Corps-style discovery, stakeholder, workaround, pricing, and interview-integrity questions.
 - `references/commercialization-patterns.md`: routes from academic capability to sellable offerings, including TTO/licensing and wedge selection checks.
 - `references/evaluation-rubric.md`: readiness and path scoring using TRL/MRL/ARL, budget, channel, value, defensibility, and fit dimensions.
-- `references/domain-adapters.md`: domain-specific commercialization checks for health, AI/software/data, energy, materials, robotics, and public-sector contexts.
+- `references/domain-adapters.md`: domain-specific commercialization checks for health/biomed, AI/software/data, energy, materials, robotics, and public-sector contexts.
 - `references/diligence-checklists.md`: concise checklists for TTO/licensing, regulated/health, pricing/WTP, validation sprints, and adversarial review.
