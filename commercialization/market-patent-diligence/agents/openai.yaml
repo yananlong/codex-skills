@@ -1,0 +1,4 @@
+interface:
+  display_name: "Market Patent Diligence"
+  short_description: "Source-grounded market and patent diligence"
+  default_prompt: "Use $market-patent-diligence to search market, competitor, procurement, funding, regulatory, and patent evidence for this research asset; log sources, separate facts from inferences, and prepare a handoff to commercialization analysis."
