@@ -66,6 +66,8 @@ ALLOWED_NEXT_SKILLS = {
     "research-novelty-review",
     "research-results-auditor",
     "research-experiment-plan",
+    "research-paper-review",
+    "research-review-loop",
     "none",
 }
 
