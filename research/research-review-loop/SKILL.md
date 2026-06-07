@@ -14,6 +14,7 @@ description: Run iterative adversarial review over research plans, experiment ou
 5. Preserve previous rounds and append or version new outputs instead of overwriting prior review artifacts.
 6. Update the latest `REVIEW_STATE.json`, `AUTO_REVIEW.md`, and `NARRATIVE_REPORT.md` after each round only after preserving prior versions.
 7. If a `research-paper-review` bundle exists, import its issue IDs, quotes, ratings, and summary path rather than re-summarizing or downgrading the first-pass critique.
+8. Infer the provenance of existing review artifacts before reorganizing them: upstream Claude/OpenAIReview bundles, Codex-native paper-review bundles, and review-loop hybrids are all valid inputs.
 
 ## Relationship to sibling skills
 
@@ -28,7 +29,7 @@ description: Run iterative adversarial review over research plans, experiment ou
   - one concrete artifact under review
 - Prefer:
   - an existing review pack or tracked issue state
-  - upstream or Codex-adapted `paper-review` artifacts such as `summary.md`, `final_issues.json`, `review_summary.json`, and `overall_assessment.txt`
+  - upstream Claude/OpenAIReview or Codex-adapted paper-review artifacts such as `summary.md`, `final_issues.json`, `review_summary.json`, `overall_assessment.txt`, `metadata.json`, `comments/`, `context/`, and `sections/`
   - revision diffs or an explicit statement of what changed since the last round
 
 ## Output contract
@@ -40,7 +41,8 @@ description: Run iterative adversarial review over research plans, experiment ou
   - `AUTO_REVIEW.md`
   - `NARRATIVE_REPORT.md`
 - If upstream `paper-review` artifacts exist, keep explicit references to their file paths in the round state rather than rewriting the whole first-pass critique from scratch.
-- Preserve `impact_rating`, `confidence_rating`, `quote`, `source_section`, and `related_sections` from `paper-review/final_issues.json` when importing first-pass paper-review issues. Map `impact_rating >= 4` to major-tracked issues, `impact_rating == 3` to moderate tracked issues, and `impact_rating <= 2` to minor tracked issues.
+- Preserve `impact_rating`, `confidence_rating`, `severity`, `quote`, `source_section`, and `related_sections` from `paper-review/final_issues.json` when importing first-pass paper-review issues. Map `impact_rating >= 4` to major-tracked issues, `impact_rating == 3` to moderate tracked issues, and `impact_rating <= 2` to minor tracked issues; if only upstream `severity` is present, preserve it as the tracked severity and leave numeric ratings null.
+- If the first-pass bundle lacks a root `review_summary.json` but has `metadata.json.round_summaries` or `round-N/review_summary.json`, use the latest round summary as the numeric/currentness summary and record the exact path in `source_artifacts`.
 
 ## Workflow
 
@@ -51,6 +53,7 @@ description: Run iterative adversarial review over research plans, experiment ou
 - Never overwrite earlier round artifacts without first preserving them in a versioned or timestamped location.
 - Require each issue to have severity or impact rating, confidence, status, evidence, and a concrete fix or follow-up.
 - If `paper-review/final_issues.json` exists, initialize the first tracked issue set from that file instead of inventing a new initial ledger. Keep the paper-review issue title, quote, explanation, source section, and ratings traceable in the state.
+- Before deciding where to write the next round, inspect `metadata.json`, `artifact-index.md`, and existing `round-N/` folders. Continue the latest round number instead of flattening root paper-review files into a round folder.
 
 ### 2) Build the claim ledger first
 

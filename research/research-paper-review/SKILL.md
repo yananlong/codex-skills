@@ -19,14 +19,27 @@ description: Run academic paper review with OCR extraction, ChatGPT-native multi
 6. For orchestrated research packs, prefer `./paper-review/` as the canonical stage root and record non-canonical output paths in `artifact-index.md`.
 7. Use `references/chatgpt-native-review.md`, `references/rating-rubric.md`, and the 1-5 issue/output scales.
 8. When review quality depends on novelty, impact, or literature context, route through `research-systematic-literature-review` and `research-novelty-review` instead of limiting the critique to internal paper consistency.
+9. When reusing an existing review workspace, infer its provenance from `metadata.json`, `artifact-index.md`, `final_issues.json`, `review_summary.json`, and any `round-N/` folders before moving files or declaring artifacts missing.
 
 ## Upstream Claude Skill Compatibility
 
 - The upstream OpenAIReview Claude Code skill lives in `src/reviewer/skill/` and is installed by `openaireview install-skill` into `~/.claude/commands/openaireview`. That install path, the `/openaireview` slash command, and references to Claude's Agent/task tools are Claude-specific and are not directly usable as a native Codex skill.
 - The underlying workflow is portable: prepare a review workspace, collect section-review JSON, consolidate comments, and emit viz-compatible JSON.
+- The upstream Claude/OpenAIReview workspace convention is `./review_results/<slug>_review/`, with `summary.md`, `final_issues.json`, `overall_assessment.txt`, `metadata.json`, `full_text.md`, `comments/`, `sections/`, and severity-tiered issues. It may not contain `review_summary.json` or 1-5 rating fields unless a Codex-adapted pass added them.
 - Treat Claude-style review and multi-agent review as the default paper-review execution style in this skill, not as special opt-in modes. Translate upstream Claude sub-agent instructions into Codex/ChatGPT subagents whenever available.
 - If a runtime does not expose subagents, explicitly state that limitation and run the same pass plan serially in the current agent. Preserve the worker-style output contract even in fallback mode by writing one JSON file per planned pass under `comments/`.
 - The upstream viz helper still expects `severity`. This skill's canonical handoff uses `impact_rating` and `confidence_rating`; `scripts/save_viz_json.py` adds transient severity values for visualization and labels the viz method as Codex.
+
+## Provenance and layout harmonization
+
+- Treat these as compatible paper-review provenance families:
+  - `openaireview_claude`: `review_results/<slug>_review/`, severity-tiered `final_issues.json`, no required root `review_summary.json`.
+  - `codex_native`: `paper-review/<slug>_review/`, 1-5 `impact_rating`/`confidence_rating`, and root `review_summary.json`.
+  - `review_loop_hybrid`: a first-pass paper-review bundle at the workspace root plus iterative `round-N/` folders from `research-review-loop`.
+- Infer provenance from available evidence, not directory name alone. Check `metadata.json` fields such as `review_mode`, `review_loop`, `canonical_handoff_files`, and `round_summaries`; inspect whether `final_issues.json` uses `severity` or 1-5 ratings; and check for `round-N/REVIEW_STATE.json`.
+- When importing or continuing an existing OpenAIReview-style workspace, do not move files just to satisfy the Codex-native path preference. Record the actual path in `artifact-index.md` and preserve existing relative paths.
+- When downstream skills need numeric routing, prefer a root `review_summary.json` if present; otherwise, in a review-loop hybrid, use the latest existing `round-N/review_summary.json` and record that provenance in `artifact-index.md`.
+- If converting an upstream OpenAIReview bundle to Codex-native form, add missing 1-5 ratings and a root `review_summary.json` as a deliberate normalization step. Do not silently reinterpret `severity` as a numeric rating without documenting the mapping.
 
 ## Modes
 
@@ -138,6 +151,7 @@ description: Run academic paper review with OCR extraction, ChatGPT-native multi
   - `<review_dir>/context/novelty-context.md`
   - `./review_results/<slug>_skill.json`
 - Record the exact active review workspace path and any viz JSON path in `artifact-index.md` so later skills do not guess.
+- For imported Claude/OpenAIReview or review-loop hybrid workspaces, `review_summary.json` may be satisfied by a recorded latest `round-N/review_summary.json`; keep this exception explicit in `artifact-index.md` or `metadata.json`.
 - `review_summary.json` is the numeric summary artifact for downstream routing. It should include:
   - `overall_paper_rating` (1-5)
   - `decision_relevance_rating` (1-5)

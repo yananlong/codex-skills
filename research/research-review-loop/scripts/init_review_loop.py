@@ -113,6 +113,12 @@ def _severity_from_impact(value: object) -> str:
     return "moderate"
 
 
+def _resolve_relative_artifact(path: Path, review_dir: Path) -> Path:
+    if path.is_absolute():
+        return path
+    return (review_dir.parent.parent / path).resolve()
+
+
 def _paper_review_issue_path(path: Path) -> Path:
     path = path.expanduser().resolve()
     if path.is_dir():
@@ -122,7 +128,30 @@ def _paper_review_issue_path(path: Path) -> Path:
 
 def _existing_support_artifacts(review_dir: Path) -> list[str]:
     names = ["summary.md", "final_issues.json", "review_summary.json", "overall_assessment.txt"]
-    return [str((review_dir / name).resolve()) for name in names if (review_dir / name).exists()]
+    artifacts = [str((review_dir / name).resolve()) for name in names if (review_dir / name).exists()]
+
+    metadata_path = review_dir / "metadata.json"
+    try:
+        metadata = json.loads(metadata_path.read_text(encoding="utf-8"))
+    except (FileNotFoundError, json.JSONDecodeError):
+        metadata = None
+
+    if isinstance(metadata, dict):
+        artifacts.append(str(metadata_path.resolve()))
+        round_summaries = metadata.get("round_summaries")
+        if isinstance(round_summaries, dict):
+            for value in round_summaries.values():
+                if isinstance(value, str):
+                    path = _resolve_relative_artifact(Path(value), review_dir)
+                    if path.exists():
+                        artifacts.append(str(path))
+
+    for path in sorted(review_dir.glob("round-*/review_summary.json")):
+        resolved = str(path.resolve())
+        if resolved not in artifacts:
+            artifacts.append(resolved)
+
+    return artifacts
 
 
 def _seed_from_paper_review(path: Path) -> tuple[list[dict], list[str]]:
@@ -141,10 +170,11 @@ def _seed_from_paper_review(path: Path) -> tuple[list[dict], list[str]]:
             continue
         impact = issue.get("impact_rating")
         confidence = issue.get("confidence_rating")
+        severity = issue.get("severity") or _severity_from_impact(impact)
         seeded.append(
             {
                 "id": f"PR{idx}",
-                "severity": _severity_from_impact(impact),
+                "severity": severity,
                 "impact_rating": impact,
                 "confidence_rating": confidence,
                 "title": issue.get("title", f"Paper-review issue {idx}"),
