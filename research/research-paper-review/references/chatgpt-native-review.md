@@ -15,7 +15,7 @@ Use this path inside ChatGPT/Codex when the user wants an LLM paper review and h
 The active chat model owns the LLM work:
 
 1. Ingest the paper text from the uploaded artifact, extracted Markdown, arXiv text, or an existing `full_text.md`.
-2. Create or reuse a review workspace under `./paper-review/<slug>_review/`. If reusing an upstream Claude/OpenAIReview workspace under `./review_results/<slug>_review/` or a review-loop hybrid with `round-N/` folders, keep the existing layout and record the actual path/provenance instead of moving files.
+2. Create or reuse a review workspace under `./review_results/<slug>_review/`, matching `/openaireview`. If reusing a review-loop hybrid with `round-N/` folders, keep the existing layout and record the actual path/provenance instead of moving files.
 3. Ensure these files exist before detailed review:
    - `metadata.json`
    - `full_text.md`
@@ -28,7 +28,7 @@ The active chat model owns the LLM work:
 7. If subagents are unavailable, run the same planned passes serially in the current agent and record the fallback reason in `review_summary.json`.
 8. Consolidate findings into `final_issues.json`, `review_summary.json`, and `overall_assessment.txt` using the normal schema.
 9. Run `python3 scripts/validate_review_bundle.py --review-dir <review_dir>` before treating the bundle as stable. Use `--strict-native` only when the workspace is supposed to satisfy the Codex-native contract exactly.
-10. Optionally run `python3 scripts/save_viz_json.py <review_dir> --slug-suffix _skill` if the upstream engine is installed and visualization JSON is useful.
+10. Optionally run `python3 scripts/save_viz_json.py <review_dir> --slug-suffix _skill` if the upstream engine is installed and visualization JSON is useful. Add `--derive-severity` only when the viz/export path should explicitly derive OpenAIReview severity tiers from 1-5 impact ratings.
 
 ## Required native artifacts
 
@@ -58,7 +58,7 @@ The active chat model owns the LLM work:
 
 Use `execution_mode: "serial_fallback"` and a concrete `fallback_reason` when the worker plan had to run in one agent.
 
-For imported Claude/OpenAIReview workspaces, `final_issues.json` may use `severity` instead of 1-5 ratings and may lack a root `review_summary.json`. Treat that as imported provenance, not corruption. Normalize it only when a downstream stage requires Codex-native numeric routing, and document the mapping.
+For imported Claude/OpenAIReview workspaces, `final_issues.json` may use `severity` instead of 1-5 ratings and may lack a root `review_summary.json`. Treat that as imported provenance, not corruption. Normalize it only when a downstream stage requires Codex-native numeric routing, and document the mapping. Conversely, for Codex-native 1-5 ratings, derive `severity` only as an explicit export step.
 
 `sections/index.json` should be a JSON array. Each item should include:
 

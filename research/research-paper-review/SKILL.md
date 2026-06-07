@@ -16,7 +16,7 @@ description: Run academic paper review with OCR extraction, ChatGPT-native multi
 3. Default to Claude-style / multi-agent orchestration for paper review. Build the full-paper summary first, then spawn one worker per planned review pass when the runtime supports subagents.
 4. Use serial single-agent execution only as a fallback when subagents are unavailable, disabled, or clearly impractical for the paper size or runtime.
 5. Bootstrap the upstream engine with `python3 scripts/install_engine.py` only when deterministic helpers are needed for extraction, workspace preparation, viz output, or explicit upstream provider-backed review.
-6. For orchestrated research packs, prefer `./paper-review/` as the canonical stage root and record non-canonical output paths in `artifact-index.md`.
+6. Use the `/openaireview` workspace convention as the canonical stage root: `./review_results/<slug>_review/`. Record any non-canonical output paths in `artifact-index.md`.
 7. Use `references/chatgpt-native-review.md`, `references/rating-rubric.md`, and the 1-5 issue/output scales.
 8. When review quality depends on novelty, impact, or literature context, route through `research-systematic-literature-review` and `research-novelty-review` instead of limiting the critique to internal paper consistency.
 9. When reusing an existing review workspace, infer its provenance from `metadata.json`, `artifact-index.md`, `final_issues.json`, `review_summary.json`, and any `round-N/` folders before moving files or declaring artifacts missing.
@@ -28,13 +28,13 @@ description: Run academic paper review with OCR extraction, ChatGPT-native multi
 - The upstream Claude/OpenAIReview workspace convention is `./review_results/<slug>_review/`, with `summary.md`, `final_issues.json`, `overall_assessment.txt`, `metadata.json`, `full_text.md`, `comments/`, `sections/`, and severity-tiered issues. It may not contain `review_summary.json` or 1-5 rating fields unless a Codex-adapted pass added them.
 - Treat Claude-style review and multi-agent review as the default paper-review execution style in this skill, not as special opt-in modes. Translate upstream Claude sub-agent instructions into Codex/ChatGPT subagents whenever available.
 - If a runtime does not expose subagents, explicitly state that limitation and run the same pass plan serially in the current agent. Preserve the worker-style output contract even in fallback mode by writing one JSON file per planned pass under `comments/`.
-- The upstream viz helper still expects `severity`. This skill's canonical handoff uses `impact_rating` and `confidence_rating`; `scripts/save_viz_json.py` adds transient severity values for visualization and labels the viz method as Codex.
+- The upstream viz helper accepts `severity`. This skill's canonical handoff uses `impact_rating` and `confidence_rating`; `scripts/save_viz_json.py --derive-severity` can temporarily derive severity values for visualization when that compatibility layer is explicitly requested.
 
 ## Provenance and layout harmonization
 
 - Treat these as compatible paper-review provenance families:
   - `openaireview_claude`: `review_results/<slug>_review/`, severity-tiered `final_issues.json`, no required root `review_summary.json`.
-  - `codex_native`: `paper-review/<slug>_review/`, 1-5 `impact_rating`/`confidence_rating`, and root `review_summary.json`.
+  - `codex_native`: `review_results/<slug>_review/`, 1-5 `impact_rating`/`confidence_rating`, and root `review_summary.json`.
   - `review_loop_hybrid`: a first-pass paper-review bundle at the workspace root plus iterative `round-N/` folders from `research-review-loop`.
 - Infer provenance from available evidence, not directory name alone. Check `metadata.json` fields such as `review_mode`, `review_loop`, `canonical_handoff_files`, and `round_summaries`; inspect whether `final_issues.json` uses `severity` or 1-5 ratings; and check for `round-N/REVIEW_STATE.json`.
 - When importing or continuing an existing OpenAIReview-style workspace, do not move files just to satisfy the Codex-native path preference. Record the actual path in `artifact-index.md` and preserve existing relative paths.
@@ -106,6 +106,14 @@ description: Run academic paper review with OCR extraction, ChatGPT-native multi
 - `research-rebuttal` owns responses to external reviewer comments, not initial manuscript diagnosis.
 - `adversarial-doc-review` owns broad document red-teaming outside the paper-review workflow, especially non-paper Markdown or policy/spec documents.
 
+## Research-suite handoff
+
+- Keep the `/openaireview` workspace layout, but write Codex research-suite handoff artifacts into that same review directory.
+- `summary.md`, `final_issues.json`, `review_summary.json`, and `overall_assessment.txt` are the stable handoff bundle for `research-review-loop`, `research-paper-plan`, and `research-rebuttal`.
+- `review_summary.json` is required for Codex-native runs because sibling skills use it for numeric routing, currentness, top blockers, execution mode, and context provenance.
+- Contextual paper-review outputs should live under `<review_dir>/context/` and be listed in `review_summary.json.context_artifacts` so `research-novelty-review` and `research-systematic-literature-review` outputs remain traceable.
+- If a project-level `artifact-index.md` exists, record the review directory, viz JSON path, and any sibling-skill context artifact paths there.
+
 ## Input contract
 
 - Minimum:
@@ -131,7 +139,7 @@ description: Run academic paper review with OCR extraction, ChatGPT-native multi
 
 ## Output contract
 
-- Preserve the active review workspace under `./paper-review/<slug>_review/` unless a different path is explicitly recorded in `artifact-index.md`.
+- Preserve the active review workspace under `./review_results/<slug>_review/` unless a different path is explicitly recorded in `artifact-index.md`.
 - Required handoff files for downstream stages:
   - `<review_dir>/summary.md`
   - `<review_dir>/final_issues.json`
@@ -191,13 +199,13 @@ python3 scripts/run_openaireview.py extract <paper> [flags]
 
 ### 2) Prepare the review workspace
 
-- Prefer `./paper-review/` as the stage root and `./review_results/` for viz JSON.
+- Prefer `./review_results/` as both the review workspace root and the viz JSON output root, matching `/openaireview`.
 - If the upstream workspace helper is available, run:
 
 ```bash
 python3 scripts/prepare_workspace.py "<input>" \
   --criteria references/criteria.md \
-  --output-dir ./paper-review
+  --output-dir ./review_results
 ```
 
 - The workspace must contain:
@@ -335,7 +343,7 @@ python3 scripts/consolidate_comments.py <review_dir>
   - `comment_type`
   - `impact_rating`
   - `confidence_rating`
-- Do not hand-write a separate `severity` field unless another tool specifically needs it; the local viz wrapper derives severity from `impact_rating` when calling the upstream OpenAIReview helper.
+- Do not hand-write a separate `severity` field unless another tool specifically needs it. If a downstream OpenAIReview visualization/export path needs severity tiers, call `scripts/save_viz_json.py` with `--derive-severity` and document that compatibility export.
 - Write `review_summary.json` in the review directory with:
   - `overall_paper_rating`
   - `decision_relevance_rating`
@@ -353,7 +361,7 @@ python3 scripts/consolidate_comments.py <review_dir>
 python3 scripts/save_viz_json.py <review_dir> --slug-suffix _skill
 ```
 
-- The output lands in `./review_results/` unless overridden.
+- The output lands in `./review_results/` unless overridden. Add `--derive-severity` only when the visualization/export should explicitly map 1-5 impact ratings to OpenAIReview severity tiers.
 - Use `python3 scripts/run_openaireview.py serve` to browse results locally.
 - Run `python3 scripts/validate_review_bundle.py --review-dir <review_dir>` before treating the bundle as stable.
 - Treat `summary.md`, `final_issues.json`, `review_summary.json`, and `overall_assessment.txt` as the canonical handoff bundle for `research-review-loop`, `research-paper-plan`, and `research-rebuttal`.

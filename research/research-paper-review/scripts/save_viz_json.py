@@ -31,6 +31,14 @@ def parse_args() -> tuple[argparse.Namespace, list[str]]:
         default=DEFAULT_VENV,
         help="Virtualenv path created by install_engine.py.",
     )
+    parser.add_argument(
+        "--derive-severity",
+        action="store_true",
+        help=(
+            "Temporarily derive OpenAIReview severity tiers from 1-5 impact_rating "
+            "values before running the packaged viz helper."
+        ),
+    )
     args, remainder = parser.parse_known_args()
     if remainder and remainder[0] == "--":
         remainder = remainder[1:]
@@ -112,7 +120,7 @@ def main() -> int:
     original_final_issues = None
 
     try:
-        if review_dir is not None:
+        if args.derive_severity and review_dir is not None:
             original_final_issues = _temporarily_add_severity(review_dir)
         result = run_packaged_skill_script(args.venv, "scripts/save_viz_json.py", remainder)
     finally:
