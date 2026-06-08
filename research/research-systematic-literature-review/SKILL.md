@@ -15,7 +15,8 @@ description: Full systematic literature review (PRISMA 2020 core) with discovery
 6. Run discovery, deduplication (including preprint→published version resolution), screening, extraction, synthesis, and adversarial checks.
 7. For paper-review integration, use paper-context mode when the task is bounded related-work/impact contextualization rather than a full systematic review.
 8. Generate PRISMA flow accounting with `scripts/prisma_flow_md.py` and insert it into `<topic>.review.md` for full systematic mode.
-9. Validate the full pack with `scripts/validate_review_pack.py` before returning output when full systematic mode is used; in paper-context mode, validate manually that all four paper-context output files exist and include the required decision fields.
+9. Validate the full pack with `scripts/validate_review_pack.py` before returning output when full systematic mode is used; in paper-context mode, validate the four-file exchange bundle with `scripts/paper_context_artifacts.py validate`.
+10. Preserve independence and synergy: this skill can run as a standalone SLR, but when a paper-review workspace is supplied, write the bounded context exchange bundle into `<review_dir>/context/` so paper-review and novelty-review can consume it without redoing discovery.
 
 ## Modes
 
@@ -37,7 +38,8 @@ description: Full systematic literature review (PRISMA 2020 core) with discovery
   - benchmark/evaluation context
   - 3-8 targeted context questions
 - Output may be smaller than a full review pack, but must still log sources, queries, inclusion decisions, and confidence limits.
-- Preferred paper-context outputs:
+- When invoked from a paper-review workspace, write outputs under `<review_dir>/context/`. When invoked independently, keep outputs in a caller-chosen directory and record that directory when a later paper-review stage consumes it.
+- Required paper-context outputs:
   - `literature-context.md`
   - `literature-context-search-log.md`
   - `literature-context-evidence-table.md`
@@ -51,9 +53,17 @@ description: Full systematic literature review (PRISMA 2020 core) with discovery
   - `benchmark_context_gaps`
   - `limits_of_search`
 
+### Independent / orchestrated boundary
+
+- Standalone SLR mode owns its own artifact directory, topic slug, protocol, PRISMA accounting, evidence table, synthesis, and confidence assessment. It must not require a paper-review workspace.
+- Orchestrated paper-context mode is an adapter, not a demotion of SLR. It keeps the SLR responsibilities for source discovery, deduplication, screening, evidence extraction, and confidence limits, but scopes them to the target paper claims supplied by paper-review.
+- If `research-paper-review` supplies `<review_dir>/summary.md` and `<review_dir>/context/context-plan.md`, treat `<review_dir>/context/` as the exchange directory and use `scripts/paper_context_artifacts.py init --review-dir <review_dir>` to scaffold artifacts when useful.
+- If this skill runs first and paper-review runs later, do not relocate the SLR pack. Paper-review should preserve the original paths in `artifact-index.md` or copy only the four bounded paper-context outputs into its `context/` directory with provenance.
+- Paper-review should consume `literature-context-decision.json` as structured routing evidence: `impact_evidence_rating` maps to `impact_context_rating`, `coverage_confidence_rating` records search confidence, and omissions/gaps become review findings only after paper-review checks that they affect the target paper.
+
 ## Relationship to sibling skills
 
-- `research-paper-review` owns technical critique of a single paper. When it needs external grounding for related-work, impact, SOTA, benchmark, or significance claims, this skill supplies a paper-context evidence map or full systematic review.
+- `research-paper-review` owns technical critique of a single paper. When it needs external grounding for related-work, impact, SOTA, benchmark, or significance claims, this skill supplies an independently valid paper-context evidence map or full systematic review.
 - `research-novelty-review` owns adversarial novelty and positioning decisions. It should consume this skill's paper-context evidence map when available instead of duplicating broad discovery.
 - `research-zotero` owns library sync and citation export. This skill may consume Zotero artifacts but should still screen records against the protocol.
 - `research-review-loop` may consume literature-context artifacts as evidence for whether a revised paper has fixed related-work or overclaim issues.
@@ -121,10 +131,12 @@ Required sections in `<topic>.review.md`:
 
 When invoked from `research-paper-review` for bounded context, the minimum output is:
 
-- `literature-context.md`
-- `literature-context-search-log.md`
-- `literature-context-evidence-table.md`
-- `literature-context-decision.json`
+- `<review_dir>/context/literature-context.md`
+- `<review_dir>/context/literature-context-search-log.md`
+- `<review_dir>/context/literature-context-evidence-table.md`
+- `<review_dir>/context/literature-context-decision.json`
+
+When invoked independently, use the same four filenames in the selected output directory and record that directory for later handoff.
 
 `literature-context.md` must include:
 
@@ -143,7 +155,7 @@ This mode must clearly state: "This is a bounded paper-context evidence map, not
 ## Artifact naming rules
 
 - Normalize `<topic>` to lowercase hyphen-case for file names.
-- Keep all outputs in one review directory.
+- Keep full systematic outputs in one SLR review directory. Keep paper-context outputs in `<review_dir>/context/` when called from paper-review, or in one explicit paper-context directory when called independently.
 - Refuse to overwrite existing artifacts unless explicit overwrite is requested.
 
 ## Workflow (PRISMA 2020 core + adversarial pass)
@@ -153,6 +165,15 @@ This mode must clearly state: "This is a bounded paper-context evidence map, not
 - Use `references/protocol-template.md`.
 - Record topic, domain, question, inclusion/exclusion criteria, date range, outcomes, and quality threshold.
 - Log every default assumption.
+- In paper-context mode, create the four-file exchange bundle before or during protocol definition:
+
+```bash
+python3 scripts/paper_context_artifacts.py init --review-dir <review_dir> \
+  --summary <review_dir>/summary.md \
+  --context-plan <review_dir>/context/context-plan.md
+```
+
+- If no paper-review workspace exists, use `--out-dir <context_dir>` instead of `--review-dir`.
 
 ### 2) Execute discovery and search logging
 
@@ -214,12 +235,19 @@ This mode must clearly state: "This is a bounded paper-context evidence map, not
 
 - In full systematic mode, generate PRISMA flow markdown with `scripts/prisma_flow_md.py`.
 - In full systematic mode, validate structural integrity and count consistency with `scripts/validate_review_pack.py`.
-- In paper-context mode, check that `literature-context.md`, `literature-context-search-log.md`, `literature-context-evidence-table.md`, and `literature-context-decision.json` exist and that the decision JSON includes `contextualization_rating`, `impact_evidence_rating`, `coverage_confidence_rating`, and `limits_of_search`.
+- In paper-context mode, validate the exchange bundle:
+
+```bash
+python3 scripts/paper_context_artifacts.py validate --review-dir <review_dir>
+```
+
+- If no paper-review workspace exists, validate with `--out-dir <context_dir>` instead of `--review-dir`.
 - Return the full review pack or bounded paper-context map with explicit assumptions and known limitations.
 
 ## Scripts
 
 - `scripts/init_review_pack.py`: create deterministic Markdown scaffolds for protocol/search/screening/evidence/report.
+- `scripts/paper_context_artifacts.py`: create and validate the four-file paper-context evidence-map exchange bundle.
 - `scripts/prisma_flow_md.py`: parse standardized screening counts and emit PRISMA flow accounting Markdown.
 - `scripts/validate_review_pack.py`: validate required sections, mandatory fields, and PRISMA count consistency.
 

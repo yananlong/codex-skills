@@ -20,6 +20,7 @@ description: Run academic paper review with OCR extraction, ChatGPT-native multi
 7. Use `references/chatgpt-native-review.md`, `references/rating-rubric.md`, and the 1-5 issue/output scales.
 8. When review quality depends on novelty, impact, or literature context, route through `research-systematic-literature-review` and `research-novelty-review` instead of limiting the critique to internal paper consistency.
 9. When reusing an existing review workspace, infer its provenance from `metadata.json`, `artifact-index.md`, `final_issues.json`, `review_summary.json`, and any `round-N/` folders before moving files or declaring artifacts missing.
+10. Treat `research-systematic-literature-review` as an independent literature-review skill that can either run on its own or attach to this review workspace through `<review_dir>/context/`.
 
 ## Upstream Claude Skill Compatibility
 
@@ -97,10 +98,23 @@ description: Run academic paper review with OCR extraction, ChatGPT-native multi
   - benchmark-context gaps become `methodology` or `missing_information`
 - Preserve provenance by recording literature and novelty artifact paths in `review_summary.json` and, in orchestrated mode, in `artifact-index.md`.
 
+### SLR interface mode
+
+- Use this when `research-paper-review` and `research-systematic-literature-review` are invoked semi-autonomously in the same project.
+- Preserve independence: the SLR skill owns source discovery, screening, evidence extraction, synthesis, confidence limits, and full PRISMA mode. Paper-review must not rewrite literature-search decisions or treat a bounded evidence map as a full systematic review.
+- Preserve synergy: when a paper-review workspace exists, use `<review_dir>/context/` as the shared exchange point for paper-context artifacts. The SLR skill may write there directly or produce an independent literature pack and record its directory in `review_summary.json.context_artifacts`.
+- The negotiated paper-context bundle is:
+  - `<review_dir>/context/literature-context.md`
+  - `<review_dir>/context/literature-context-search-log.md`
+  - `<review_dir>/context/literature-context-evidence-table.md`
+  - `<review_dir>/context/literature-context-decision.json`
+- Paper-review consumes the decision JSON, not just prose. Map `impact_evidence_rating` to `review_summary.json.impact_context_rating`, preserve `contextualization_rating` and `coverage_confidence_rating` under `review_summary.json.context_artifacts`, and convert `related_work_omissions` / `benchmark_context_gaps` into raw comment JSON before consolidation when they affect the paper review.
+- If SLR runs first without a paper-review workspace, do not move its artifacts. When paper-review starts later, record the SLR artifact directory in `artifact-index.md` and either copy the four paper-context files into `<review_dir>/context/` or reference them explicitly in `review_summary.json.context_artifacts`.
+
 ## Relationship to sibling skills
 
 - `research-paper-review` owns paper ingestion, OCR, first-pass critique, and viz output for a single paper.
-- `research-systematic-literature-review` owns external evidence mapping. Within paper review, use its paper-context mode for bounded related-work, benchmark-context, and impact-evidence checks; reserve full PRISMA mode for explicit systematic-review requests.
+- `research-systematic-literature-review` owns external evidence mapping. It remains useful as a standalone full systematic-review workflow; within paper review, use its paper-context mode for bounded related-work, benchmark-context, and impact-evidence checks, and reserve full PRISMA mode for explicit systematic-review requests or broad evidence-coverage decisions.
 - `research-review-loop` owns iterative tracked review after there is already a first-pass critique, revision cycle, or explicit issue ledger.
 - `research-novelty-review` owns prior-art pressure testing and positioning. Within contextualized paper review, run it after the paper summary and literature-context map exist so novelty judgments are evidence-grounded.
 - `research-rebuttal` owns responses to external reviewer comments, not initial manuscript diagnosis.
@@ -156,6 +170,9 @@ description: Run academic paper review with OCR extraction, ChatGPT-native multi
 - Optional but strongly preferred:
   - `<review_dir>/context/context-plan.md`
   - `<review_dir>/context/literature-context.md`
+  - `<review_dir>/context/literature-context-search-log.md`
+  - `<review_dir>/context/literature-context-evidence-table.md`
+  - `<review_dir>/context/literature-context-decision.json`
   - `<review_dir>/context/novelty-context.md`
   - `./review_results/<slug>_skill.json`
 - Record the exact active review workspace path and any viz JSON path in `artifact-index.md` so later skills do not guess.
@@ -168,7 +185,8 @@ description: Run academic paper review with OCR extraction, ChatGPT-native multi
   - `fallback_reason` when not using multi-agent execution
   - `top_blockers`
   - `context_artifacts` when literature or novelty context was used
-  - `novelty_decision_rating` and `impact_context_rating` when available
+  - `contextualization_rating`, `coverage_confidence_rating`, and `impact_context_rating` when literature context was used
+  - `novelty_decision_rating` and `impact_positioning_rating` when novelty context was used
 
 ## Workflow
 
@@ -303,8 +321,9 @@ python3 scripts/prepare_workspace.py "<input>" \
   - proposed literature-context scope
   - whether full systematic review is needed or paper-context mode is enough
 - If only bounded context is needed, invoke `research-systematic-literature-review` in paper-context mode with the paper summary, extracted contribution, domain, cited prior work, and 3-8 targeted search questions. Write or copy the resulting summary to `<review_dir>/context/literature-context.md`.
-- If the user explicitly asks for a full systematic review, or if a venue-critical claim depends on broad evidence coverage, run the full `research-systematic-literature-review` workflow and record its artifact directory.
-- Invoke `research-novelty-review` when novelty or impact positioning matters. It should consume `summary.md`, `<review_dir>/context/literature-context.md` when present, and any `./literature-review/` artifacts. Write or copy its bottom-line decision to `<review_dir>/context/novelty-context.md`.
+- The paper-context SLR exchange must produce or reference all four paper-context artifacts under `<review_dir>/context/`: `literature-context.md`, `literature-context-search-log.md`, `literature-context-evidence-table.md`, and `literature-context-decision.json`. Use the SLR helper `scripts/paper_context_artifacts.py init --review-dir <review_dir> ...` when a deterministic scaffold is useful.
+- If the user explicitly asks for a full systematic review, or if a venue-critical claim depends on broad evidence coverage, run the full `research-systematic-literature-review` workflow and record its artifact directory as `systematic_review_artifact_dir` in `review_summary.json.context_artifacts`.
+- Invoke `research-novelty-review` when novelty or impact positioning matters. It should consume `summary.md`, `<review_dir>/context/literature-context.md` when present, and any recorded `systematic_review_artifact_dir`. Write or copy its bottom-line decision to `<review_dir>/context/novelty-context.md`.
 - Add any context-derived findings to the raw comments set before consolidation, preferably in `comments/cross_literature_context.json` and `comments/cross_novelty_positioning.json`.
 - Do not invent literature evidence. If search/corpus access is unavailable, mark context-dependent claims as externally unverified and state what evidence would resolve them.
 
@@ -352,8 +371,9 @@ python3 scripts/consolidate_comments.py <review_dir>
   - `fallback_reason` when relevant
   - `top_blockers`
   - `context_artifacts`
+  - `contextualization_rating`, `coverage_confidence_rating`, and `impact_context_rating` when available from `literature-context-decision.json`
   - `novelty_decision_rating` when available
-  - `impact_context_rating` when available
+  - `impact_positioning_rating` when available from novelty context
 - Write `overall_assessment.txt` as one short paragraph.
 - Build viz JSON when useful and the upstream engine is installed:
 

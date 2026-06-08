@@ -5,7 +5,7 @@ Use this contract to keep `paper-review`, literature context, novelty review, re
 ## Canonical ownership
 
 - `research-paper-review`: initial ingestion, OCR, first-pass critique, and viz output for a single paper
-- `research-systematic-literature-review`: external literature context for related-work, benchmark, impact, and SOTA claims; full PRISMA review only when explicitly needed
+- `research-systematic-literature-review`: independent external literature review and evidence mapping for related-work, benchmark, impact, and SOTA claims; full PRISMA review only when explicitly needed
 - `research-novelty-review`: adversarial prior-art and contribution-positioning assessment
 - `research-review-loop`: tracked iterative review across revisions
 - `research-rebuttal`: venue-constrained response to external reviewer comments
@@ -13,7 +13,7 @@ Use this contract to keep `paper-review`, literature context, novelty review, re
 If more than one of these appears applicable, route by the artifact that already exists:
 
 - no review artifacts yet -> `research-paper-review`
-- paper-review summary exists and external novelty/context is needed -> `research-systematic-literature-review` paper-context mode, then `research-novelty-review`
+- paper-review summary exists and external novelty/context is needed -> `research-systematic-literature-review` paper-context mode in `<review_dir>/context/`, then `research-novelty-review`
 - existing internal issue ledger or revision rounds -> `research-review-loop`
 - concrete external reviewer comments and venue response task -> `research-rebuttal`
 
@@ -38,6 +38,9 @@ Optional but preferred:
 
 - `<review_dir>/context/context-plan.md`
 - `<review_dir>/context/literature-context.md`
+- `<review_dir>/context/literature-context-search-log.md`
+- `<review_dir>/context/literature-context-evidence-table.md`
+- `<review_dir>/context/literature-context-decision.json`
 - `<review_dir>/context/novelty-context.md`
 - `<review_dir>/comments/all_comments.json`
 - `./review_results/<slug>_skill.json`
@@ -45,6 +48,8 @@ Optional but preferred:
 ## Literature-context handoff
 
 Use this when `research-paper-review` needs external grounding for novelty, impact, benchmark, related-work, SOTA, or significance claims.
+
+The SLR skill remains independently runnable. If it runs without a paper-review workspace, keep its artifact directory intact and record that path for later consumption. If a paper-review workspace exists, use `<review_dir>/context/` as the exchange directory.
 
 Preferred inputs:
 
@@ -55,10 +60,10 @@ Preferred inputs:
 
 Preferred outputs:
 
-- `literature-context.md`
-- `literature-context-search-log.md`
-- `literature-context-evidence-table.md`
-- `literature-context-decision.json`
+- `<review_dir>/context/literature-context.md`
+- `<review_dir>/context/literature-context-search-log.md`
+- `<review_dir>/context/literature-context-evidence-table.md`
+- `<review_dir>/context/literature-context-decision.json`
 
 Minimum decision fields:
 
@@ -69,6 +74,8 @@ Minimum decision fields:
 - `related_work_omissions`
 - `benchmark_context_gaps`
 - `limits_of_search`
+
+Paper-review maps `impact_evidence_rating` to `review_summary.json.impact_context_rating`, preserves `contextualization_rating` and `coverage_confidence_rating`, and converts omissions/gaps into raw review comments only when they affect the target paper.
 
 Do not label a bounded paper-context evidence map as a full systematic review unless the PRISMA workflow was completed.
 
