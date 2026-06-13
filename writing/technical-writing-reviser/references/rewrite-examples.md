@@ -32,6 +32,22 @@ Before:
 After:
 "Models can appear successful on tasks that permit shortcut strategies, making it difficult to determine whether observed performance reflects the target capability. This paper studies that ambiguity by comparing unconstrained prompts with conditions designed to limit shortcut explanations."
 
+## Technical Report Framing
+
+Before:
+"The prototype is ready for enterprise deployment because it handled the pilot workload."
+
+After:
+"The prototype handled the pilot workload under the tested configuration, which supports continued evaluation in enterprise-like settings. The result does not by itself establish production readiness, because deployment risk still depends on reliability, integration, monitoring, and operational support under broader conditions."
+
+## Whitepaper Framing
+
+Before:
+"This approach will change how teams manage compliance reviews."
+
+After:
+"This approach reduces the manual review burden in the evaluated workflow by separating evidence collection from reviewer judgment. The supported claim is therefore about workflow efficiency under the tested process, not a general change in compliance practice."
+
 ## Methods Prose
 
 Before:

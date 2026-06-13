@@ -1,0 +1,4 @@
+interface:
+  display_name: "Technical Writing Reviser"
+  short_description: "Revise technical prose without overclaiming"
+  default_prompt: "Use $technical-writing-reviser to revise this technical draft into clear reader-facing prose while preserving evidence, scope, and technical meaning."

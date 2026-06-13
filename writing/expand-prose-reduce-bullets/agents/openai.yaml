@@ -1,4 +1,0 @@
-interface:
-  display_name: "Expand Prose Reduce Bullets"
-  short_description: "Turn list-heavy drafts into connected prose"
-  default_prompt: "Use $expand-prose-reduce-bullets to rewrite this bullet-heavy draft into clear prose while preserving the exact substance."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Prose Flow Improver"
+  short_description: "Smooth choppy prose without losing substance"
+  default_prompt: "Use $prose-flow-improver to make this draft read as smoother connected prose while preserving the exact substance."

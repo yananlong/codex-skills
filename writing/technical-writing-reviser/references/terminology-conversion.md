@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Use this reference when a draft is full of names that make sense inside the project but not to outside readers. The job is to convert internal labels into terms that carry the same meaning for an academic audience without silently changing the claim.
+Use this reference when a draft is full of names that make sense inside the project but not to outside readers. The job is to convert internal labels into terms that carry the same meaning for the target technical audience without silently changing the claim.
 
 ## What to Look For
 
@@ -13,8 +13,9 @@ Watch for:
 3. Implementation labels such as bucket names, pipeline stage names, or experiment codenames.
 4. Team-specific verbs such as "archive it," "roleplay it," or "stress it" when those verbs hide the actual operation.
 5. Names that encode an interpretation rather than a neutral description.
-6. Acronyms introduced in notes but not defined for the target paper audience.
-7. Variable, model, dataset, or condition names that expose implementation history rather than research function.
+6. Acronyms introduced in notes but not defined for the target audience.
+7. Variable, model, dataset, system, feature, or condition names that expose implementation history rather than technical function.
+8. Product, customer, or pilot labels that imply unsupported maturity, adoption, or market scope.
 
 ## Safe Rewrite Rule
 
@@ -39,6 +40,7 @@ Examples:
 - "micro-archive" -> "a compact curated archive" when the archive structure is described.
 - "semantic ladder" -> a narrower descriptive term if the draft really means "increasingly demanding evidence conditions."
 - "v2 judge" -> "the revised evaluator" when the revision is what matters, or keep the label if the version identity is needed for reproducibility.
+- "enterprise mode" -> "the deployment configuration tested in the pilot" when the source only supports a pilot setting, not general enterprise readiness.
 
 ## Common Failure Modes
 

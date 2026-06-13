@@ -1,17 +1,17 @@
 ---
-name: expand-prose-reduce-bullets
-description: Rewrite or draft responses, documents, reviews, explanations, and notes that are too list-heavy, outline-like, or terse. Use when the user asks for fewer bullet points, more natural prose, fuller paragraphs, smoother narrative flow, or when a draft feels choppy, compressed, or over-structured. Typical triggers include turning notes into paragraphs, softening bullet-heavy summaries, expanding terse explanations, and preserving substance while making writing read like connected prose.
+name: prose-flow-improver
+description: Improve the flow, shape, and readability of existing prose while preserving substance, specificity, tone, and constraints. Use when Codex needs to make explanatory writing less choppy, less list-heavy, less fragmented, or less over-paragraphed; combine related sentences or paragraphs; add connective reasoning; use conjunctions, subordinate clauses, or participial phrasing to make relationships clearer; or turn terse notes into natural connected prose. Do not use when the content is inherently list-shaped, procedural, tabular, or governed by a stricter task-specific format.
 ---
 
-# Expand Prose Reduce Bullets
+# Prose Flow Improver
 
 ## Overview
 
-Favor paragraph-driven writing when the content is explanatory rather than enumerative. Turn choppy, list-heavy drafts into prose that connects ideas, carries transitions, and preserves specificity without padding.
+Improve explanatory prose so it reads as connected writing rather than fragments, notes, or unnecessarily split paragraphs. Use sentence and paragraph structure to show relationships among ideas while preserving the original substance, specificity, and level of certainty.
 
 ## Trigger This Skill
 
-Use this skill when the draft feels like notes instead of finished writing, or when the user explicitly asks for fewer bullets, more natural prose, smoother flow, fuller explanation, or a less outline-like response.
+Use this skill when the draft feels choppy, over-segmented, list-heavy, under-connected, or note-like, or when the user explicitly asks for smoother flow, fewer short sentences, fewer paragraphs, fewer bullets, fuller explanation, or more natural connected prose.
 
 Common fits include assistant answers, document sections, summaries, updates, reviews, and explanation-heavy notes that already contain the right facts but need a better shape.
 
@@ -27,21 +27,23 @@ Do not flatten structures that exist for scanning, auditing, or side-by-side com
 
 ## Rewrite Workflow
 
-First diagnose the draft. Identify which bullets are actual list items and which are just chopped-up sentences or adjacent parts of one idea.
+First diagnose the draft. Identify which bullets, sentences, or paragraphs are actual independent units and which are chopped-up parts of one idea.
 
 Then choose the target shape. Decide whether the rewrite should become one compact paragraph, two short paragraphs, or a mixed structure with a short paragraph plus a small retained list.
 
 Start with the main point, then carry the supporting detail in full sentences. Replace noun-phrase bullets with topic sentences that state the claim plainly.
 
-Merge adjacent bullets that belong to the same idea. Use transitions that show relation rather than just order: cause, contrast, consequence, qualification, or emphasis.
+Merge adjacent bullets, sentences, or paragraphs that belong to the same idea. Use transitions that show relation rather than just order: cause, contrast, consequence, qualification, or emphasis.
 
 Look for adjacent short paragraphs that are really parts of the same claim. When merging them makes the writing tighter and clearer, combine them into one stronger paragraph.
 
 Prefer combining closely related clauses with conjunctions such as "and," "but," "so," "because," or "while" when that reduces choppiness without obscuring the meaning.
 
+Use subordinate clauses or participial phrases when they make the relation clearer and the subject remains unambiguous. Do not use them merely to sound polished, and avoid dangling or overloaded constructions.
+
 Discourage semicolon-heavy prose. A semicolon can be acceptable in rare cases, but it should not become the default way to join rewritten ideas.
 
-Expand terse lines by adding the missing connective tissue: what happened, why it matters, what it changes, or what constraint it implies. Add substance, not filler.
+Expand or compress as needed. Add missing connective tissue when the reader would otherwise have to infer what happened, why it matters, what it changes, or what constraint it implies. Remove redundant framing when the prose already carries the meaning.
 
 Keep paragraphs compact. A good default is 2 to 4 sentences per paragraph with one clear job per paragraph.
 
@@ -54,6 +56,8 @@ End with the implication when helpful. If the paragraph explains a decision, res
 For assistant answers and explanations, prefer direct prose with a small number of short paragraphs.
 
 For reviews, findings, or procedural guidance, keep the required structure and improve sentence quality inside it rather than forcing everything into paragraphs.
+
+For technical or academic artifacts, use this skill for flow and sentence shape only. Use `technical-writing-reviser` when the task also requires claim discipline, technical terminology conversion, or evidence-aware revision.
 
 For user-provided drafts, preserve the author's intent, level of formality, and technical precision unless the user asks for a stronger tonal change.
 
@@ -81,7 +85,7 @@ Also merge neighboring paragraphs when they do not carry distinct jobs and read 
 
 On the tone pass, cut filler, repeated framing, and generic transitions. Keep the prose direct, specific, and calm.
 
-Also check that the rewrite did not quietly delete constraints, soften strong conclusions, overuse semicolons, or turn concise useful content into padded prose.
+Also check that the rewrite did not quietly delete constraints, soften strong conclusions, overuse semicolons, create dangling participial phrases, or turn concise useful content into padded prose.
 
 ## Reference
 

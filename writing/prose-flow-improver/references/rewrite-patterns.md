@@ -1,8 +1,8 @@
-# Rewrite Patterns
+# Prose Flow Patterns
 
 ## Use Cases
 
-Use this reference when the draft already exists and the problem is structural rather than factual. It is especially useful for converting bullet-heavy explanations, status updates, summaries, and assistant answers into smoother prose.
+Use this reference when the draft already exists and the problem is structural or stylistic rather than factual. It is especially useful for smoothing choppy explanations, merging thin sentences or paragraphs, converting bullet-heavy notes into prose, and making status updates, summaries, and assistant answers read more naturally.
 
 ## Target Shapes
 
@@ -51,6 +51,9 @@ The rewrite replaces bullet choppiness with semicolon chains instead of building
 Artificial paragraph breaks:
 The rewrite keeps multiple short paragraphs even though they are doing the work of one paragraph.
 
+Dangling compression:
+The rewrite uses a participial phrase or subordinate clause whose subject is ambiguous, making the sentence smoother but less precise.
+
 ## Rewrite Moves
 
 Promote the main point:
@@ -67,6 +70,9 @@ State whether the next sentence explains cause, contrast, consequence, constrain
 
 Prefer conjunctions over punctuation tricks:
 If two bullets belong in one sentence, first try joining them with "and," "but," "so," "because," or "while" before reaching for a semicolon.
+
+Use participial phrasing when it clearly tightens flow:
+When the actor is clear and the second sentence names a direct result, condition, or accompanying action, prefer a participial phrase over leaving a thin sentence pair intact. For example, "The migration failed. It left the index half-built." can become "The migration failed, leaving the index half-built." Do not use this move when it obscures who did what or stacks too many actions onto one sentence.
 
 Expand only where the reader would otherwise have to infer:
 Do not add padding, scene-setting, or generic transitions that say little.

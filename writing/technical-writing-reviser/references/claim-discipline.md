@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Use this reference when a draft sounds more certain, broader, or more causal than the evidence supports, or when the source mixes results, interpretation, speculation, and motivation.
+Use this reference when a draft sounds more certain, broader, more causal, or more commercially conclusive than the evidence supports, or when the source mixes results, interpretation, speculation, motivation, and positioning.
 
 ## Support Levels
 
@@ -14,6 +14,7 @@ Distinguish these levels before rewriting:
 4. Interpretation: the draft explains what the result may mean.
 5. Mechanism: the draft claims why the result occurs.
 6. Generalization: the draft claims the result transfers beyond the tested setting.
+7. Operational or market implication: the draft claims the result changes deployment readiness, buyer value, risk, adoption, or practical decision-making.
 
 Do not move a sentence up this ladder unless the source explicitly supports that move. Polished prose should make unsupported jumps more visible, not smoother.
 
@@ -33,6 +34,8 @@ Avoid turning:
 - a control into proof of mechanism.
 - a benchmark improvement into field-wide progress.
 - an implementation choice into a conceptual contribution.
+- a prototype behavior into production readiness.
+- a technical result into a buyer, market, or adoption claim.
 - a limitation into a minor caveat if it changes interpretation.
 
 ## Missing Evidence
@@ -40,7 +43,7 @@ Avoid turning:
 If a strong paper-style sentence would require missing support, write the weaker supported version and add a brief note. For example:
 
 - "The current evidence supports a conditional claim, not a general claim."
-- "This sentence needs a metric, baseline, or evaluated condition before it can be stated as a result."
+- "This sentence needs a metric, baseline, evaluated condition, deployment context, or buyer evidence before it can be stated as a result."
 - "The mechanism is plausible from the draft, but not established by the reported evidence."
 
 ## Final Check

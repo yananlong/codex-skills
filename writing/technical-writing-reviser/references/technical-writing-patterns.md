@@ -1,18 +1,18 @@
-# Paper Prose Patterns
+# Technical Writing Patterns
 
 ## Target Stance
 
-Paper prose should tell the reader what was studied, how it was studied, what the evidence shows, and what follows from that evidence. It should not read like a chronological lab log, an internal memo, or a running commentary on the team's actions.
+Technical prose should tell the reader what was studied, built, measured, observed, or decided; how the evidence was obtained; what the evidence shows; and what follows from it. It should not read like a chronological lab log, internal status memo, unsupported sales pitch, or running commentary on the team's actions.
 
 ## Rewrite Patterns
 
 ### Setup to Motivation
 
-Move from "here is the topic we have been thinking about" to "here is the concrete problem and why it matters." Prefer one clear research motivation over several warm-up sentences.
+Move from "here is the topic we have been thinking about" to "here is the concrete technical problem and why it matters." Prefer one clear motivation over several warm-up sentences.
 
 ### Procedure to Method
 
-Replace diary language with design language. Instead of narrating what the team did next, state the method, control, data source, annotation choice, or comparison in a form that explains the research function.
+Replace diary language with design language. Instead of narrating what the team did next, state the method, control, data source, annotation choice, architecture, analysis step, or comparison in a form that explains the technical function.
 
 ### Observation to Result
 
@@ -29,6 +29,10 @@ Do not bury constraints in parenthetical hedges. State the limitation directly a
 ### Contribution to Payoff
 
 When a draft says a contribution is "interesting" or "useful," replace that with the concrete payoff: a framework, dataset, analysis, protocol, or reporting discipline that enables a more defensible evaluation or interpretation.
+
+### Positioning to Supported Value
+
+When a report or whitepaper says a result is "transformative," "production-ready," or "commercially compelling," replace that with the supported technical value: the measured improvement, reduced failure mode, clarified tradeoff, validated operating condition, or remaining evidence needed for deployment or adoption.
 
 ## Section-Specific Guidance
 
@@ -52,6 +56,9 @@ Interpret the result, explain what it does and does not establish, and resist tu
 
 Limitations:
 State the limitation, then state its consequence. A good limitation paragraph tells the reader what remains unresolved and why.
+
+Technical report or whitepaper:
+Separate technical evidence from positioning. State the observed capability, tested setting, operating assumptions, and decision relevance without turning a narrow evaluation into proof of general readiness or market demand.
 
 Transitions:
 Use transitions to make the research logic explicit. A transition should explain why the next section, experiment, or comparison follows from the previous one, not merely announce that it comes next.
