@@ -32,13 +32,13 @@ Document Zotero ingestion here when the review uses a Zotero user library, group
 | --- | --- | --- | --- | --- | --- | --- | --- | ---: | --- |
 | zot-001 | YYYY-MM-DD | api-key / oauth-key / mcp | user / group | | | | | 0 | |
 
-## Version resolution ledger (preprint → published/venue record)
+## Version resolution ledger (preprint -> published/venue record)
 
-Use this ledger to resolve preprints (e.g., arXiv/bioRxiv/SSRN) to their peer-reviewed published versions when available. For ML conferences hosted on OpenReview, use the accepted OpenReview forum record as the canonical *venue* record when applicable (and keep the preprint link only as an access copy).
+Use this ledger to resolve preprints (e.g., arXiv/bioRxiv/SSRN) to their peer-reviewed published versions when available. For ML conferences hosted on OpenReview, use the accepted OpenReview forum record as the canonical venue record when applicable (and keep the preprint link only as an access copy). The resolved_publication_url must be the canonical published/accepted record, not the preprint, unless no published/accepted version exists.
 
-| mapping_id | preprint_citation | preprint_id | resolved_published_citation | doi | status | notes |
-| --- | --- | --- | --- | --- | --- | --- |
-| map-001 | | | | | resolved/unresolved | |
+| mapping_id | preprint_citation | preprint_id | preprint_url | resolved_published_citation | resolved_publication_url | doi | status | notes |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| map-001 | | | | | | | resolved/unresolved | |
 
 ## Coverage notes
 
