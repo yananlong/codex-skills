@@ -61,19 +61,11 @@ def _defaults(topic: str, domain: str) -> Dict[str, str]:
             "studies with insufficient methodological detail."
         ),
         "date_range": f"{default_start.isoformat()} to {today.isoformat()}",
-        "study_types": (
-            "Experimental, observational, benchmarking, and systematic-review studies where relevant"
-        ),
+        "study_types": "Experimental, observational, benchmarking, and systematic-review studies where relevant",
         "language": "English",
-        "population_context": (
-            "Broad population/context implied by topic and domain unless explicitly narrowed"
-        ),
-        "outcomes": (
-            "Efficacy/performance, robustness, safety, and transferability outcomes where applicable"
-        ),
-        "quality_threshold": (
-            "Retain studies with at least moderate methodological quality and transparent reporting"
-        ),
+        "population_context": "Broad population/context implied by topic and domain unless explicitly narrowed",
+        "outcomes": "Efficacy/performance, robustness, safety, and transferability outcomes where applicable",
+        "quality_threshold": "Retain studies with at least moderate methodological quality and transparent reporting",
         "today": today.isoformat(),
     }
 
@@ -82,15 +74,14 @@ def _resolve_inputs(args: argparse.Namespace) -> ReviewInputs:
     topic = _non_empty("topic", args.topic)
     domain = _non_empty("domain", args.domain)
     out_dir = Path(_non_empty("out-dir", args.out_dir)).expanduser().resolve()
-    d = _defaults(topic=topic, domain=domain)
-
+    defaults = _defaults(topic=topic, domain=domain)
     assumptions: List[str] = []
 
     def choose(field_name: str, cli_value: str | None) -> str:
         if cli_value is not None:
             return _non_empty(field_name, cli_value)
-        assumptions.append(f"{field_name} defaulted to: {d[field_name]}")
-        return d[field_name]
+        assumptions.append(f"{field_name} defaulted to: {defaults[field_name]}")
+        return defaults[field_name]
 
     return ReviewInputs(
         topic=topic,
@@ -106,7 +97,7 @@ def _resolve_inputs(args: argparse.Namespace) -> ReviewInputs:
         outcomes=choose("outcomes", args.outcomes),
         quality_threshold=choose("quality_threshold", args.quality_threshold),
         assumptions=assumptions,
-        today=d["today"],
+        today=defaults["today"],
     )
 
 
@@ -155,6 +146,7 @@ def _protocol_md(inputs: ReviewInputs) -> str:
 - Records identified from all eligible sources.
 - Deduplication performed before title/abstract screening.
 - Full-text eligibility decisions recorded with explicit reasons.
+- Peer-reviewed published or accepted venue records are preferred over preprints.
 
 ## Deviations log
 
@@ -195,13 +187,13 @@ Use this section when Zotero is acting as a curated discovery source or citation
 | --- | --- | --- | --- | --- | --- | --- | --- | ---: | --- |
 | zot-001 | {inputs.today} | api-key / oauth-key / mcp | user / group | | | | | 0 | |
 
-## Version resolution ledger (preprint → published)
+## Version resolution ledger (preprint -> published)
 
-Use this ledger to resolve preprints (e.g., arXiv/bioRxiv/SSRN) to their peer-reviewed published versions when available.
+Use this ledger to resolve preprints (e.g., arXiv/bioRxiv/SSRN) to their peer-reviewed published versions when available. The `resolved_publication_url` must point to the canonical published or accepted venue record unless no such version exists.
 
-| mapping_id | preprint_citation | preprint_id | resolved_published_citation | doi | status | notes |
-| --- | --- | --- | --- | --- | --- | --- |
-| map-001 | | | | | resolved/unresolved | |
+| mapping_id | preprint_citation | preprint_id | preprint_url | resolved_published_citation | resolved_publication_url | doi | status | notes |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| map-001 | | | | | | | resolved/unresolved | |
 
 ## Coverage notes
 
@@ -249,9 +241,9 @@ def _screening_log_md(inputs: ReviewInputs) -> str:
 
 ## Decision ledger
 
-| study_id | record_type | canonical_citation | doi | venue | preprint_id | stage | decision | reason | reviewer | date | notes |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| | published/preprint | | | | | title_abstract | include/exclude | | | {inputs.today} | |
+| study_id | record_type | canonical_citation | publication_url | doi | venue | preprint_id | stage | decision | reason | reviewer | date | notes |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| | published/preprint | | | | | | title_abstract | include/exclude | | | {inputs.today} | |
 """
 
 
@@ -260,13 +252,15 @@ def _evidence_md(inputs: ReviewInputs) -> str:
 
 ## Extraction matrix
 
-| study_id | canonical_citation | year | venue | doi | publication_status | preprint_id | population_or_context | study_design | sample_size | intervention_or_exposure | comparator | outcomes | key_result | effect_size | risk_of_bias | notes |
-| --- | --- | ---: | --- | --- | --- | --- | --- | --- | ---: | --- | --- | --- | --- | --- | --- | --- |
-| | | 0 | | | published/preprint | | {inputs.population_context} | | 0 | | | {inputs.outcomes} | | | low/moderate/high | |
+| study_id | canonical_citation | publication_url | year | venue | doi | publication_status | preprint_id | population_or_context | study_design | sample_size | intervention_or_exposure | comparator | outcomes | key_result | effect_size | risk_of_bias | notes |
+| --- | --- | --- | ---: | --- | --- | --- | --- | --- | --- | ---: | --- | --- | --- | --- | --- | --- | --- |
+| | | | 0 | | | published/preprint | | {inputs.population_context} | | 0 | | | {inputs.outcomes} | | | low/moderate/high | |
 
 ## Extraction notes
 
 - Use one row per included study.
+- Fill `publication_url` with the canonical published or accepted venue record whenever it exists.
+- Prefer published versions over preprints; use preprint links only as supplemental access or when no published/accepted version exists.
 - Keep outcome naming consistent across rows.
 - Keep claims traceable to the corresponding study row.
 """
@@ -293,7 +287,8 @@ def _report_md(inputs: ReviewInputs, flow_relative_path: str) -> str:
 - Sources searched: TODO
 - Query logic: TODO
 - Deduplication approach: TODO
-- Publication status policy: prefer peer-reviewed published versions; treat preprints as supplemental unless no published version exists.
+- Publication status policy: prefer peer-reviewed published or accepted venue records; treat preprints as supplemental unless no published/accepted version exists.
+- Publication URL policy: every included study must include a canonical `publication_url` in the evidence table.
 
 ## Screening Decisions
 
@@ -305,6 +300,7 @@ def _report_md(inputs: ReviewInputs, flow_relative_path: str) -> str:
 
 - Included-study profile: TODO
 - Risk-of-bias profile: TODO
+- Link audit: TODO confirm each study has a canonical publication URL.
 
 ## Synthesis
 
