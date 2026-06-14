@@ -30,9 +30,9 @@ Summarize the exact sources, queries, filters, retrieval dates, and inclusion de
 
 ## Closest Prior Work
 
-| work_id | Citation | Venue / year | Why close | Threatened target claim | Notes |
-| --- | --- | --- | --- | --- | --- |
-| P1 | | | | | |
+| work_id | Citation | Publication URL | Venue / year | Publication status | Why close | Threatened target claim | Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| P1 | | | | published / preprint / submission | | | |
 
 ## Related-Work Coverage Assessment
 
@@ -76,21 +76,21 @@ Summarize the exact sources, queries, filters, retrieval dates, and inclusion de
 
 ## Inclusion Decisions
 
-| record_id | citation | source_run | decision | reason |
-| --- | --- | --- | --- | --- |
-| rec-001 | | run-001 | include / exclude / duplicate | |
+| record_id | citation | publication_url | source_run | decision | reason |
+| --- | --- | --- | --- | --- | --- |
+| rec-001 | | | run-001 | include / exclude / duplicate | |
 
 ## Version Resolution
 
-| mapping_id | preprint_or_submission | canonical_record | status | notes |
-| --- | --- | --- | --- | --- |
-| map-001 | | | resolved / unresolved | |
+| mapping_id | preprint_or_submission | preprint_url | canonical_record | canonical_publication_url | status | notes |
+| --- | --- | --- | --- | --- | --- | --- |
+| map-001 | | | | | resolved / unresolved | |
 
 # literature-context-evidence-table.md
 
-| work_id | Citation | Publication status | Venue / year | Claim relevance | Key evidence | Risk or limitation | Target-paper implication |
-| --- | --- | --- | --- | --- | --- | --- | --- |
-| P1 | | published / preprint / submission | | closest prior work / benchmark norm / impact evidence | | | |
+| work_id | Citation | Publication URL | Publication status | Venue / year | Claim relevance | Key evidence | Risk or limitation | Target-paper implication |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| P1 | | | published / preprint / submission | | closest prior work / benchmark norm / impact evidence | | | |
 
 # literature-context-decision.json
 
@@ -116,3 +116,5 @@ Decision fields:
 - related_work_omissions:
 - benchmark_context_gaps:
 - limits_of_search:
+
+Publication URL rule: prefer the published journal/proceedings/venue page, DOI resolver, PubMed/PMC record, society digital-library page, or accepted venue forum. Use a preprint URL only when no published/accepted version exists, and label the record as preprint/submission.
