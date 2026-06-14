@@ -1,6 +1,6 @@
 ---
 name: technical-writing-reviser
-description: Revise existing technical writing into clear, audience-facing prose while preserving evidence, technical meaning, uncertainty, and scope. Use for academic manuscripts, industrial technical reports, whitepapers, evaluation summaries, methods/results/limitations prose, technical claims, contribution or decision framing, and terminology conversion from internal shorthand to reader-facing language. Use after critique from research-paper-review or research-review-loop when the task is to revise the artifact's prose and claims, not to re-review it. Do not use when the main task is generic prose flow, citation work, paper planning, novelty review, experiment design, market strategy, or writing unsupported claims.
+description: Revise existing technical writing into clear, audience-facing prose while preserving evidence, technical meaning, uncertainty, and scope, including default multi-agent section-level revision for substantial artifacts when workers are available. Use for academic manuscripts, industrial technical reports, whitepapers, evaluation summaries, methods/results/limitations prose, technical claims, contribution or decision framing, and terminology conversion from internal shorthand to reader-facing language. Use after critique from research-paper-review or research-review-loop when the task is to revise the artifact's prose and claims, not to re-review it. Do not use when the main task is generic prose flow, citation work, paper planning, novelty review, experiment design, market strategy, or writing unsupported claims.
 ---
 
 # Technical Writing Reviser
@@ -40,6 +40,18 @@ Next identify the support level of each sentence. Separate what the text actuall
 Finally tighten the prose into reader-facing technical form. Replace lab-log narration, internal memo phrasing, procedural diary language, and unsupported promotional language with sentences that foreground the technical object, method, evidence, result, decision, limitation, or implication. Make paragraphs do one clear job each and end with the practical inference when that helps the reader.
 
 Read [references/claim-discipline.md](references/claim-discipline.md) when the draft mixes claims, interpretation, speculation, and missing evidence.
+
+## Agent Orchestration
+
+Default to multi-agent orchestration for substantial document-level technical revision when the runtime supports subagents. Read the full artifact or enough surrounding context to identify the audience, terminology, claim boundaries, evidence limits, and any critique artifacts from `research-paper-review` or `research-review-loop`, then spawn one worker per planned section, claim cluster, or reviewer-issue cluster.
+
+Use serial single-agent execution only as a fallback when subagents are unavailable, disabled, blocked by the runtime, clearly disproportionate for a short passage or isolated section, or explicitly overridden by a quick single-pass request. Execute the same revision plan serially and state the fallback when it matters.
+
+The parent agent owns the global technical interpretation. Before assigning work, build a short section or issue plan, then assign disjoint sections, claim clusters, or reviewer-issue clusters to workers. Do not delegate final claim-strength calibration or cross-section terminology harmonization.
+
+Each worker should receive its assigned text, relevant local critique or evidence notes, the audience, terminology constraints, and one owned output target if files are being edited. A worker may revise only its assigned scope and should return revised prose plus brief notes on claim-strength changes, preserved caveats, unresolved terminology, and missing support. Workers must not invent citations, experiments, metrics, deployment facts, product claims, or cross-section commitments.
+
+After worker passes complete, merge in the parent. Harmonize terminology, claim strength, tense, notation, contribution framing, and limitation language across sections. Recheck that every strengthened sentence is supported by the source or critique artifacts, and restore any caveat or negative result that a local rewrite softened.
 
 ## Handle Terminology Carefully
 

@@ -1,6 +1,6 @@
 ---
 name: prose-flow-improver
-description: Improve the flow, shape, and readability of existing prose while preserving substance, specificity, tone, and constraints. Use when Codex needs to make explanatory writing less choppy, less list-heavy, less fragmented, or less over-paragraphed; combine related sentences or paragraphs; add connective reasoning; use conjunctions, subordinate clauses, or participial phrasing to make relationships clearer; or turn terse notes into natural connected prose. Do not use when the content is inherently list-shaped, procedural, tabular, or governed by a stricter task-specific format.
+description: Improve the flow, shape, and readability of existing prose while preserving substance, specificity, tone, and constraints, including default multi-agent section-level revision for substantial documents when workers are available. Use when Codex needs to make explanatory writing less choppy, less list-heavy, less fragmented, or less over-paragraphed; combine related sentences or paragraphs; add connective reasoning; use conjunctions, subordinate clauses, or participial phrasing to make relationships clearer; or turn terse notes into natural connected prose. Do not use when the content is inherently list-shaped, procedural, tabular, or governed by a stricter task-specific format.
 ---
 
 # Prose Flow Improver
@@ -43,6 +43,8 @@ Use subordinate clauses or participial phrases when they make the relation clear
 
 Discourage semicolon-heavy prose. A semicolon can be acceptable in rare cases, but it should not become the default way to join rewritten ideas.
 
+When using em dashes, put a space before and after each dash.
+
 Expand or compress as needed. Add missing connective tissue when the reader would otherwise have to infer what happened, why it matters, what it changes, or what constraint it implies. Remove redundant framing when the prose already carries the meaning.
 
 Keep paragraphs compact. A good default is 2 to 4 sentences per paragraph with one clear job per paragraph.
@@ -50,6 +52,18 @@ Keep paragraphs compact. A good default is 2 to 4 sentences per paragraph with o
 When two short sentences are really one thought, prefer one stronger sentence over two thin ones.
 
 End with the implication when helpful. If the paragraph explains a decision, result, or concern, make clear what follows from it.
+
+## Agent Orchestration
+
+Default to multi-agent orchestration for substantial document-level prose-flow revision when the runtime supports subagents. Read the whole draft first, choose the target shape, then spawn one worker per planned section, paragraph range, or coherent chunk.
+
+Use serial single-agent execution only as a fallback when subagents are unavailable, disabled, blocked by the runtime, clearly disproportionate for a short passage, or explicitly overridden by a quick single-pass request. Execute the same section plan serially and state the fallback when it matters.
+
+The parent agent owns the full-document view. Identify the target shape, preserve global constraints, assign disjoint sections or paragraph ranges, and perform the final merge. Do not delegate final style harmonization or preservation checks.
+
+Each worker should receive one section or range, the local rewrite goal, and any global constraints. A worker may rewrite only its assigned text and should return revised prose plus brief notes on preserved constraints, retained lists, and uncertainty. Workers must not invent facts, rewrite unrelated sections, or coordinate by modifying each other's outputs.
+
+After worker passes complete, merge in the parent. Smooth section boundaries, remove duplicated transitions, restore any dropped constraints, ensure headings and lists still serve the document, and run the normal final pass.
 
 ## Calibrate to the Output
 
