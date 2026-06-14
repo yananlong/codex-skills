@@ -22,6 +22,8 @@
 
 - Sources searched:
 - Query approach:
+- Publication status policy: prefer peer-reviewed published/accepted venue records over preprints; use preprint records only when no published/accepted version exists or as supplemental access links.
+- Publication URL policy: every included study must have a canonical publication URL in the evidence table.
 - Coverage gaps:
 
 ## 3) Screening Decisions
@@ -35,6 +37,7 @@
 - Included studies summary:
 - Design mix:
 - Bias profile:
+- Link audit: confirm each included study has publication_url pointing to the published/accepted record where available.
 
 ## 5) Synthesis
 
