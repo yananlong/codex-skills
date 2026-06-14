@@ -36,6 +36,7 @@ REQUIRED_HEADINGS = {
         "## Search metadata",
         "## Source queries",
         "## Deduplication ledger",
+        "## Version resolution ledger",
     ],
     "screening": [
         "# Screening Log:",
@@ -59,6 +60,10 @@ REQUIRED_HEADINGS = {
         "## PRISMA flow accounting",
     ],
 }
+
+REQUIRED_EVIDENCE_COLUMNS = ["study_id", "canonical_citation", "publication_url", "publication_status"]
+REQUIRED_SCREENING_COLUMNS = ["study_id", "record_type", "canonical_citation", "publication_url"]
+REQUIRED_VERSION_COLUMNS = ["resolved_publication_url"]
 
 
 def _read_file(path: Path, label: str, errors: List[str]) -> str:
@@ -130,13 +135,8 @@ def _check_prisma_consistency(counts: Dict[str, int]) -> List[str]:
     if counts["reports_not_retrieved"] > counts["reports_sought_for_retrieval"]:
         issues.append("reports_not_retrieved cannot exceed reports_sought_for_retrieval")
 
-    if (
-        counts["reports_assessed_for_eligibility"]
-        != counts["reports_sought_for_retrieval"] - counts["reports_not_retrieved"]
-    ):
-        issues.append(
-            "reports_assessed_for_eligibility != reports_sought_for_retrieval - reports_not_retrieved"
-        )
+    if counts["reports_assessed_for_eligibility"] != counts["reports_sought_for_retrieval"] - counts["reports_not_retrieved"]:
+        issues.append("reports_assessed_for_eligibility != reports_sought_for_retrieval - reports_not_retrieved")
 
     if counts["studies_included"] > counts["reports_assessed_for_eligibility"]:
         issues.append("studies_included cannot exceed reports_assessed_for_eligibility")
@@ -147,11 +147,40 @@ def _check_prisma_consistency(counts: Dict[str, int]) -> List[str]:
     return issues
 
 
-def _table_has_data_rows(markdown: str, section_heading: str) -> bool:
+def _section_text(markdown: str, section_heading: str) -> str:
     idx = markdown.find(section_heading)
     if idx < 0:
-        return False
-    section_text = markdown[idx:].split("\n## ", 1)[0]
+        return ""
+    return markdown[idx:].split("\n## ", 1)[0]
+
+
+def _table_header(markdown: str, section_heading: str) -> List[str]:
+    section_text = _section_text(markdown, section_heading)
+    for line in section_text.splitlines():
+        stripped = line.strip()
+        if not stripped.startswith("|"):
+            continue
+        cells = [cell.strip() for cell in stripped.strip("|").split("|")]
+        if not cells:
+            continue
+        if all(set(cell) <= {"-", ":"} for cell in cells):
+            continue
+        return cells
+    return []
+
+
+def _check_table_columns(markdown: str, section_heading: str, required: List[str], label: str, errors: List[str]) -> None:
+    header = _table_header(markdown, section_heading)
+    if not header:
+        errors.append(f"{label}: no table header found under {section_heading}")
+        return
+    missing = [column for column in required if column not in header]
+    if missing:
+        errors.append(f"{label}: missing required table columns under {section_heading}: " + ", ".join(missing))
+
+
+def _table_has_data_rows(markdown: str, section_heading: str) -> bool:
+    section_text = _section_text(markdown, section_heading)
     rows = []
     for line in section_text.splitlines():
         stripped = line.strip()
@@ -172,7 +201,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
             "Validate protocol/search/screening/evidence/report markdown files for required sections, "
-            "mandatory fields, and PRISMA count consistency."
+            "mandatory fields, publication URLs, and PRISMA count consistency."
         )
     )
     parser.add_argument("--protocol", required=True, help="Path to <topic>.protocol.md")
@@ -212,6 +241,10 @@ def main() -> int:
     _check_headings(screening_md, "screening-log", REQUIRED_HEADINGS["screening"], errors)
     _check_headings(evidence_md, "evidence", REQUIRED_HEADINGS["evidence"], errors)
     _check_headings(report_md, "report", REQUIRED_HEADINGS["report"], errors)
+
+    _check_table_columns(evidence_md, "## Extraction matrix", REQUIRED_EVIDENCE_COLUMNS, "evidence", errors)
+    _check_table_columns(screening_md, "## Decision ledger", REQUIRED_SCREENING_COLUMNS, "screening-log", errors)
+    _check_table_columns(search_md, "## Version resolution ledger", REQUIRED_VERSION_COLUMNS, "search-log", errors)
 
     domain = _extract_domain(protocol_md)
     if not domain:
