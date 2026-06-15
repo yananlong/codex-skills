@@ -1,6 +1,6 @@
 ---
 name: technical-writing-reviser
-description: Revise existing technical writing into clear, audience-facing prose while preserving evidence, technical meaning, uncertainty, and scope, including default multi-agent section-level revision for substantial artifacts when workers are available. Use for academic manuscripts, industrial technical reports, whitepapers, evaluation summaries, methods/results/limitations prose, technical claims, contribution or decision framing, and terminology conversion from internal shorthand to reader-facing language. Use after critique from research-paper-review or research-review-loop when the task is to revise the artifact's prose and claims, not to re-review it. Do not use when the main task is generic prose flow, citation work, paper planning, novelty review, experiment design, market strategy, or writing unsupported claims.
+description: Revise existing technical writing into clear, audience-facing prose while preserving evidence, technical meaning, uncertainty, and scope, including planned multi-agent section or issue-cluster revision for substantial artifacts when workers are available. Use for academic manuscripts, industrial technical reports, whitepapers, evaluation summaries, methods/results/limitations prose, technical claims, contribution or decision framing, and terminology conversion from internal shorthand to reader-facing language. Use after critique from research-paper-review or research-review-loop when the task is to revise the artifact's prose and claims, not to re-review it. Do not use when the main task is generic prose flow, citation work, paper planning, novelty review, experiment design, market strategy, or writing unsupported claims.
 ---
 
 # Technical Writing Reviser
@@ -37,21 +37,81 @@ Then mark any internal language that will confuse an outside reader on first pas
 
 Next identify the support level of each sentence. Separate what the text actually shows from why it matters, and keep that boundary visible in the rewrite. Prefer explicit qualifiers over overstated certainty.
 
-Finally tighten the prose into reader-facing technical form. Replace lab-log narration, internal memo phrasing, procedural diary language, and unsupported promotional language with sentences that foreground the technical object, method, evidence, result, decision, limitation, or implication. Make paragraphs do one clear job each and end with the practical inference when that helps the reader.
+Finally tighten the prose into reader-facing technical form. Replace lab-log narration, internal memo phrasing, procedural diary language, and unsupported promotional language with sentences that foreground the technical object, method, evidence, result, decision, limitation, or implication. Join closely related sentences aggressively when a conjunction, relative clause, appositive, or subordinate clause can make the technical relationship clearer without changing the claim. Lean toward relative pronouns such as "that," "which," and "who" when they attach constraints, assumptions, mechanisms, or consequences to the specific technical object they modify. Make paragraphs do one clear job each and end with the practical inference when that helps the reader.
 
 Read [references/claim-discipline.md](references/claim-discipline.md) when the draft mixes claims, interpretation, speculation, and missing evidence.
 
 ## Agent Orchestration
 
-Default to multi-agent orchestration for substantial document-level technical revision when the runtime supports subagents. Read the full artifact or enough surrounding context to identify the audience, terminology, claim boundaries, evidence limits, and any critique artifacts from `research-paper-review` or `research-review-loop`, then spawn one worker per planned section, claim cluster, or reviewer-issue cluster.
+Default to multi-agent orchestration for substantial document-level technical revision when the runtime supports subagents. Use it when the artifact has multiple sections, repeated terminology, high claim-risk, reviewer comments, or enough length that local edits could create inconsistent voice or scope. Use a quick single-pass rewrite for short passages, isolated paragraphs, or low-risk copy.
 
-Use serial single-agent execution only as a fallback when subagents are unavailable, disabled, blocked by the runtime, clearly disproportionate for a short passage or isolated section, or explicitly overridden by a quick single-pass request. Execute the same revision plan serially and state the fallback when it matters.
+Use serial single-agent execution only when subagents are unavailable, disabled, blocked by the runtime, clearly disproportionate for the artifact, or explicitly overridden by a quick request. Execute the same revision plan serially and state the fallback when it matters.
 
-The parent agent owns the global technical interpretation. Before assigning work, build a short section or issue plan, then assign disjoint sections, claim clusters, or reviewer-issue clusters to workers. Do not delegate final claim-strength calibration or cross-section terminology harmonization.
+### Parent Brief Before Workers
 
-Each worker should receive its assigned text, relevant local critique or evidence notes, the audience, terminology constraints, and one owned output target if files are being edited. A worker may revise only its assigned scope and should return revised prose plus brief notes on claim-strength changes, preserved caveats, unresolved terminology, and missing support. Workers must not invent citations, experiments, metrics, deployment facts, product claims, or cross-section commitments.
+The parent agent owns the global technical interpretation. Before assigning work, read the full artifact or enough surrounding context to identify the audience, purpose, stakes, terminology, claim boundaries, evidence limits, and any critique artifacts from `research-paper-review`, `research-review-loop`, or `adversarial-doc-review`.
 
-After worker passes complete, merge in the parent. Harmonize terminology, claim strength, tense, notation, contribution framing, and limitation language across sections. Recheck that every strengthened sentence is supported by the source or critique artifacts, and restore any caveat or negative result that a local rewrite softened.
+Build a short revision brief before launching workers. Include:
+
+- Audience and intended section role.
+- Document-level thesis, contribution, decision, or recommendation.
+- Key claims with source locations and support level.
+- Important caveats, negative results, uncertainty, and scope limits that must survive revision.
+- Terminology map for internal labels, symbols, acronyms, product names, and reader-facing replacements.
+- Known critique items or reviewer issues to resolve.
+- Claims that require external verification or should remain marked as unverified.
+
+Do not launch section workers until the brief is strong enough that another agent can revise locally without guessing the document's global meaning.
+
+### Revision Pass Plan
+
+Build a concrete pass plan before spawning or running workers. For a substantial document, aim for 4-8 passes:
+
+- 2-6 section or claim-cluster passes that cover the document's major sections, logical units, or reviewer-issue clusters.
+- 1-3 cross-cutting passes for claim discipline, terminology consistency, reader-facing flow, limitation language, notation, or evidence-to-conclusion fit.
+
+Group small or tightly coupled sections rather than creating trivial one-paragraph passes. Choose cross-cutting passes from the artifact's actual risks; do not run generic style passes that have no claim or reader-value target.
+
+Each pass plan entry should include:
+
+- `pass_id`
+- `kind` (`section`, `issue_cluster`, or `cross_cutting`)
+- assigned source text or file/line range
+- relevant critique, evidence, or caveat notes
+- one-sentence revision goal
+- likely failure modes to avoid
+- owned draft output target when workers can write files
+
+### Worker Execution
+
+Use one worker per planned pass when workers are available. Worker ownership must be disjoint: a worker revises only its assigned text or issue cluster and writes only to its owned output target when files are involved. Workers should draft revised prose, not directly edit the canonical document, unless the parent explicitly assigns a non-overlapping file or range and the environment can prevent conflicts.
+
+Each worker prompt should:
+
+- State that the worker is not alone in the workspace.
+- State the worker's assigned scope and owned output target.
+- State that the worker must not edit shared files or other workers' outputs.
+- Provide the revision brief, audience, terminology map, claim constraints, and relevant critique notes.
+- Require revised prose plus brief notes on claim-strength changes, preserved caveats, unresolved terminology, and missing support.
+- Require an empty but explicit result if no safe revision is possible.
+
+Workers must not invent citations, experiments, metrics, deployment facts, product claims, mechanisms, generalizations, or cross-section commitments. They may weaken unsupported claims, surface missing support, and preserve locally awkward wording when a cleaner rewrite would silently change meaning.
+
+### Parent Merge And Audit
+
+While workers run, the parent should do non-overlapping work only: check source coverage, refine merge criteria, inspect critique artifacts, or prepare the final document structure. Do not redo a worker's assigned pass before reviewing its output.
+
+After all passes complete, merge in the parent. The parent must harmonize terminology, claim strength, tense, notation, contribution framing, limitation language, section transitions, and sentence rhythm across the whole artifact. Prefer the clearest supported rewrite over the most polished local sentence when those conflict.
+
+Run an adversarial final audit after merging:
+
+- Check that every strengthened sentence is supported by the source, critique artifacts, or provided evidence.
+- Restore any caveat, negative result, uncertainty, baseline condition, or scope limit that a local rewrite softened.
+- Check for definitional drift, inconsistent terminology, unsupported causal language, and conclusions that no longer follow from the revised paragraph.
+- Verify that cross-section transitions do not imply evidence, chronology, deployment status, or novelty that the source did not establish.
+- Label externally checkable or time-sensitive claims as unverified unless the user requested verification and reliable sources were checked.
+
+If the revision is file-based, preserve the user's requested output format and avoid generating a parallel report unless requested. If brief notes are useful, keep them focused on unresolved evidence gaps, terminology uncertainties, and places where the source cannot support a stronger rewrite.
 
 ## Handle Terminology Carefully
 
@@ -75,4 +135,4 @@ Read [references/technical-writing-patterns.md](references/technical-writing-pat
 
 Check that the rewrite still says exactly what the source can support, no more and no less. Make sure internal labels are either translated cleanly or left visible with a note of uncertainty.
 
-Check that each paragraph has a single center and that the prose sounds like technical writing for informed outsiders rather than a note written for teammates or a claim written for persuasion without support. Leave the draft more legible and more credible, but never more certain than the evidence allows.
+Check that each paragraph has a single center and that the prose sounds like technical writing for informed outsiders rather than a note written for teammates or a claim written for persuasion without support. Avoid semicolons by default, using one only when it is cleaner than a period, conjunction, relative clause, or subordinate clause. Leave the draft more legible and more credible, but never more certain than the evidence allows.
