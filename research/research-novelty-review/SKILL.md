@@ -20,6 +20,7 @@ description: Run a stringent, adversarial novelty review over a concrete researc
 
 - Work from the user prompt plus any local notes, citations, or existing review artifacts.
 - Do not require a suite root.
+- If the user asks for project-level sequencing, current-state inspection, or coordination across multiple research stages, invoke `research-pipeline-planner` first instead of treating novelty review as the whole task.
 - Remain collaboration-friendly: if literature review or review-loop artifacts already exist, consume them; if broader retrieval or a second adversarial pass would materially help, recommend or invoke that workflow rather than staying artificially isolated.
 
 ### Orchestrated mode
@@ -43,6 +44,7 @@ description: Run a stringent, adversarial novelty review over a concrete researc
 ## Relationship to sibling skills
 
 - `research-paper-review` owns first-pass technical critique of one paper. This skill should be invoked from paper review only for novelty, contribution positioning, impact framing, or prior-art pressure testing.
+- `research-idea-discovery` owns the front-of-funnel task of generating and ranking candidate research ideas from a broad direction. Use it before this skill when the user does not yet have a concrete idea, method, protocol, artifact, or finding to compare against prior art.
 - `research-systematic-literature-review` owns broader evidence discovery. Use its paper-context evidence map before this skill when novelty or impact claims depend on external literature coverage.
 - `research-zotero` supplies curated prior-art seeds when the user has a relevant library or collection.
 - `research-review-loop` can track whether novelty/positioning issues have been resolved across revisions.
@@ -62,6 +64,7 @@ description: Run a stringent, adversarial novelty review over a concrete researc
 ## Hard stops
 
 - Stop if the proposed contribution is too vague to search.
+- If the user wants to find or generate ideas rather than evaluate a concrete one, route to `research-idea-discovery`.
 - Stop if browsing or a usable corpus is unavailable.
 - Stop if the claim bundles so many moving parts that a fair novelty comparison is impossible.
 - In standalone mode, do not force suite initialization when a direct adversarial review will do.

@@ -45,6 +45,7 @@ Use when the user wants a 2-6 week test plan. Turn the weakest assumptions into 
 - `research-results-auditor` owns validity checks for experiment outputs. Use it before treating benchmark, ablation, clinical, or statistical results as commercialization evidence.
 - `research-experiment-plan` owns decisive technical validation design. Use it when the main weak link is a technical claim rather than customer, budget, or channel risk.
 - `research-zotero` can supply a curated corpus for literature-heavy diligence, but saved references are not proof of inclusion or commercial relevance.
+- `research-pipeline-planner` owns multi-stage research coordination. Use it when commercialization analysis creates several technical follow-up stages that need shared artifacts, such as literature review, novelty review, results audit, experiment planning, and paper planning.
 
 ## Input contract
 

@@ -1,0 +1,36 @@
+{
+  "primary_intent": "ideation",
+  "capabilities": [
+    "ideation",
+    "research-planning",
+    "literature-review",
+    "novelty-review",
+    "experiment-design",
+    "stage-routing",
+    "validation"
+  ],
+  "inputs": [
+    "broad research direction",
+    "problem area",
+    "paper limitation",
+    "project notes",
+    "Zotero corpus",
+    "literature-review artifacts",
+    "constraints and non-goals"
+  ],
+  "outputs": [
+    "landscape-map.md",
+    "idea-bank.md",
+    "idea-scores.json",
+    "selected-idea.md",
+    "rejected-ideas.md",
+    "ideation-decision.json"
+  ],
+  "related_skills": [
+    "research-pipeline-planner",
+    "research-zotero",
+    "research-systematic-literature-review",
+    "research-novelty-review",
+    "research-experiment-plan"
+  ]
+}

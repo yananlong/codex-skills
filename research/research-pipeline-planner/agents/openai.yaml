@@ -1,7 +1,7 @@
 interface:
   display_name: "Research Pipeline Planner"
-  short_description: "Coordinate staged research with optional skill handoffs"
-  default_prompt: "Use $research-pipeline-planner to inspect the current research state, choose the next stage, and either answer directly or coordinate a reusable multi-skill research workflow."
+  short_description: "Coordinate staged research roadmaps, ideation, and handoffs"
+  default_prompt: "Use $research-pipeline-planner to inspect the current research state, build a roadmap or phase plan, choose the next stage, and coordinate literature, ideation, validation, and writing handoffs."
 
 policy:
   allow_implicit_invocation: true

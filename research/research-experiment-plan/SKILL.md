@@ -26,12 +26,14 @@ description: Convert a concrete research claim into a tracked, decisive experime
 
 - Work from the user prompt plus any local notes or result files already present.
 - Do not require a suite root.
+- If the user asks for project-level sequencing, current-state inspection, or coordination across multiple research stages, invoke `research-pipeline-planner` first instead of treating experiment planning as the whole task.
+- If the user asks what idea to pursue, or the claim is still only a broad research direction, invoke `research-idea-discovery` before experiment planning.
 - Collaboration is still allowed: if novelty review, results audit, or review-loop artifacts exist, use them; if one of those skills would materially improve the plan, recommend or invoke it.
 
 ### Orchestrated mode
 
 - Prefer the canonical directory `./experiment-plan/`.
-- Read upstream artifacts from `research-brief.md`, `artifact-index.md`, `./novelty-review/`, and `./literature-review/` when present.
+- Read upstream artifacts from `research-brief.md`, `artifact-index.md`, `./ideation/`, `./novelty-review/`, and `./literature-review/` when present.
 - Keep the experiment outputs easy for downstream paper planning and review to consume.
 
 ## Input contract
@@ -48,6 +50,7 @@ description: Convert a concrete research claim into a tracked, decisive experime
 ## Hard stops
 
 - Stop if the claim is still too vague to falsify.
+- If no concrete claim exists yet, route to `research-idea-discovery` instead of inventing one inside the experiment plan.
 - Stop if the evaluation target is undefined.
 - Stop if the proposed experiment block mixes too many interventions to interpret cleanly.
 - In standalone mode, do not force extra structure when a compact direct answer is sufficient.

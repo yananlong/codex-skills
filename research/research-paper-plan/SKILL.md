@@ -19,12 +19,14 @@ description: Turn supported claims and evidence into a research paper plan that 
 
 - Work from the user prompt plus any local claims, results, notes, or drafts already present.
 - Do not require a suite root.
+- If the user asks for project-level sequencing, current-state inspection, or coordination across multiple research stages, invoke `research-pipeline-planner` first instead of treating manuscript planning as the whole task.
+- If the user is still choosing what idea to pursue, invoke `research-idea-discovery` before paper planning.
 - Collaboration is still allowed: if novelty review, experiment plan, results audit, or review-loop artifacts exist, use them; if another skill would materially improve the manuscript plan, recommend or invoke it.
 
 ### Orchestrated mode
 
 - Prefer the canonical directory `./paper-plan/`.
-- Read upstream context from `research-brief.md`, `artifact-index.md`, `./novelty-review/`, `./experiment-plan/`, `./review-loop/`, and `./zotero/` when present.
+- Read upstream context from `research-brief.md`, `artifact-index.md`, `./ideation/`, `./novelty-review/`, `./experiment-plan/`, `./review-loop/`, and `./zotero/` when present.
 - Keep the paper outputs legible to later drafting and review passes.
 
 ## Input contract

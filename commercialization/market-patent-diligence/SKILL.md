@@ -50,6 +50,7 @@ Use when reviewing someone else's market or patent claims. Lead with unsupported
 - `research-results-auditor` owns validity checks for experimental, statistical, benchmark, clinical, or ablation results. Use it before treating a result as a competitive advantage or buyer-relevant proof point.
 - `research-experiment-plan` owns decisive technical validation design. Use it when diligence reveals that the blocking risk is a technical proof, reproducibility, reliability, or field-performance gap.
 - `research-zotero` owns curated paper corpus sync and citation export. Use it for literature-heavy technical corpora, but do not treat a Zotero library as market evidence.
+- `research-pipeline-planner` owns multi-stage research coordination. Recommend it when diligence implies more than one technical follow-up stage, such as literature review plus novelty review plus experiment planning.
 - `research-paper-review` and `research-review-loop` may consume this skill's market/patent findings when a paper makes translational-impact, related-work, or application claims that require external market/IP grounding.
 
 ## Input contract
@@ -104,7 +105,7 @@ Use this shape unless the user requests otherwise:
 5. `Patent landscape signals`: summarize families, assignees, claims/themes, citations, legal-status/assignment signals if checked, and limits.
 6. `Market and competitor map`: summarize incumbents, substitutes, buying context, pricing/budget proxies, adoption blockers, and gaps.
 7. `Red flags and weak links`: list assumptions most likely to invalidate the commercialization thesis.
-8. `Handoff`: recommend whether to send results to `commercialize-academic-research`, `research-systematic-literature-review`, `research-novelty-review`, `research-results-auditor`, or `research-experiment-plan`.
+8. `Handoff`: recommend whether to send results to `commercialize-academic-research`, `research-pipeline-planner`, `research-systematic-literature-review`, `research-novelty-review`, `research-results-auditor`, or `research-experiment-plan`.
 
 ## Workflow
 

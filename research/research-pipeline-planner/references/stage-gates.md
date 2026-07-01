@@ -8,6 +8,12 @@ Use these gates to decide whether to proceed, revise scope, or stop.
 - Revise when the topic is broad enough that search terms collapse into noise.
 - Stop when the domain or research question is still missing.
 
+## Ideation gate
+
+- Proceed when the direction, constraints, and contribution type are specific enough to produce testable candidate ideas.
+- Revise when candidates are mostly slogans, obvious applications, or ungrounded combinations.
+- Stop when no surviving idea has a concrete hypothesis, plausible novelty signal, and minimum validation path.
+
 ## Novelty review gate
 
 - Proceed when the proposed method or finding is concrete enough to compare.

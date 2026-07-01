@@ -1,6 +1,6 @@
 ---
 name: research-pipeline-planner
-description: Coordinate research as either a standalone staged planning pass or an orchestrated multi-skill workflow with shared artifacts, stage gates, and optional collaboration with Zotero library sync, literature review, novelty review, experiment planning, paper review, result auditing, review, paper planning, and venue-response drafting. Use when asked to scope a research direction, inspect existing research artifacts, choose the next research stage, create a research brief or task board, or coordinate a reusable research workflow.
+description: Coordinate research as either a standalone staged planning pass or an orchestrated multi-skill workflow with shared artifacts, stage gates, and optional collaboration with Zotero library sync, literature review, idea discovery, novelty review, experiment planning, paper review, result auditing, review, paper planning, and venue-response drafting. Use when asked to scope a research direction, inspect existing research artifacts, choose the next research stage, create a research brief or task board, coordinate a reusable research workflow, build a research roadmap or agenda, organize a research repo, turn notes into a phase plan, define milestones, decide what to do next, or coordinate literature plus ideation plus experiments plus paper work.
 ---
 
 # Research Pipeline Planner
@@ -8,10 +8,17 @@ description: Coordinate research as either a standalone staged planning pass or 
 ## Quick start
 
 1. Inspect the current project state before asking broad reset questions.
-2. Decide whether this should stay standalone or use an orchestrated suite pack.
-3. Initialize `research-brief.md`, `task-board.md`, `decision-log.md`, and `artifact-index.md` only when shared stage artifacts will help.
-4. Choose the next blocking stage, then either do that work locally or hand it off to the most relevant sibling skill.
-5. Insert checkpoints before any step that could waste major time, compute, or paper space.
+2. Use this skill as the default first pass when the user asks for project-level sequencing, current-state inspection, or a task that spans two or more research stages.
+3. Decide whether this should stay standalone or use an orchestrated suite pack.
+4. Initialize `research-brief.md`, `task-board.md`, `decision-log.md`, and `artifact-index.md` only when shared stage artifacts will help.
+5. Choose the next blocking stage, then either do that work locally or hand it off to the most relevant sibling skill.
+6. Insert checkpoints before any step that could waste major time, compute, or paper space.
+
+## Routing triggers
+
+Prefer this skill before a sibling stage skill when the user asks for a research roadmap, research agenda, project plan, phase plan, milestones, what to do next, repo organization, notes-to-plan conversion, or coordination across literature review, idea discovery, novelty review, experiments, results audit, paper planning, review, and rebuttal.
+
+Do not force this skill for a clear one-stage request. Route direct ideation, paper reviews, novelty checks, experiment plans, result audits, paper outlines, Zotero syncs, or rebuttals to the relevant sibling skill unless the user also asks for project-level sequencing or persistent cross-stage coordination.
 
 ## Modes
 
@@ -19,6 +26,7 @@ description: Coordinate research as either a standalone staged planning pass or 
 
 - Work from the user prompt plus any local files already present.
 - Do not require a suite root or prior pipeline setup.
+- Default to lightweight triage and next-stage recommendation; do not create files unless persistent shared state would materially help.
 - Remain composable: if sibling-skill outputs already exist, consume them; if another skill would materially improve the answer, recommend or invoke that workflow rather than pretending isolation.
 
 ### Orchestrated mode
@@ -44,7 +52,7 @@ description: Coordinate research as either a standalone staged planning pass or 
 
 ### 1) Inspect existing state first
 
-- Look for problem statements, literature notes, novelty assessments, experiment plans, paper-review artifacts, result artifacts, review notes, and draft outlines.
+- Look for problem statements, literature notes, ideation artifacts, novelty assessments, experiment plans, paper-review artifacts, result artifacts, review notes, and draft outlines.
 - Distinguish:
   - no structured artifacts yet
   - partial standalone artifacts
@@ -74,6 +82,7 @@ description: Coordinate research as either a standalone staged planning pass or 
 - Use the canonical handoff map:
   - curated Zotero library sync or citation export -> `research-zotero`
   - evidence gathering or systematic search -> `research-systematic-literature-review`
+  - broad direction to grounded candidate ideas -> `research-idea-discovery`
   - adversarial novelty pressure test -> `research-novelty-review`
   - decisive validation plan -> `research-experiment-plan`
   - deep single-paper review -> `research-paper-review`

@@ -15,6 +15,7 @@ description: Run iterative adversarial review over research plans, experiment ou
 6. Update the latest `REVIEW_STATE.json`, `AUTO_REVIEW.md`, and `NARRATIVE_REPORT.md` after each round only after preserving prior versions.
 7. If a `research-paper-review` bundle exists, import its issue IDs, quotes, ratings, and summary path rather than re-summarizing or downgrading the first-pass critique.
 8. Infer the provenance of existing review artifacts before reorganizing them: upstream Claude/OpenAIReview bundles, Codex-native paper-review bundles, and review-loop hybrids are all valid inputs.
+9. If the user asks for project-level sequencing, current-state inspection, or coordination across multiple research stages, invoke `research-pipeline-planner` first instead of treating the review loop as the whole task.
 
 ## Relationship to sibling skills
 

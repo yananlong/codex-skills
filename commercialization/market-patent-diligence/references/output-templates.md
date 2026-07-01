@@ -55,7 +55,7 @@ Coverage: quick scan / bounded scan / full diligence pack
   "weakest_assumptions": [],
   "patent_landscape_confidence": "low | medium | high",
   "market_evidence_confidence": "low | medium | high",
-  "recommended_next_skill": "commercialize-academic-research | research-systematic-literature-review | research-novelty-review | research-results-auditor | research-experiment-plan | research-paper-review | research-review-loop | none",
+  "recommended_next_skill": "commercialize-academic-research | research-pipeline-planner | research-systematic-literature-review | research-novelty-review | research-results-auditor | research-experiment-plan | research-paper-review | research-review-loop | none",
   "questions_for_next_skill": [],
   "limits": []
 }

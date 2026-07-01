@@ -32,9 +32,12 @@
 
 | Stage | Goal | Canonical path | Owner skill | Status |
 | --- | --- | --- | --- | --- |
+| zotero | | ./zotero/ | research-zotero | optional |
 | literature review | | ./literature-review/ | research-systematic-literature-review | optional |
+| ideation | | ./ideation/ | research-idea-discovery | optional |
 | novelty review | | ./novelty-review/ | research-novelty-review | optional |
 | experiment plan | | ./experiment-plan/ | research-experiment-plan | optional |
+| results audit | | ./results-audit/ | research-results-auditor | optional |
 | paper review | | ./paper-review/ | research-paper-review | optional |
 | paper plan | | ./paper-plan/ | research-paper-plan | optional |
 | review loop | | ./review-loop/ | research-review-loop | optional |

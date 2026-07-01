@@ -12,6 +12,7 @@ description: Sync, inspect, and export Zotero user or group libraries for litera
 3. Use `scripts/fetch_zotero_items.py` to sync a library, collection, or tag/query slice into normalized JSON.
 4. Use `scripts/export_zotero_items.py` when a downstream skill needs BibTeX, CSL-JSON, RIS, or raw exported item payloads.
 5. In orchestrated mode, prefer `./zotero/` as the canonical stage root and record actual paths in `artifact-index.md`.
+6. If the user asks for project-level sequencing, current-state inspection, or coordination across multiple research stages, invoke `research-pipeline-planner` first instead of treating Zotero sync as the whole task.
 
 ## Modes
 
@@ -117,6 +118,8 @@ description: Sync, inspect, and export Zotero user or group libraries for litera
 
 - `research-systematic-literature-review`:
   - consume `zotero-items.json` as a curated discovery/citation-validation source
+- `research-idea-discovery`:
+  - consume `zotero-items.json` as a curated landscape seed before generating and ranking ideas
 - `research-novelty-review`:
   - use Zotero collections or tags to seed strongest-overlap searches
 - `research-paper-plan`:

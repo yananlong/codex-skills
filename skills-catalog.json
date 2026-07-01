@@ -1,0 +1,1133 @@
+{
+  "$schema": "./skills-catalog.schema.json",
+  "catalog_version": 1,
+  "domains": [
+    "commercialization",
+    "documents",
+    "research",
+    "writing"
+  ],
+  "generated_by": "scripts/generate_skill_catalog.py",
+  "notes": [
+    "This catalog is generated from all SKILL.md files under the repository.",
+    "Add new skills by adding a skill folder with SKILL.md; no central list edit is required.",
+    "Optional per-skill catalog.json sidecars may add or override structured metadata."
+  ],
+  "open_catalog": true,
+  "skill_count": 19,
+  "skills": [
+    {
+      "agent_metadata": {
+        "interface": {
+          "default_prompt": "Use $commercialize-academic-research to evaluate this research asset, separate evidence from assumptions, compare commercialization paths, and define the next validation tests.",
+          "display_name": "Research Commercialization",
+          "short_description": "Evidence-gated research commercialization"
+        }
+      },
+      "capabilities": [
+        "commercialization",
+        "stage-routing"
+      ],
+      "description": "Run evidence-gated commercialization analysis for academic research by translating a bounded research asset into workflow pain, current workarounds, buyer and budget logic, commercialization paths, risk-retirement tests, and kill/pivot/continue decisions. Use when Codex needs to evaluate market pull for a paper, prototype, dataset, device, algorithm, lab result, or platform technology; distinguish user, buyer, operator, procurement, and budget roles; compare startup, licensing, partnership, service, or component routes; identify beachhead wedges; build validation sprints; or red-team unsupported commercialization claims.",
+      "domain": "commercialization",
+      "frontmatter": {
+        "description": "Run evidence-gated commercialization analysis for academic research by translating a bounded research asset into workflow pain, current workarounds, buyer and budget logic, commercialization paths, risk-retirement tests, and kill/pivot/continue decisions. Use when Codex needs to evaluate market pull for a paper, prototype, dataset, device, algorithm, lab result, or platform technology; distinguish user, buyer, operator, procurement, and budget roles; compare startup, licensing, partnership, service, or component routes; identify beachhead wedges; build validation sprints; or red-team unsupported commercialization claims.",
+        "name": "commercialize-academic-research"
+      },
+      "inputs": [],
+      "name": "commercialize-academic-research",
+      "outputs": [
+        ".context.md",
+        ".decision-log.md",
+        ".evidence-ledger.md",
+        ".options.md",
+        ".pain-points.md",
+        ".source-log.md",
+        ".validation-plan.md"
+      ],
+      "path": "commercialization/commercialize-academic-research",
+      "primary_intent": "analysis",
+      "related_skills": [
+        "research-experiment-plan",
+        "research-novelty-review",
+        "research-pipeline-planner",
+        "research-results-auditor",
+        "research-systematic-literature-review",
+        "research-zotero"
+      ],
+      "resources": {
+        "agents": [
+          "agents/openai.yaml"
+        ],
+        "assets": [],
+        "prompts": [],
+        "references": [
+          "references/commercialization-patterns.md",
+          "references/diligence-checklists.md",
+          "references/discovery-question-bank.md",
+          "references/domain-adapters.md",
+          "references/evaluation-rubric.md"
+        ],
+        "scripts": [
+          "scripts/add_source_log.py",
+          "scripts/init_case_pack.py",
+          "scripts/validate_case_pack.py"
+        ]
+      },
+      "skill_file": "commercialization/commercialize-academic-research/SKILL.md"
+    },
+    {
+      "agent_metadata": {
+        "interface": {
+          "default_prompt": "Use $market-patent-diligence to search market, competitor, procurement, funding, regulatory, and patent evidence for this research asset; log sources, separate facts from inferences, and prepare a handoff to commercialization analysis.",
+          "display_name": "Market Patent Diligence",
+          "short_description": "Source-grounded market and patent diligence"
+        }
+      },
+      "capabilities": [
+        "commercialization"
+      ],
+      "description": "source-grounded market, competitor, procurement, funding, regulatory, and patent-landscape diligence for academic research commercialization. use when codex needs to search public market or patent information for a research asset, technology, prototype, dataset, method, device, or commercialization thesis; map incumbents, substitutes, buyers, assignees, patent families, citations, ownership signals, public funding, procurement demand, regulatory/reimbursement constraints, and evidence gaps; prepare diligence artifacts for commercialize-academic-research or related research skills.",
+      "domain": "commercialization",
+      "frontmatter": {
+        "description": "source-grounded market, competitor, procurement, funding, regulatory, and patent-landscape diligence for academic research commercialization. use when codex needs to search public market or patent information for a research asset, technology, prototype, dataset, method, device, or commercialization thesis; map incumbents, substitutes, buyers, assignees, patent families, citations, ownership signals, public funding, procurement demand, regulatory/reimbursement constraints, and evidence gaps; prepare diligence artifacts for commercialize-academic-research or related research skills.",
+        "name": "market-patent-diligence"
+      },
+      "inputs": [],
+      "name": "market-patent-diligence",
+      "outputs": [
+        ".competitor-substitute-map.md",
+        ".evidence-ledger.md",
+        ".handoff-to-commercialization.json",
+        ".market-map.md",
+        ".patent-landscape.md",
+        ".regulatory-procurement-funding.md",
+        ".scope.md",
+        ".source-log.md",
+        "handoff-to-commercialization.json"
+      ],
+      "path": "commercialization/market-patent-diligence",
+      "primary_intent": "review",
+      "related_skills": [
+        "commercialize-academic-research",
+        "research-experiment-plan",
+        "research-novelty-review",
+        "research-paper-review",
+        "research-pipeline-planner",
+        "research-results-auditor",
+        "research-review-loop",
+        "research-systematic-literature-review",
+        "research-zotero"
+      ],
+      "resources": {
+        "agents": [
+          "agents/openai.yaml"
+        ],
+        "assets": [],
+        "prompts": [],
+        "references": [
+          "references/market-diligence-guide.md",
+          "references/output-templates.md",
+          "references/patent-search-guide.md",
+          "references/source-taxonomy.md"
+        ],
+        "scripts": [
+          "scripts/init_diligence_pack.py",
+          "scripts/validate_diligence_pack.py"
+        ]
+      },
+      "skill_file": "commercialization/market-patent-diligence/SKILL.md"
+    },
+    {
+      "agent_metadata": {
+        "interface": {
+          "default_prompt": "Use $adversarial-doc-review to adversarially review this document (often a `.md` file path), verify time-sensitive claims with up-to-date sources, and return a structured report in chat by default. For Markdown inputs, cite findings as `path:line` plus the nearest heading. If a file report is requested, write `<docname>.review.md` next to the input document.",
+          "display_name": "Adversarial Doc Review",
+          "short_description": "Pedantic review + current fact-checking"
+        },
+        "policy": {
+          "allow_implicit_invocation": true
+        }
+      },
+      "capabilities": [
+        "literature-review",
+        "paper-review"
+      ],
+      "description": "Pedantic, adversarial stress-testing of documents (often Markdown .md) with claim-by-claim scrutiny, internal consistency checks, citation auditing, and up-to-date fact-checking via web search. Use when asked to critique, peer-review, red-team, verify references, or pressure-test time-sensitive statements; default deliverable is a structured report in chat.",
+      "domain": "documents",
+      "frontmatter": {
+        "description": "Pedantic, adversarial stress-testing of documents (often Markdown .md) with claim-by-claim scrutiny, internal consistency checks, citation auditing, and up-to-date fact-checking via web search. Use when asked to critique, peer-review, red-team, verify references, or pressure-test time-sensitive statements; default deliverable is a structured report in chat.",
+        "name": "adversarial-doc-review"
+      },
+      "inputs": [],
+      "name": "adversarial-doc-review",
+      "outputs": [
+        ".review.md"
+      ],
+      "path": "documents/adversarial-doc-review",
+      "primary_intent": "review",
+      "related_skills": [],
+      "resources": {
+        "agents": [
+          "agents/openai.yaml"
+        ],
+        "assets": [],
+        "prompts": [],
+        "references": [
+          "references/report-template.md",
+          "references/review-checklist.md"
+        ],
+        "scripts": []
+      },
+      "skill_file": "documents/adversarial-doc-review/SKILL.md"
+    },
+    {
+      "agent_metadata": {
+        "interface": {
+          "default_prompt": "Use $document-memory-builder to read the provided documents and create a source-grounded memory pack, using section-aware chunking for long or chaptered material when needed.",
+          "display_name": "Document Memory",
+          "short_description": "Distill documents into reusable, source-grounded memory"
+        }
+      },
+      "capabilities": [
+        "document-memory"
+      ],
+      "description": "Read a specified set of documents and distill them into a reusable, source-grounded memory pack. Use when Codex is asked to ingest project documents, papers, specs, notes, policies, or mixed corpora and create durable memory artifacts such as canonical facts, terminology, workflows, constraints, entity maps, and open questions for later reuse. Also use for long-form or chaptered material such as books, long reports, multi-section drafts, or large corpus updates that require section-aware extraction and synthesis.",
+      "domain": "documents",
+      "frontmatter": {
+        "description": "Read a specified set of documents and distill them into a reusable, source-grounded memory pack. Use when Codex is asked to ingest project documents, papers, specs, notes, policies, or mixed corpora and create durable memory artifacts such as canonical facts, terminology, workflows, constraints, entity maps, and open questions for later reuse. Also use for long-form or chaptered material such as books, long reports, multi-section drafts, or large corpus updates that require section-aware extraction and synthesis.",
+        "name": "document-memory-builder"
+      },
+      "inputs": [],
+      "name": "document-memory-builder",
+      "outputs": [
+        ".memory.md",
+        ".open-questions.md",
+        ".source-map.md"
+      ],
+      "path": "documents/document-memory-builder",
+      "primary_intent": "analysis",
+      "related_skills": [],
+      "resources": {
+        "agents": [
+          "agents/openai.yaml"
+        ],
+        "assets": [],
+        "prompts": [],
+        "references": [
+          "references/extraction-rules.md",
+          "references/memory-pack-template.md"
+        ],
+        "scripts": [
+          "scripts/init_memory_pack.py"
+        ]
+      },
+      "skill_file": "documents/document-memory-builder/SKILL.md"
+    },
+    {
+      "agent_metadata": {
+        "interface": {
+          "default_prompt": "Use $exposition-to-notebook to turn this exposition into a runnable Jupyter notebook prototype.",
+          "display_name": "Exposition to Notebook",
+          "short_description": "Prose \u2192 product-ready Jupyter notebooks"
+        }
+      },
+      "capabilities": [
+        "notebook-generation"
+      ],
+      "description": "Convert mathematical derivations, research notes, and textual specs into runnable, product-ready Jupyter notebooks (.ipynb) with clear narrative, LaTeX, modular code, plots, and sanity checks/tests. Use when asked to turn an exposition/paper/spec into a notebook, prototype a method in Jupyter, create a demo notebook, or convert Markdown/LaTeX notes into an executable notebook.",
+      "domain": "documents",
+      "frontmatter": {
+        "description": "Convert mathematical derivations, research notes, and textual specs into runnable, product-ready Jupyter notebooks (.ipynb) with clear narrative, LaTeX, modular code, plots, and sanity checks/tests. Use when asked to turn an exposition/paper/spec into a notebook, prototype a method in Jupyter, create a demo notebook, or convert Markdown/LaTeX notes into an executable notebook.",
+        "name": "exposition-to-notebook"
+      },
+      "inputs": [],
+      "name": "exposition-to-notebook",
+      "outputs": [
+        "requirements.txt"
+      ],
+      "path": "documents/exposition-to-notebook",
+      "primary_intent": "execution",
+      "related_skills": [],
+      "resources": {
+        "agents": [
+          "agents/openai.yaml"
+        ],
+        "assets": [
+          "assets/product_notebook_template.ipynb"
+        ],
+        "prompts": [],
+        "references": [
+          "references/product_ready_checklist.md"
+        ],
+        "scripts": [
+          "scripts/ipynb_json.py",
+          "scripts/md_to_ipynb.py",
+          "scripts/scaffold_notebook.py"
+        ]
+      },
+      "skill_file": "documents/exposition-to-notebook/SKILL.md"
+    },
+    {
+      "agent_metadata": {
+        "interface": {
+          "default_prompt": "Use $pdf-book-assembler to merge ordered PDFs, normalize orientation, add bookmarks, and optionally crop whitespace.",
+          "display_name": "PDF Book Assembler",
+          "short_description": "Merge and finish book-style PDFs"
+        }
+      },
+      "capabilities": [
+        "pdf-processing"
+      ],
+      "description": "Assemble book-style PDFs from one or more source PDFs using CLI PDF tools. Use when Codex needs to collate PDFs in a specific order, drop repeated cover/JSTOR pages, add chapter/section bookmarks, rotate landscape pages to portrait, or optionally crop shared whitespace proportionally across pages.",
+      "domain": "documents",
+      "frontmatter": {
+        "description": "Assemble book-style PDFs from one or more source PDFs using CLI PDF tools. Use when Codex needs to collate PDFs in a specific order, drop repeated cover/JSTOR pages, add chapter/section bookmarks, rotate landscape pages to portrait, or optionally crop shared whitespace proportionally across pages.",
+        "name": "pdf-book-assembler"
+      },
+      "inputs": [],
+      "name": "pdf-book-assembler",
+      "outputs": [
+        "spec.json"
+      ],
+      "path": "documents/pdf-book-assembler",
+      "primary_intent": "execution",
+      "related_skills": [],
+      "resources": {
+        "agents": [
+          "agents/openai.yaml"
+        ],
+        "assets": [],
+        "prompts": [],
+        "references": [
+          "references/spec.md"
+        ],
+        "scripts": [
+          "scripts/build_pdf_book.py"
+        ]
+      },
+      "skill_file": "documents/pdf-book-assembler/SKILL.md"
+    },
+    {
+      "agent_metadata": {
+        "interface": {
+          "default_prompt": "Use $research-experiment-plan to turn a concrete claim into a decisive experiment plan that works directly or as the experiment stage inside a larger research workflow.",
+          "display_name": "Research Experiment Plan",
+          "short_description": "Design tracked decisive experiments with optional collaboration"
+        },
+        "policy": {
+          "allow_implicit_invocation": true
+        }
+      },
+      "capabilities": [
+        "experiment-design",
+        "research-planning",
+        "stage-routing"
+      ],
+      "description": "Convert a concrete research claim into a tracked, decisive experiment plan that works either as a standalone planning artifact or as the experiment stage inside a coordinated research workflow. Use when asked to design experiments, define baselines or ablations, decide run order, separate must-run from nice-to-have evidence, or turn a claim plus evaluation goal into a validation plan.",
+      "domain": "research",
+      "frontmatter": {
+        "description": "Convert a concrete research claim into a tracked, decisive experiment plan that works either as a standalone planning artifact or as the experiment stage inside a coordinated research workflow. Use when asked to design experiments, define baselines or ablations, decide run order, separate must-run from nice-to-have evidence, or turn a claim plus evaluation goal into a validation plan.",
+        "name": "research-experiment-plan"
+      },
+      "inputs": [],
+      "name": "research-experiment-plan",
+      "outputs": [
+        ".review.md",
+        "artifact-index.md",
+        "claim-map.json",
+        "decision-gates.md",
+        "execution-bridge.md",
+        "experiment-plan.md",
+        "experiment-tracker.md",
+        "research-brief.md",
+        "run-blocks.json"
+      ],
+      "path": "research/research-experiment-plan",
+      "primary_intent": "planning",
+      "related_skills": [
+        "research-idea-discovery",
+        "research-novelty-review",
+        "research-paper-plan",
+        "research-pipeline-planner",
+        "research-results-auditor",
+        "research-review-loop"
+      ],
+      "resources": {
+        "agents": [
+          "agents/openai.yaml"
+        ],
+        "assets": [],
+        "prompts": [],
+        "references": [
+          "references/claim-evidence-map-template.md",
+          "references/control-and-ablation-checklist.md",
+          "references/decision-gates-template.md",
+          "references/execution-bridge-template.md",
+          "references/experiment-block-schema.md",
+          "references/experiment-plan-template.md",
+          "references/risk-confound-checklist.md",
+          "references/run-order-template.md",
+          "references/tabmol-ddi-ood-adapter.md"
+        ],
+        "scripts": [
+          "scripts/init_experiment_pack.py",
+          "scripts/validate_experiment_pack.py"
+        ]
+      },
+      "skill_file": "research/research-experiment-plan/SKILL.md"
+    },
+    {
+      "agent_metadata": {
+        "interface": {
+          "default_prompt": "Use $research-idea-discovery to turn a broad research direction into grounded, ranked, and handoff-ready research ideas.",
+          "display_name": "Research Idea Discovery",
+          "short_description": "Generate and rank grounded research ideas"
+        },
+        "policy": {
+          "allow_implicit_invocation": true
+        }
+      },
+      "capabilities": [
+        "experiment-design",
+        "ideation",
+        "literature-review",
+        "novelty-review",
+        "research-planning",
+        "stage-routing",
+        "validation",
+        "zotero"
+      ],
+      "description": "Generate, filter, rank, and hand off grounded research ideas from a broad research direction, problem area, literature landscape, Zotero corpus, paper limitation, or user notes. Use when asked to brainstorm publishable research ideas, find a direction, turn a broad area into candidate claims, choose what to work on, evaluate idea quality before novelty review, or create an ideation stage inside a coordinated research workflow. Prefer research-novelty-review when the user already has one concrete idea to pressure-test, research-experiment-plan when the claim is already frozen, and research-pipeline-planner when the main request is multi-stage project sequencing rather than ideation itself.",
+      "domain": "research",
+      "frontmatter": {
+        "description": "Generate, filter, rank, and hand off grounded research ideas from a broad research direction, problem area, literature landscape, Zotero corpus, paper limitation, or user notes. Use when asked to brainstorm publishable research ideas, find a direction, turn a broad area into candidate claims, choose what to work on, evaluate idea quality before novelty review, or create an ideation stage inside a coordinated research workflow. Prefer research-novelty-review when the user already has one concrete idea to pressure-test, research-experiment-plan when the claim is already frozen, and research-pipeline-planner when the main request is multi-stage project sequencing rather than ideation itself.",
+        "name": "research-idea-discovery"
+      },
+      "inputs": [
+        "broad research direction",
+        "problem area",
+        "paper limitation",
+        "project notes",
+        "Zotero corpus",
+        "literature-review artifacts",
+        "constraints and non-goals"
+      ],
+      "name": "research-idea-discovery",
+      "outputs": [
+        "idea-bank.md",
+        "idea-scores.json",
+        "ideation-decision.json",
+        "landscape-map.md",
+        "rejected-ideas.md",
+        "selected-idea.md"
+      ],
+      "path": "research/research-idea-discovery",
+      "primary_intent": "ideation",
+      "related_skills": [
+        "research-experiment-plan",
+        "research-novelty-review",
+        "research-pipeline-planner",
+        "research-systematic-literature-review",
+        "research-zotero"
+      ],
+      "resources": {
+        "agents": [
+          "agents/openai.yaml"
+        ],
+        "assets": [],
+        "prompts": [],
+        "references": [
+          "references/idea-bank-template.md",
+          "references/idea-score-schema.md",
+          "references/ideation-decision-schema.md",
+          "references/landscape-map-template.md",
+          "references/rejected-ideas-template.md",
+          "references/scoring-rubric.md",
+          "references/selected-idea-template.md"
+        ],
+        "scripts": [
+          "scripts/init_ideation_pack.py",
+          "scripts/validate_ideation_pack.py"
+        ]
+      },
+      "skill_file": "research/research-idea-discovery/SKILL.md"
+    },
+    {
+      "agent_metadata": {
+        "interface": {
+          "default_prompt": "Use $research-novelty-review to run a skeptical, falsification-first novelty review that can recommend abandonment, reframing, or proceed.",
+          "display_name": "Research Novelty Review",
+          "short_description": "Run adversarial novelty review against prior art"
+        },
+        "policy": {
+          "allow_implicit_invocation": true
+        }
+      },
+      "capabilities": [
+        "novelty-review"
+      ],
+      "description": "Run a stringent, adversarial novelty review over a concrete research idea, method, protocol, artifact, or claimed finding. Use when asked to assess novelty, position a paper or project, build a prior-art matrix, decide whether something is incremental, or pressure-test whether the right move is to proceed, reframe, or abandon. Prefer `research-paper-review` for first-pass technical critique of a single paper artifact and `research-rebuttal` when the task is to answer concrete reviewer comments rather than establish novelty positioning from scratch.",
+      "domain": "research",
+      "frontmatter": {
+        "description": "Run a stringent, adversarial novelty review over a concrete research idea, method, protocol, artifact, or claimed finding. Use when asked to assess novelty, position a paper or project, build a prior-art matrix, decide whether something is incremental, or pressure-test whether the right move is to proceed, reframe, or abandon. Prefer `research-paper-review` for first-pass technical critique of a single paper artifact and `research-rebuttal` when the task is to answer concrete reviewer comments rather than establish novelty positioning from scratch.",
+        "name": "research-novelty-review"
+      },
+      "inputs": [],
+      "name": "research-novelty-review",
+      "outputs": [
+        "artifact-index.md",
+        "final_issues.json",
+        "novelty-context.md",
+        "novelty-decision.json",
+        "novelty-report.md",
+        "prior-art-matrix.md",
+        "research-brief.md",
+        "search-log.md",
+        "summary.md"
+      ],
+      "path": "research/research-novelty-review",
+      "primary_intent": "review",
+      "related_skills": [
+        "research-idea-discovery",
+        "research-paper-plan",
+        "research-paper-review",
+        "research-pipeline-planner",
+        "research-rebuttal",
+        "research-review-loop",
+        "research-systematic-literature-review",
+        "research-zotero"
+      ],
+      "resources": {
+        "agents": [
+          "agents/openai.yaml"
+        ],
+        "assets": [],
+        "prompts": [],
+        "references": [
+          "references/adversarial-query-patterns.md",
+          "references/decision-scale.md",
+          "references/novelty-checklist.md",
+          "references/overlap-scoring-rubric.md",
+          "references/paper-review-integration.md",
+          "references/prior-art-matrix-template.md",
+          "references/reviewer-objection-rubric.md",
+          "references/search-log-template.md",
+          "references/tabmol-ddi-ood-adapter.md"
+        ],
+        "scripts": [
+          "scripts/init_novelty_pack.py"
+        ]
+      },
+      "skill_file": "research/research-novelty-review/SKILL.md"
+    },
+    {
+      "agent_metadata": {
+        "interface": {
+          "default_prompt": "Use $research-paper-plan to turn supported claims and evidence into a paper plan that works directly or as the paper stage inside a larger research workflow.",
+          "display_name": "Research Paper Plan",
+          "short_description": "Turn evidence into a paper plan with optional collaboration"
+        },
+        "policy": {
+          "allow_implicit_invocation": true
+        }
+      },
+      "capabilities": [
+        "paper-planning",
+        "paper-review",
+        "research-planning",
+        "stage-routing"
+      ],
+      "description": "Turn supported claims and evidence into a research paper plan that works either as a standalone manuscript-structuring pass or as the paper stage inside a coordinated research workflow. Use when asked to outline a paper, map claims to evidence, plan figures and citations, align experiments to manuscript claims, or keep limitations and threats to validity explicit.",
+      "domain": "research",
+      "frontmatter": {
+        "description": "Turn supported claims and evidence into a research paper plan that works either as a standalone manuscript-structuring pass or as the paper stage inside a coordinated research workflow. Use when asked to outline a paper, map claims to evidence, plan figures and citations, align experiments to manuscript claims, or keep limitations and threats to validity explicit.",
+        "name": "research-paper-plan"
+      },
+      "inputs": [],
+      "name": "research-paper-plan",
+      "outputs": [
+        "artifact-index.md",
+        "citation-plan.md",
+        "claims-evidence-matrix.md",
+        "figure-plan.md",
+        "paper-plan.md",
+        "research-brief.md"
+      ],
+      "path": "research/research-paper-plan",
+      "primary_intent": "planning",
+      "related_skills": [
+        "research-idea-discovery",
+        "research-novelty-review",
+        "research-pipeline-planner",
+        "research-results-auditor",
+        "research-review-loop",
+        "research-zotero"
+      ],
+      "resources": {
+        "agents": [
+          "agents/openai.yaml"
+        ],
+        "assets": [],
+        "prompts": [],
+        "references": [
+          "references/citation-verification-rules.md",
+          "references/claims-evidence-matrix-template.md",
+          "references/exhibit-plan-checklist.md",
+          "references/paper-outline-template.md",
+          "references/section-archetypes.md",
+          "references/tabmol-ddi-ood-adapter.md",
+          "references/venue-adapters.md"
+        ],
+        "scripts": [
+          "scripts/init_paper_pack.py"
+        ]
+      },
+      "skill_file": "research/research-paper-plan/SKILL.md"
+    },
+    {
+      "agent_metadata": {
+        "interface": {
+          "default_prompt": "Use $research-paper-review to run an OpenAIReview-style deep review of a paper, draft, PDF, or arXiv URL and save browsable results.",
+          "display_name": "Research Paper Review",
+          "short_description": "Deep paper review with OCR and viz"
+        },
+        "policy": {
+          "allow_implicit_invocation": true
+        }
+      },
+      "capabilities": [
+        "multi-agent",
+        "paper-review"
+      ],
+      "description": "Run academic paper review with OCR extraction, ChatGPT-native multi-agent critique, local visualization, and section-level review workflows integrated into the research skill suite. Use when Codex needs an initial or first-pass review of one paper artifact or arXiv URL, including OCR, extraction, default Claude-style or multi-agent review, contextualized critique, or viz JSON generation. Prefer `research-review-loop` once a tracked review state or revised artifact already exists, `research-novelty-review` for prior-art and positioning questions, `research-rebuttal` when concrete reviewer comments already exist, and `adversarial-doc-review` for non-paper documents.",
+      "domain": "research",
+      "frontmatter": {
+        "description": "Run academic paper review with OCR extraction, ChatGPT-native multi-agent critique, local visualization, and section-level review workflows integrated into the research skill suite. Use when Codex needs an initial or first-pass review of one paper artifact or arXiv URL, including OCR, extraction, default Claude-style or multi-agent review, contextualized critique, or viz JSON generation. Prefer `research-review-loop` once a tracked review state or revised artifact already exists, `research-novelty-review` for prior-art and positioning questions, `research-rebuttal` when concrete reviewer comments already exist, and `adversarial-doc-review` for non-paper documents.",
+        "name": "research-paper-review"
+      },
+      "inputs": [],
+      "name": "research-paper-review",
+      "outputs": [
+        "PASS_PLAN.md",
+        "_skill.json",
+        "artifact-index.md",
+        "criteria.md",
+        "final_issues.json",
+        "full_text.md",
+        "literature-context-decision.json",
+        "literature-context-evidence-table.md",
+        "literature-context-search-log.md",
+        "literature-context.md",
+        "metadata.json",
+        "overall_assessment.txt",
+        "review_summary.json",
+        "summary.md"
+      ],
+      "path": "research/research-paper-review",
+      "primary_intent": "review",
+      "related_skills": [
+        "adversarial-doc-review",
+        "research-novelty-review",
+        "research-paper-plan",
+        "research-pipeline-planner",
+        "research-rebuttal",
+        "research-review-loop",
+        "research-systematic-literature-review"
+      ],
+      "resources": {
+        "agents": [
+          "agents/openai.yaml"
+        ],
+        "assets": [],
+        "prompts": [],
+        "references": [
+          "references/chatgpt-native-review.md",
+          "references/codex-agent-orchestration.md",
+          "references/criteria.md",
+          "references/engine-usage.md",
+          "references/rating-rubric.md",
+          "references/subagent_templates.md"
+        ],
+        "scripts": [
+          "scripts/_engine.py",
+          "scripts/consolidate_comments.py",
+          "scripts/install_engine.py",
+          "scripts/prepare_workspace.py",
+          "scripts/run_openaireview.py",
+          "scripts/save_viz_json.py",
+          "scripts/validate_review_bundle.py"
+        ]
+      },
+      "skill_file": "research/research-paper-review/SKILL.md"
+    },
+    {
+      "agent_metadata": {
+        "interface": {
+          "default_prompt": "Use $research-pipeline-planner to inspect the current research state, build a roadmap or phase plan, choose the next stage, and coordinate literature, ideation, validation, and writing handoffs.",
+          "display_name": "Research Pipeline Planner",
+          "short_description": "Coordinate staged research roadmaps, ideation, and handoffs"
+        },
+        "policy": {
+          "allow_implicit_invocation": true
+        }
+      },
+      "capabilities": [
+        "ideation",
+        "literature-review",
+        "novelty-review",
+        "paper-review",
+        "research-planning",
+        "stage-routing",
+        "zotero"
+      ],
+      "description": "Coordinate research as either a standalone staged planning pass or an orchestrated multi-skill workflow with shared artifacts, stage gates, and optional collaboration with Zotero library sync, literature review, idea discovery, novelty review, experiment planning, paper review, result auditing, review, paper planning, and venue-response drafting. Use when asked to scope a research direction, inspect existing research artifacts, choose the next research stage, create a research brief or task board, coordinate a reusable research workflow, build a research roadmap or agenda, organize a research repo, turn notes into a phase plan, define milestones, decide what to do next, or coordinate literature plus ideation plus experiments plus paper work.",
+      "domain": "research",
+      "frontmatter": {
+        "description": "Coordinate research as either a standalone staged planning pass or an orchestrated multi-skill workflow with shared artifacts, stage gates, and optional collaboration with Zotero library sync, literature review, idea discovery, novelty review, experiment planning, paper review, result auditing, review, paper planning, and venue-response drafting. Use when asked to scope a research direction, inspect existing research artifacts, choose the next research stage, create a research brief or task board, coordinate a reusable research workflow, build a research roadmap or agenda, organize a research repo, turn notes into a phase plan, define milestones, decide what to do next, or coordinate literature plus ideation plus experiments plus paper work.",
+        "name": "research-pipeline-planner"
+      },
+      "inputs": [],
+      "name": "research-pipeline-planner",
+      "outputs": [
+        "artifact-index.md",
+        "decision-log.md",
+        "research-brief.md",
+        "task-board.md"
+      ],
+      "path": "research/research-pipeline-planner",
+      "primary_intent": "orchestration",
+      "related_skills": [
+        "research-experiment-plan",
+        "research-idea-discovery",
+        "research-novelty-review",
+        "research-paper-plan",
+        "research-paper-review",
+        "research-rebuttal",
+        "research-results-auditor",
+        "research-review-loop",
+        "research-systematic-literature-review",
+        "research-zotero"
+      ],
+      "resources": {
+        "agents": [
+          "agents/openai.yaml"
+        ],
+        "assets": [],
+        "prompts": [],
+        "references": [
+          "references/decision-log-template.md",
+          "references/research-brief-template.md",
+          "references/review-stage-contract.md",
+          "references/stage-gates.md",
+          "references/suite-contract.md",
+          "references/tabmol-ddi-ood-adapter.md",
+          "references/task-board-template.md"
+        ],
+        "scripts": [
+          "scripts/init_research_pack.py",
+          "scripts/validate_research_pack.py"
+        ]
+      },
+      "skill_file": "research/research-pipeline-planner/SKILL.md"
+    },
+    {
+      "agent_metadata": {
+        "interface": {
+          "default_prompt": "Use $research-rebuttal to analyze reviews, build an issue board, and draft a venue-aware rebuttal or author response.",
+          "display_name": "Research Rebuttal",
+          "short_description": "Draft venue-aware author responses to reviews"
+        },
+        "policy": {
+          "allow_implicit_invocation": true
+        }
+      },
+      "capabilities": [
+        "paper-review",
+        "rebuttal",
+        "research-planning"
+      ],
+      "description": "Draft venue-aware academic rebuttals and author responses from reviewer comments, scores, and paper artifacts. Use when concrete reviewer comments already exist and Codex needs to analyze reviews, build a reviewer issue board, plan evidence or manuscript fixes, draft a rebuttal, respond to AC or meta-review feedback, manage multi-round author-reviewer discussion, or prepare a paste-ready response for conference or journal review systems. Prefer `research-paper-review` for initial manuscript diagnosis before reviews arrive, `research-review-loop` for internal tracked review without external reviewer comments, and `research-novelty-review` for prior-art positioning disputes.",
+      "domain": "research",
+      "frontmatter": {
+        "description": "Draft venue-aware academic rebuttals and author responses from reviewer comments, scores, and paper artifacts. Use when concrete reviewer comments already exist and Codex needs to analyze reviews, build a reviewer issue board, plan evidence or manuscript fixes, draft a rebuttal, respond to AC or meta-review feedback, manage multi-round author-reviewer discussion, or prepare a paste-ready response for conference or journal review systems. Prefer `research-paper-review` for initial manuscript diagnosis before reviews arrive, `research-review-loop` for internal tracked review without external reviewer comments, and `research-novelty-review` for prior-art positioning disputes.",
+        "name": "research-rebuttal"
+      },
+      "inputs": [],
+      "name": "research-rebuttal",
+      "outputs": [
+        "ac-note.md",
+        "artifact-index.md",
+        "issue-board.md",
+        "rebuttal-paste-ready.md",
+        "rebuttal-working.md",
+        "research-brief.md",
+        "review-analysis.md",
+        "task-list.md"
+      ],
+      "path": "research/research-rebuttal",
+      "primary_intent": "review",
+      "related_skills": [
+        "research-novelty-review",
+        "research-paper-plan",
+        "research-paper-review",
+        "research-pipeline-planner",
+        "research-review-loop"
+      ],
+      "resources": {
+        "agents": [
+          "agents/openai.yaml"
+        ],
+        "assets": [],
+        "prompts": [],
+        "references": [
+          "references/issue_board_guide.md",
+          "references/platforms_and_policies.md",
+          "references/response_strategies.md",
+          "references/venue_rule_matrix.md",
+          "references/writing_principles.md"
+        ],
+        "scripts": [
+          "scripts/count_limits.sh",
+          "scripts/init_rebuttal_pack.py"
+        ]
+      },
+      "skill_file": "research/research-rebuttal/SKILL.md"
+    },
+    {
+      "agent_metadata": {
+        "interface": {
+          "default_prompt": "Use $research-results-auditor to audit experiment outputs for validity, confounds, statistics, and support for the claimed conclusion.",
+          "display_name": "Research Results Auditor",
+          "short_description": "Audit results for validity and claim support"
+        },
+        "policy": {
+          "allow_implicit_invocation": true
+        }
+      },
+      "capabilities": [
+        "results-audit",
+        "validation"
+      ],
+      "description": "Audit ML/statistics experiment outputs for validity, confounds, statistical support, calibration, and mismatch between measured results and claimed conclusions. Use when asked to interpret results, sanity-check benchmarks, review ablations, assess robustness claims, or decide whether an experiment actually supports a paper or project claim.",
+      "domain": "research",
+      "frontmatter": {
+        "description": "Audit ML/statistics experiment outputs for validity, confounds, statistical support, calibration, and mismatch between measured results and claimed conclusions. Use when asked to interpret results, sanity-check benchmarks, review ablations, assess robustness claims, or decide whether an experiment actually supports a paper or project claim.",
+        "name": "research-results-auditor"
+      },
+      "inputs": [],
+      "name": "research-results-auditor",
+      "outputs": [
+        "artifact-index.md",
+        "research-brief.md",
+        "results-audit.md"
+      ],
+      "path": "research/research-results-auditor",
+      "primary_intent": "review",
+      "related_skills": [
+        "research-pipeline-planner"
+      ],
+      "resources": {
+        "agents": [
+          "agents/openai.yaml"
+        ],
+        "assets": [],
+        "prompts": [],
+        "references": [
+          "references/metrics-and-tests-checklist.md",
+          "references/results-audit-template.md",
+          "references/tabmol-ddi-ood-adapter.md"
+        ],
+        "scripts": []
+      },
+      "skill_file": "research/research-results-auditor/SKILL.md"
+    },
+    {
+      "agent_metadata": {
+        "interface": {
+          "default_prompt": "Use $research-review-loop to run iterative adversarial review over a research plan, experiment output, or draft with tracked issue state.",
+          "display_name": "Research Review Loop",
+          "short_description": "Iterative adversarial review for research"
+        },
+        "policy": {
+          "allow_implicit_invocation": true
+        }
+      },
+      "capabilities": [
+        "results-audit",
+        "technical-writing"
+      ],
+      "description": "Run iterative adversarial review over research plans, experiment outputs, and drafts with claim ledgers, issue tracking, evidence checks, and explicit closure criteria. Use when asked to red-team a research artifact across multiple rounds, maintain issue state across revisions, or pressure-test whether revised results and prose actually support a claim. Prefer `research-paper-review` for an initial single-paper critique or OCR/extraction workflow, and prefer `research-rebuttal` when concrete external reviewer comments already exist and the task is to draft a venue response.",
+      "domain": "research",
+      "frontmatter": {
+        "description": "Run iterative adversarial review over research plans, experiment outputs, and drafts with claim ledgers, issue tracking, evidence checks, and explicit closure criteria. Use when asked to red-team a research artifact across multiple rounds, maintain issue state across revisions, or pressure-test whether revised results and prose actually support a claim. Prefer `research-paper-review` for an initial single-paper critique or OCR/extraction workflow, and prefer `research-rebuttal` when concrete external reviewer comments already exist and the task is to draft a venue response.",
+        "name": "research-review-loop"
+      },
+      "inputs": [],
+      "name": "research-review-loop",
+      "outputs": [
+        "AUTO_REVIEW.md",
+        "NARRATIVE_REPORT.md",
+        "REVIEW_STATE.json",
+        "artifact-index.md",
+        "final_issues.json",
+        "metadata.json",
+        "overall_assessment.txt",
+        "review_dir-or-final_issues.json",
+        "review_summary.json",
+        "summary.md"
+      ],
+      "path": "research/research-review-loop",
+      "primary_intent": "review",
+      "related_skills": [
+        "adversarial-doc-review",
+        "research-paper-review",
+        "research-pipeline-planner",
+        "research-rebuttal"
+      ],
+      "resources": {
+        "agents": [
+          "agents/openai.yaml"
+        ],
+        "assets": [],
+        "prompts": [],
+        "references": [
+          "references/report-template.md",
+          "references/review-checklist.md",
+          "references/review-state-schema.md",
+          "references/tabmol-ddi-ood-adapter.md"
+        ],
+        "scripts": [
+          "scripts/init_review_loop.py"
+        ]
+      },
+      "skill_file": "research/research-review-loop/SKILL.md"
+    },
+    {
+      "agent_metadata": {
+        "interface": {
+          "default_prompt": "Use $research-systematic-literature-review to run a PRISMA 2020-style literature review directly or as the literature stage inside a coordinated research workflow.",
+          "display_name": "Research Systematic Literature Review",
+          "short_description": "PRISMA review with suite-friendly outputs"
+        },
+        "policy": {
+          "allow_implicit_invocation": true
+        }
+      },
+      "capabilities": [
+        "literature-review",
+        "validation"
+      ],
+      "description": "Full systematic literature review (PRISMA 2020 core) with discovery, screening, evidence extraction, synthesis, confidence grading, and adversarial stress-testing across papers. Prefer peer-reviewed published versions over preprints and use this skill either directly or as the coordinated literature stage inside a larger research workflow. Use when asked to run or audit a literature review, evidence synthesis, state-of-the-art survey with explicit methods, citation integrity checks, or confidence-rated conclusions from research publications.",
+      "domain": "research",
+      "frontmatter": {
+        "description": "Full systematic literature review (PRISMA 2020 core) with discovery, screening, evidence extraction, synthesis, confidence grading, and adversarial stress-testing across papers. Prefer peer-reviewed published versions over preprints and use this skill either directly or as the coordinated literature stage inside a larger research workflow. Use when asked to run or audit a literature review, evidence synthesis, state-of-the-art survey with explicit methods, citation integrity checks, or confidence-rated conclusions from research publications.",
+        "name": "research-systematic-literature-review"
+      },
+      "inputs": [],
+      "name": "research-systematic-literature-review",
+      "outputs": [
+        ".evidence-table.md",
+        ".protocol.md",
+        ".review.md",
+        ".screening-log.md",
+        ".search-log.md",
+        ".zotero-items.json",
+        ".zotero-sync.md",
+        "artifact-index.md",
+        "literature-context-decision.json",
+        "literature-context-evidence-table.md",
+        "literature-context-search-log.md",
+        "literature-context.md"
+      ],
+      "path": "research/research-systematic-literature-review",
+      "primary_intent": "review",
+      "related_skills": [
+        "research-idea-discovery",
+        "research-novelty-review",
+        "research-paper-plan",
+        "research-paper-review",
+        "research-pipeline-planner",
+        "research-review-loop",
+        "research-zotero"
+      ],
+      "resources": {
+        "agents": [
+          "agents/openai.yaml"
+        ],
+        "assets": [],
+        "prompts": [],
+        "references": [
+          "references/adversarial-literature-checklist.md",
+          "references/domain-adapters.md",
+          "references/evidence-table-template.md",
+          "references/paper-context-template.md",
+          "references/prisma-core-checklist.md",
+          "references/protocol-template.md",
+          "references/report-template.md",
+          "references/screening-template.md",
+          "references/search-strategy-template.md"
+        ],
+        "scripts": [
+          "scripts/init_review_pack.py",
+          "scripts/paper_context_artifacts.py",
+          "scripts/prisma_flow_md.py",
+          "scripts/validate_review_pack.py"
+        ]
+      },
+      "skill_file": "research/research-systematic-literature-review/SKILL.md"
+    },
+    {
+      "agent_metadata": {
+        "interface": {
+          "default_prompt": "Use $research-zotero to sync my Zotero library, export citations, or prepare a literature corpus for other research skills.",
+          "display_name": "Research Zotero",
+          "short_description": "Sync and export Zotero research corpora"
+        },
+        "policy": {
+          "allow_implicit_invocation": true
+        }
+      },
+      "capabilities": [
+        "literature-review",
+        "novelty-review",
+        "zotero"
+      ],
+      "description": "Sync, inspect, and export Zotero user or group libraries for literature-heavy research workflows. Use when Codex needs to reuse a Zotero library or collection as a curated paper corpus, export BibTeX or CSL-JSON, inspect collections/tags/groups, prepare citation artifacts for paper planning, or seed literature review and novelty review from an existing Zotero library. Default to the current user's library when an API key is available and no explicit library is provided.",
+      "domain": "research",
+      "frontmatter": {
+        "description": "Sync, inspect, and export Zotero user or group libraries for literature-heavy research workflows. Use when Codex needs to reuse a Zotero library or collection as a curated paper corpus, export BibTeX or CSL-JSON, inspect collections/tags/groups, prepare citation artifacts for paper planning, or seed literature review and novelty review from an existing Zotero library. Default to the current user's library when an API key is available and no explicit library is provided.",
+        "name": "research-zotero"
+      },
+      "inputs": [],
+      "name": "research-zotero",
+      "outputs": [
+        "artifact-index.md",
+        "library-export.bib",
+        "library-export.csl.json",
+        "zotero-account.json",
+        "zotero-groups.json",
+        "zotero-items.json",
+        "zotero-sync.md"
+      ],
+      "path": "research/research-zotero",
+      "primary_intent": "execution",
+      "related_skills": [
+        "research-idea-discovery",
+        "research-novelty-review",
+        "research-paper-plan",
+        "research-pipeline-planner",
+        "research-rebuttal",
+        "research-systematic-literature-review"
+      ],
+      "resources": {
+        "agents": [
+          "agents/openai.yaml"
+        ],
+        "assets": [],
+        "prompts": [],
+        "references": [
+          "references/zotero-artifact-contract.md",
+          "references/zotero-integration.md"
+        ],
+        "scripts": [
+          "scripts/_zotero.py",
+          "scripts/export_zotero_items.py",
+          "scripts/fetch_zotero_items.py",
+          "scripts/inspect_zotero_account.py"
+        ]
+      },
+      "skill_file": "research/research-zotero/SKILL.md"
+    },
+    {
+      "agent_metadata": {
+        "interface": {
+          "default_prompt": "Use $prose-flow-improver to make this draft read as smoother connected prose while preserving the exact substance.",
+          "display_name": "Prose Flow Improver",
+          "short_description": "Smooth choppy prose without losing substance"
+        }
+      },
+      "capabilities": [
+        "multi-agent",
+        "technical-writing"
+      ],
+      "description": "Improve the flow, shape, and readability of existing prose while preserving substance, specificity, tone, and constraints, including planned multi-agent section, paragraph-range, or chunk-level revision for substantial documents when workers are available. Use when Codex needs to make explanatory writing less choppy, less list-heavy, less fragmented, or less over-paragraphed; combine related sentences or paragraphs aggressively but readably; add connective reasoning; favor conjunctions, relative clauses, subordinate clauses, and clean participial phrasing over semicolons; or turn terse notes into natural connected prose. Do not use when the content is inherently list-shaped, procedural, tabular, or governed by a stricter task-specific format.",
+      "domain": "writing",
+      "frontmatter": {
+        "description": "Improve the flow, shape, and readability of existing prose while preserving substance, specificity, tone, and constraints, including planned multi-agent section, paragraph-range, or chunk-level revision for substantial documents when workers are available. Use when Codex needs to make explanatory writing less choppy, less list-heavy, less fragmented, or less over-paragraphed; combine related sentences or paragraphs aggressively but readably; add connective reasoning; favor conjunctions, relative clauses, subordinate clauses, and clean participial phrasing over semicolons; or turn terse notes into natural connected prose. Do not use when the content is inherently list-shaped, procedural, tabular, or governed by a stricter task-specific format.",
+        "name": "prose-flow-improver"
+      },
+      "inputs": [],
+      "name": "prose-flow-improver",
+      "outputs": [],
+      "path": "writing/prose-flow-improver",
+      "primary_intent": "revision",
+      "related_skills": [
+        "technical-writing-reviser"
+      ],
+      "resources": {
+        "agents": [
+          "agents/openai.yaml"
+        ],
+        "assets": [],
+        "prompts": [],
+        "references": [
+          "references/rewrite-patterns.md"
+        ],
+        "scripts": []
+      },
+      "skill_file": "writing/prose-flow-improver/SKILL.md"
+    },
+    {
+      "agent_metadata": {
+        "interface": {
+          "default_prompt": "Use $technical-writing-reviser to revise this technical draft into clear reader-facing prose while preserving evidence, scope, and technical meaning.",
+          "display_name": "Technical Writing Reviser",
+          "short_description": "Revise technical prose without overclaiming"
+        }
+      },
+      "capabilities": [
+        "document-memory",
+        "multi-agent",
+        "research-planning",
+        "results-audit",
+        "technical-writing"
+      ],
+      "description": "Revise existing technical writing into clear, audience-facing prose while preserving evidence, technical meaning, uncertainty, and scope, including planned multi-agent section or issue-cluster revision for substantial artifacts when workers are available. Use for academic manuscripts, industrial technical reports, whitepapers, evaluation summaries, methods/results/limitations prose, technical claims, contribution or decision framing, and terminology conversion from internal shorthand to reader-facing language. Use after critique from research-paper-review or research-review-loop when the task is to revise the artifact's prose and claims, not to re-review it. Do not use when the main task is generic prose flow, citation work, paper planning, novelty review, experiment design, market strategy, or writing unsupported claims.",
+      "domain": "writing",
+      "frontmatter": {
+        "description": "Revise existing technical writing into clear, audience-facing prose while preserving evidence, technical meaning, uncertainty, and scope, including planned multi-agent section or issue-cluster revision for substantial artifacts when workers are available. Use for academic manuscripts, industrial technical reports, whitepapers, evaluation summaries, methods/results/limitations prose, technical claims, contribution or decision framing, and terminology conversion from internal shorthand to reader-facing language. Use after critique from research-paper-review or research-review-loop when the task is to revise the artifact's prose and claims, not to re-review it. Do not use when the main task is generic prose flow, citation work, paper planning, novelty review, experiment design, market strategy, or writing unsupported claims.",
+        "name": "technical-writing-reviser"
+      },
+      "inputs": [],
+      "name": "technical-writing-reviser",
+      "outputs": [],
+      "path": "writing/technical-writing-reviser",
+      "primary_intent": "revision",
+      "related_skills": [
+        "adversarial-doc-review",
+        "commercialize-academic-research",
+        "prose-flow-improver",
+        "research-novelty-review",
+        "research-paper-plan",
+        "research-paper-review",
+        "research-review-loop"
+      ],
+      "resources": {
+        "agents": [
+          "agents/openai.yaml"
+        ],
+        "assets": [],
+        "prompts": [],
+        "references": [
+          "references/claim-discipline.md",
+          "references/rewrite-examples.md",
+          "references/technical-writing-patterns.md",
+          "references/terminology-conversion.md"
+        ],
+        "scripts": []
+      },
+      "skill_file": "writing/technical-writing-reviser/SKILL.md"
+    }
+  ]
+}

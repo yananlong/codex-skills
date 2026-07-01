@@ -19,6 +19,7 @@ description: Draft venue-aware academic rebuttals and author responses from revi
 
 - Work from pasted reviews, PDFs, screenshots, or local notes.
 - Do not require a suite root.
+- If the user asks for project-level sequencing, current-state inspection, or coordination across multiple research stages, invoke `research-pipeline-planner` first instead of treating rebuttal drafting as the whole task.
 - Remain collaboration-friendly: if `research-paper-plan`, `research-review-loop`, experiment outputs, or manuscript diffs already exist, use them.
 
 ### Orchestrated mode

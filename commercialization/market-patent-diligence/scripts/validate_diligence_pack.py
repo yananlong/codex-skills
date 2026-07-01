@@ -62,6 +62,7 @@ REQUIRED_HANDOFF_FIELDS = [
 
 ALLOWED_NEXT_SKILLS = {
     "commercialize-academic-research",
+    "research-pipeline-planner",
     "research-systematic-literature-review",
     "research-novelty-review",
     "research-results-auditor",

@@ -21,6 +21,7 @@ description: Run academic paper review with OCR extraction, ChatGPT-native multi
 8. When review quality depends on novelty, impact, or literature context, route through `research-systematic-literature-review` and `research-novelty-review` instead of limiting the critique to internal paper consistency.
 9. When reusing an existing review workspace, infer its provenance from `metadata.json`, `artifact-index.md`, `final_issues.json`, `review_summary.json`, and any `round-N/` folders before moving files or declaring artifacts missing.
 10. Treat `research-systematic-literature-review` as an independent literature-review skill that can either run on its own or attach to this review workspace through `<review_dir>/context/`.
+11. If the user asks for project-level sequencing, current-state inspection, or coordination across multiple research stages, invoke `research-pipeline-planner` first instead of treating paper review as the whole task.
 
 ## Upstream Claude Skill Compatibility
 

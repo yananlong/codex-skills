@@ -18,6 +18,7 @@ description: Full systematic literature review (PRISMA 2020 core) with discovery
 9. Generate PRISMA flow accounting with `scripts/prisma_flow_md.py` and insert it into `<topic>.review.md` for full systematic mode.
 10. Validate the full pack with `scripts/validate_review_pack.py` before returning output when full systematic mode is used; in paper-context mode, validate the four-file exchange bundle with `scripts/paper_context_artifacts.py validate`.
 11. Preserve independence and synergy: this skill can run as a standalone SLR, but when a paper-review workspace is supplied, write the bounded context exchange bundle into `<review_dir>/context/` so paper-review and novelty-review can consume it without redoing discovery.
+12. If the user asks for project-level sequencing, current-state inspection, or coordination across multiple research stages, invoke `research-pipeline-planner` first instead of treating literature review as the whole task.
 
 ## Modes
 
@@ -47,6 +48,7 @@ description: Full systematic literature review (PRISMA 2020 core) with discovery
 ## Relationship to sibling skills
 
 - `research-paper-review` owns technical critique of a single paper. When it needs external grounding for related-work, impact, SOTA, benchmark, or significance claims, this skill supplies an independently valid paper-context evidence map or full systematic review.
+- `research-idea-discovery` owns generating and ranking candidate ideas. This skill can supply the landscape evidence that seeds ideation, but it should not turn a literature review into unsupported brainstorming unless the user asks for idea discovery.
 - `research-novelty-review` owns adversarial novelty and positioning decisions. It should consume this skill's paper-context evidence map when available instead of duplicating broad discovery.
 - `research-zotero` owns library sync and citation export. This skill may consume Zotero artifacts but should still screen records against the protocol.
 - `research-review-loop` may consume literature-context artifacts as evidence for whether a revised paper has fixed related-work or overclaim issues.

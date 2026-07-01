@@ -12,8 +12,10 @@ Use this contract only when the work benefits from shared stage artifacts. Do no
 | artifact index | `./artifact-index.md` | canonical path registry |
 | zotero | `./zotero/` | outputs from `research-zotero` |
 | literature review | `./literature-review/` | outputs from `research-systematic-literature-review` |
+| ideation | `./ideation/` | outputs from `research-idea-discovery` |
 | novelty review | `./novelty-review/` | outputs from `research-novelty-review` |
 | experiment plan | `./experiment-plan/` | outputs from `research-experiment-plan` |
+| results audit | `./results-audit/` | outputs from `research-results-auditor` |
 | paper review | `./paper-review/` | outputs from `research-paper-review` |
 | paper plan | `./paper-plan/` | outputs from `research-paper-plan` |
 | review loop | `./review-loop/` | outputs from `research-review-loop` |
@@ -30,9 +32,11 @@ Use this contract only when the work benefits from shared stage artifacts. Do no
 
 | Need | Preferred skill | Minimum upstream context |
 | --- | --- | --- |
+| project-level sequencing, current-state inspection, or multi-stage coordination | `research-pipeline-planner` | topic/problem, current state, desired outcome, and any existing artifacts |
 | curated Zotero corpus or citation export | `research-zotero` | API key or Zotero access, optionally collection/tags/query |
 | broad evidence gathering | `research-systematic-literature-review` | topic, domain, and review question |
 | bounded paper-context evidence map | `research-systematic-literature-review` | paper-review summary, domain, contribution claim, and targeted context questions |
+| broad direction to grounded candidate ideas | `research-idea-discovery` | research direction, landscape notes or corpus, constraints, and desired contribution type |
 | skeptical novelty pressure test | `research-novelty-review` | concrete method or claim description |
 | paper novelty/impact positioning | `research-novelty-review` | paper-review summary plus literature-context artifacts when available |
 | decisive validation design | `research-experiment-plan` | frozen claim and evaluation goal |

@@ -10,7 +10,37 @@ description: Audit ML/statistics experiment outputs for validity, confounds, sta
 1. Collect the result artifact, the claim it is supposed to support, and the evaluation protocol.
 2. Audit metrics, baselines, controls, uncertainty, and confounds before interpreting the headline result.
 3. Separate what the data shows from what the author wants it to imply.
-4. Produce an audit using `references/results-audit-template.md`.
+4. Decide whether this is standalone or the results-audit stage inside an orchestrated suite.
+5. Produce an audit using `references/results-audit-template.md`.
+
+## Modes
+
+### Standalone mode
+
+- Work from the user prompt plus any local result files, tables, plots, logs, or paper claims.
+- Do not require a suite root.
+- If the user asks for project-level sequencing, current-state inspection, or coordination across multiple research stages, invoke `research-pipeline-planner` first instead of treating the audit as an isolated task.
+
+### Orchestrated mode
+
+- Prefer the canonical directory `./results-audit/`.
+- Read upstream context from `research-brief.md`, `artifact-index.md`, `./experiment-plan/`, `./paper-review/`, and result artifacts when present.
+- Keep the audit legible to downstream paper planning, review-loop, and rebuttal work.
+
+## Input contract
+
+- Minimum:
+  - a real result artifact or concrete reported numbers
+  - the claim those results are supposed to support
+  - the evaluation protocol or enough context to identify missing protocol details
+- Prefer:
+  - experiment plan, run logs, random seeds, confidence intervals, ablations, baseline details, and known reviewer objections
+
+## Output contract
+
+- Primary file: `results-audit.md`
+- In orchestrated mode, write the audit under `./results-audit/`.
+- In standalone mode, any target directory is valid.
 
 ## Audit workflow
 

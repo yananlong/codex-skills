@@ -16,9 +16,12 @@ REQUIRED_FILES = {
 }
 
 REQUIRED_DIRS = [
+    "zotero",
     "literature-review",
+    "ideation",
     "novelty-review",
     "experiment-plan",
+    "results-audit",
     "paper-review",
     "paper-plan",
     "review-loop",
@@ -29,9 +32,12 @@ REQUIRED_INDEX_ROWS = [
     "./research-brief.md",
     "./task-board.md",
     "./decision-log.md",
+    "./zotero/",
     "./literature-review/",
+    "./ideation/",
     "./novelty-review/",
     "./experiment-plan/",
+    "./results-audit/",
     "./paper-review/",
     "./paper-plan/",
     "./review-loop/",

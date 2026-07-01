@@ -8,9 +8,12 @@ from pathlib import Path
 
 
 STAGE_DIRS = [
+    "zotero",
     "literature-review",
+    "ideation",
     "novelty-review",
     "experiment-plan",
+    "results-audit",
     "paper-review",
     "paper-plan",
     "review-loop",
@@ -52,9 +55,12 @@ FILE_TEMPLATES = {
 
 | Stage | Goal | Canonical path | Owner skill | Status |
 | --- | --- | --- | --- | --- |
+| zotero | | ./zotero/ | research-zotero | optional |
 | literature review | | ./literature-review/ | research-systematic-literature-review | optional |
+| ideation | | ./ideation/ | research-idea-discovery | optional |
 | novelty review | | ./novelty-review/ | research-novelty-review | optional |
 | experiment plan | | ./experiment-plan/ | research-experiment-plan | optional |
+| results audit | | ./results-audit/ | research-results-auditor | optional |
 | paper review | | ./paper-review/ | research-paper-review | optional |
 | paper plan | | ./paper-plan/ | research-paper-plan | optional |
 | review loop | | ./review-loop/ | research-review-loop | optional |
@@ -70,11 +76,13 @@ FILE_TEMPLATES = {
 
 | Stage | Objective | Status | Dependency | Canonical output | Next action | Checkpoint |
 | --- | --- | --- | --- | --- | --- | --- |
+| zotero / corpus sync | | todo | | ./zotero/ | | |
 | literature review | | todo | | ./literature-review/ | | |
+| ideation | | todo | | ./ideation/ | | |
 | novelty review | | todo | | ./novelty-review/ | | |
 | experiment plan | | todo | | ./experiment-plan/ | | |
+| results audit | | todo | | ./results-audit/ | | |
 | paper review | | todo | | ./paper-review/ | | |
-| execution / results audit | | todo | | | | |
 | paper plan | | todo | | ./paper-plan/ | | |
 | review loop | | todo | | ./review-loop/ | | |
 | rebuttal | | todo | | ./rebuttal/ | | |
@@ -100,14 +108,16 @@ FILE_TEMPLATES = {
 | research brief | ./research-brief.md | canonical | planning anchor |
 | task board | ./task-board.md | canonical | stage tracker |
 | decision log | ./decision-log.md | canonical | checkpoint history |
+| zotero | ./zotero/ | pending | outputs from research-zotero |
 | literature review | ./literature-review/ | pending | outputs from research-systematic-literature-review |
+| ideation | ./ideation/ | pending | outputs from research-idea-discovery |
 | novelty review | ./novelty-review/ | pending | outputs from research-novelty-review |
 | experiment plan | ./experiment-plan/ | pending | outputs from research-experiment-plan |
+| results audit | ./results-audit/ | pending | outputs from research-results-auditor |
 | paper review | ./paper-review/ | pending | outputs from research-paper-review |
 | paper plan | ./paper-plan/ | pending | outputs from research-paper-plan |
 | review loop | ./review-loop/ | pending | outputs from research-review-loop |
 | rebuttal | ./rebuttal/ | pending | outputs from research-rebuttal |
-| results audit |  | optional | outputs from research-results-auditor |
 """,
 }
 
