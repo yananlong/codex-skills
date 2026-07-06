@@ -14,7 +14,11 @@
 - Summary:
 - Hypothesis:
 - Mechanism or causal story:
+- Source basis:
+- Why this is not merely apply-X-to-Y:
 - Minimum viable validation:
+- Disconfirming observation:
+- Cheapest kill test:
 - Closest known work:
 - Differentiation:
 - Positive outcome would show:
@@ -28,7 +32,11 @@
 - Summary:
 - Hypothesis:
 - Mechanism or causal story:
+- Source basis:
+- Why this is not merely apply-X-to-Y:
 - Minimum viable validation:
+- Disconfirming observation:
+- Cheapest kill test:
 - Closest known work:
 - Differentiation:
 - Positive outcome would show:

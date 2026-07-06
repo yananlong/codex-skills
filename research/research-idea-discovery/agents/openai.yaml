@@ -1,7 +1,7 @@
 interface:
   display_name: "Research Idea Discovery"
-  short_description: "Generate and rank grounded research ideas"
-  default_prompt: "Use $research-idea-discovery to turn a broad research direction into grounded, ranked, and handoff-ready research ideas."
+  short_description: "Generate, stress-test, and rank research ideas"
+  default_prompt: "Use $research-idea-discovery to turn a broad research direction into grounded, stress-tested, and handoff-ready research ideas."
 
 policy:
   allow_implicit_invocation: true

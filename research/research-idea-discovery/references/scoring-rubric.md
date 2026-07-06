@@ -1,6 +1,6 @@
 # Ideation Scoring Rubric
 
-Use 1-5 scores. A high total score is not enough; an idea with novelty signal below 3 or testability below 3 should not proceed without revision.
+Use 1-5 scores. A high total score is not enough; an idea with novelty signal below 3, testability below 3, missing source basis, or missing kill criteria should not proceed without revision.
 
 ## Clarity
 
@@ -34,6 +34,6 @@ Use 1-5 scores. A high total score is not enough; an idea with novelty signal be
 
 ## Decision Heuristic
 
-- Select: average score >= 4.0, novelty signal >= 3, testability >= 3, and no unresolved feasibility blocker.
+- Select: average score >= 4.0, novelty signal >= 3, testability >= 3, explicit source basis, explicit kill criteria, and no unresolved feasibility blocker.
 - Shortlist: average score >= 3.4 with one resolvable blocker.
 - Reject: average score < 3.4, novelty signal < 3, testability < 3, or any fatal feasibility/significance issue.

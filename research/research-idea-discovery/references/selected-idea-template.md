@@ -20,6 +20,13 @@
 - What is actually different:
 - What novelty review must verify:
 
+## Assumptions and Disconfirmation
+
+- Core assumptions:
+- Disconfirming observation:
+- Cheapest kill test:
+- Stop or revise if:
+
 ## Minimum Validation
 
 - Minimum viable experiment or analysis:

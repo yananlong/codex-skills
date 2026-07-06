@@ -16,6 +16,8 @@ REQUIRED_MARKDOWN_HEADINGS = {
         "## Subareas and Active Approaches",
         "## Closest Work",
         "## Gap Inventory",
+        "## Assumptions and Negative Evidence",
+        "## Disconfirmation Targets",
         "## Search and Source Limits",
     ],
     "idea-bank.md": [
@@ -28,6 +30,7 @@ REQUIRED_MARKDOWN_HEADINGS = {
         "## Recommendation",
         "## Idea Summary",
         "## Differentiation",
+        "## Assumptions and Disconfirmation",
         "## Minimum Validation",
         "## Risks and Blocking Questions",
         "## Handoff Notes",
@@ -58,7 +61,13 @@ CONTRIBUTION_TYPES = {
     "tooling",
     "mixed",
 }
-DECISIONS = {"proceed_to_novelty_review", "revise_scope", "generate_more", "stop"}
+DECISIONS = {
+    "proceed_to_novelty_review",
+    "proceed_to_experiment_plan",
+    "revise_scope",
+    "generate_more",
+    "stop",
+}
 NEXT_SKILLS = {
     None,
     "research-novelty-review",
@@ -66,6 +75,8 @@ NEXT_SKILLS = {
     "research-experiment-plan",
     "research-pipeline-planner",
 }
+CONFIDENCE = {"low", "medium", "high"}
+NOVELTY_CHECK_STATUSES = {"not_checked", "quick_signal_only", "reviewed"}
 
 
 def read_text(path: Path, label: str, errors: list[str]) -> str:
@@ -94,19 +105,20 @@ def validate_markdown(root: Path, errors: list[str]) -> None:
                 errors.append(f"{name}: missing heading '{heading}'")
 
 
-def validate_scores(data, allow_empty: bool, errors: list[str]) -> set[str]:
+def validate_scores(data, allow_empty: bool, errors: list[str]) -> tuple[set[str], set[str]]:
     if not isinstance(data, dict):
         errors.append("idea-scores.json must be an object")
-        return set()
+        return set(), set()
     ideas = data.get("ideas")
     if not isinstance(ideas, list):
         errors.append("idea-scores.json.ideas must be a list")
-        return set()
+        return set(), set()
     if not allow_empty and not ideas:
         errors.append("idea-scores.json.ideas must contain at least one idea")
-        return set()
+        return set(), set()
 
     ids: set[str] = set()
+    selected_status_ids: set[str] = set()
     for idx, idea in enumerate(ideas, start=1):
         label = f"idea-scores.json.ideas[{idx}]"
         if not isinstance(idea, dict):
@@ -120,7 +132,16 @@ def validate_scores(data, allow_empty: bool, errors: list[str]) -> set[str]:
         else:
             ids.add(idea_id)
 
-        for field in ("title", "summary", "hypothesis", "minimum_validation", "differentiation", "rationale"):
+        for field in (
+            "title",
+            "summary",
+            "hypothesis",
+            "minimum_validation",
+            "disconfirming_evidence",
+            "kill_criteria",
+            "differentiation",
+            "rationale",
+        ):
             if not isinstance(idea.get(field), str) or not idea.get(field, "").strip():
                 errors.append(f"{label}.{field} must be a non-empty string")
 
@@ -145,32 +166,83 @@ def validate_scores(data, allow_empty: bool, errors: list[str]) -> set[str]:
                 if not isinstance(value, int) or value < 1 or value > 5:
                     errors.append(f"{label}.scores.{score_name} must be an integer from 1 to 5")
 
-        for list_field in ("closest_work", "blocking_questions"):
+        status = idea.get("status")
+        if status == "selected":
+            selected_status_ids.add(idea_id)
+            if isinstance(scores, dict):
+                if scores.get("novelty_signal", 0) < 3:
+                    errors.append(f"{label}.scores.novelty_signal must be at least 3 for selected ideas")
+                if scores.get("testability", 0) < 3:
+                    errors.append(f"{label}.scores.testability must be at least 3 for selected ideas")
+
+        for list_field in ("source_basis", "assumptions", "novelty_questions", "closest_work", "blocking_questions"):
             if not isinstance(idea.get(list_field), list):
                 errors.append(f"{label}.{list_field} must be a list")
-    return ids
+            elif status in {"selected", "shortlisted"} and not idea.get(list_field):
+                errors.append(f"{label}.{list_field} must not be empty for {status} ideas")
+    return ids, selected_status_ids
 
 
-def validate_decision(data, idea_ids: set[str], allow_empty: bool, errors: list[str]) -> None:
+def validate_decision(
+    data,
+    idea_ids: set[str],
+    selected_status_ids: set[str],
+    allow_empty: bool,
+    errors: list[str],
+) -> None:
     if not isinstance(data, dict):
         errors.append("ideation-decision.json must be an object")
         return
     decision = data.get("decision")
     if decision not in DECISIONS:
         errors.append(f"ideation-decision.json.decision must be one of {sorted(DECISIONS)}")
+
     selected = data.get("selected_idea_ids")
     if not isinstance(selected, list):
         errors.append("ideation-decision.json.selected_idea_ids must be a list")
         selected = []
+
     unknown = [idea_id for idea_id in selected if idea_id not in idea_ids]
     if unknown and not allow_empty:
         errors.append("ideation-decision.json.selected_idea_ids reference unknown ideas: " + ", ".join(unknown))
-    if decision == "proceed_to_novelty_review" and not selected:
-        errors.append("proceed_to_novelty_review requires at least one selected idea")
+
+    missing_from_decision = selected_status_ids - set(selected)
+    if missing_from_decision and not allow_empty:
+        errors.append(
+            "idea-scores.json ideas with status selected must appear in ideation-decision.json.selected_idea_ids: "
+            + ", ".join(sorted(missing_from_decision))
+        )
+
+    selected_without_status = [idea_id for idea_id in selected if idea_id in idea_ids and idea_id not in selected_status_ids]
+    if selected_without_status and not allow_empty:
+        errors.append(
+            "ideation-decision.json.selected_idea_ids must have status selected in idea-scores.json: "
+            + ", ".join(selected_without_status)
+        )
+
+    if decision == "proceed_to_novelty_review":
+        if not selected:
+            errors.append("proceed_to_novelty_review requires at least one selected idea")
+        if data.get("next_skill") != "research-novelty-review":
+            errors.append("proceed_to_novelty_review requires next_skill research-novelty-review")
+
+    if decision == "proceed_to_experiment_plan":
+        if not selected:
+            errors.append("proceed_to_experiment_plan requires at least one selected idea")
+        if data.get("novelty_check_status") != "reviewed":
+            errors.append("proceed_to_experiment_plan requires novelty_check_status reviewed")
+        if data.get("next_skill") != "research-experiment-plan":
+            errors.append("proceed_to_experiment_plan requires next_skill research-experiment-plan")
+
     if data.get("next_skill") not in NEXT_SKILLS:
         errors.append(f"ideation-decision.json.next_skill must be one of {sorted(str(x) for x in NEXT_SKILLS)}")
+    if data.get("confidence") not in CONFIDENCE:
+        errors.append(f"ideation-decision.json.confidence must be one of {sorted(CONFIDENCE)}")
+    if data.get("novelty_check_status") not in NOVELTY_CHECK_STATUSES:
+        errors.append(f"ideation-decision.json.novelty_check_status must be one of {sorted(NOVELTY_CHECK_STATUSES)}")
     if not isinstance(data.get("rationale"), str):
         errors.append("ideation-decision.json.rationale must be a string")
+
     for list_field in ("required_handoffs", "limits"):
         if not isinstance(data.get(list_field), list):
             errors.append(f"ideation-decision.json.{list_field} must be a list")
@@ -193,9 +265,9 @@ def main() -> int:
     validate_markdown(root, errors)
     scores = load_json(root / "idea-scores.json", "idea-scores.json", errors)
     decision = load_json(root / "ideation-decision.json", "ideation-decision.json", errors)
-    idea_ids = validate_scores(scores, args.allow_empty, errors) if scores is not None else set()
+    idea_ids, selected_status_ids = validate_scores(scores, args.allow_empty, errors) if scores is not None else (set(), set())
     if decision is not None:
-        validate_decision(decision, idea_ids, args.allow_empty, errors)
+        validate_decision(decision, idea_ids, selected_status_ids, args.allow_empty, errors)
 
     if errors:
         print("Validation failed:")

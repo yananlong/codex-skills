@@ -9,9 +9,9 @@ description: Generate, filter, rank, and hand off grounded research ideas from a
 
 1. Clarify the ideation target, constraints, and desired contribution type.
 2. Inspect existing literature notes, Zotero exports, review artifacts, paper limitations, and failed ideas before searching or brainstorming.
-3. Build a compact landscape map: active subareas, closest work, open gaps, and negative constraints.
+3. Build a compact landscape map: active subareas, closest work, open gaps, assumptions, disconfirming evidence, and negative constraints.
 4. Generate a diverse idea bank, then filter before ranking. Do not present raw brainstorming as a recommendation.
-5. Score ideas on clarity, novelty signal, feasibility, testability, and significance.
+5. Score ideas on clarity, novelty signal, feasibility, testability, and significance; also record source basis, assumptions, novelty questions, and kill criteria.
 6. Select at most 1-3 ideas for downstream validation and write the handoff artifacts.
 7. Route the selected idea to `research-novelty-review` before experiment planning unless novelty has already been pressure-tested.
 
@@ -57,6 +57,8 @@ In orchestrated mode these live under `./ideation/`. Validate tracked artifacts 
 - Stop before experiment planning if the selected idea has not had at least a quick novelty check.
 - Do not invent prior art, data access, benchmark feasibility, or pilot results.
 - Do not treat "apply X to Y" as a publishable idea unless the application exposes a surprising mechanism, diagnostic, dataset, or empirical finding.
+- Do not select an idea unless it has a credible path to being wrong. If no observation would change the recommendation, revise the idea.
+- Do not use total score alone to justify selection; a selected idea needs a concrete novelty question, minimum validation, and at least one stated disconfirmation or kill criterion.
 
 ## Workflow
 
@@ -82,6 +84,7 @@ In orchestrated mode these live under `./ideation/`. Validate tracked artifacts 
   - explicit limitations and future-work claims
   - reusable datasets, benchmarks, and codebases
   - open questions with plausible validation paths
+- Include assumptions worth attacking, negative evidence, and source gaps. The map should make weak ideas easier to reject, not only supply inspiration.
 - Write `landscape-map.md` with enough citations or source notes that downstream novelty review can replay the reasoning.
 
 ### 3) Generate candidates deliberately
@@ -94,11 +97,13 @@ In orchestrated mode these live under `./ideation/`. Validate tracked artifacts 
   - benchmark or dataset gap: propose an artifact when the field lacks a decisive measurement
   - negative-result value: prefer questions where either outcome teaches something
 - Record every candidate in `idea-bank.md` with hypothesis, minimum validation, closest known work, and likely failure mode.
+- For each candidate, record why it is not merely "apply X to Y", what would disconfirm it, and the cheapest kill test.
 
 ### 4) Filter before scoring
 
 - Remove ideas that are already done, impossible under constraints, not testable, too incremental, or not interesting if they fail.
 - Keep rejected ideas in `rejected-ideas.md`; this prevents repeated regeneration and gives future users a banlist.
+- Reject ideas with no source basis, no mechanism, no disconfirming observation, or no meaningful result if the hypothesis fails.
 - If fewer than three candidates survive, revise the scope or return to the landscape map instead of forcing weak ideas into the shortlist.
 
 ### 5) Score and rank
@@ -112,6 +117,7 @@ In orchestrated mode these live under `./ideation/`. Validate tracked artifacts 
   - significance
 - Record risk level, estimated effort, blocking questions, and decision status in `idea-scores.json`.
 - Favor ideas with clear falsification paths over ideas that only sound ambitious.
+- Treat the rubric as a gate, not a calculator. A high average cannot rescue novelty signal below 3, testability below 3, missing source basis, or missing kill criteria.
 
 ### 6) Select and hand off
 
@@ -122,10 +128,12 @@ In orchestrated mode these live under `./ideation/`. Validate tracked artifacts 
   - closest work and differentiation
   - minimum viable validation
   - expected positive and negative outcomes
+  - assumptions, disconfirmation checks, and kill criteria
   - risks, constraints, and unresolved questions
   - recommended next skill
 - Write `ideation-decision.json` with one of:
   - `proceed_to_novelty_review`
+  - `proceed_to_experiment_plan`
   - `revise_scope`
   - `generate_more`
   - `stop`

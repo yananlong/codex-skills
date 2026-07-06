@@ -13,7 +13,12 @@
       "summary": "One-paragraph summary",
       "hypothesis": "What should be true and why",
       "contribution_type": "method|empirical|theory|diagnostic|dataset|benchmark|tooling|mixed",
+      "source_basis": ["paper, note, artifact, or observation that motivated the idea"],
+      "assumptions": ["Assumption this idea depends on"],
+      "novelty_questions": ["Question for downstream novelty review"],
       "minimum_validation": "Cheapest useful test",
+      "disconfirming_evidence": "Observation that would weaken or kill the idea",
+      "kill_criteria": "Concrete condition under which to stop or revise",
       "closest_work": ["paper or artifact"],
       "differentiation": "What is not already covered by closest work",
       "scores": {
@@ -38,4 +43,5 @@ Rules:
 - `idea_id` values must be unique.
 - Scores must be integers from 1 to 5.
 - `status` must be one of `selected`, `shortlisted`, `rejected`, or `needs_research`.
+- Every selected or shortlisted idea must include non-empty `source_basis`, `assumptions`, `novelty_questions`, `disconfirming_evidence`, and `kill_criteria`.
 - Every `selected` idea must also appear in `ideation-decision.json.selected_idea_ids`.

@@ -32,6 +32,18 @@
 | --- | --- | --- | --- | --- |
 | GAP-001 | | | | |
 
+## Assumptions and Negative Evidence
+
+| Assumption or constraint | Source basis | What would weaken it | Ideation implication |
+| --- | --- | --- | --- |
+| | | | |
+
+## Disconfirmation Targets
+
+| Target ID | Claim or gap to attack | Cheapest check | Stop or revise if |
+| --- | --- | --- | --- |
+| DISC-001 | | | |
+
 ## Search and Source Limits
 
 - Search access:

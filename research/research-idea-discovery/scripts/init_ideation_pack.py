@@ -43,6 +43,18 @@ FILE_TEMPLATES = {
 | --- | --- | --- | --- | --- |
 | GAP-001 | | | | |
 
+## Assumptions and Negative Evidence
+
+| Assumption or constraint | Source basis | What would weaken it | Ideation implication |
+| --- | --- | --- | --- |
+| | | | |
+
+## Disconfirmation Targets
+
+| Target ID | Claim or gap to attack | Cheapest check | Stop or revise if |
+| --- | --- | --- | --- |
+| DISC-001 | | | |
+
 ## Search and Source Limits
 
 - Search access:
@@ -66,7 +78,11 @@ FILE_TEMPLATES = {
 - Summary:
 - Hypothesis:
 - Mechanism or causal story:
+- Source basis:
+- Why this is not merely apply-X-to-Y:
 - Minimum viable validation:
+- Disconfirming observation:
+- Cheapest kill test:
 - Closest known work:
 - Differentiation:
 - Positive outcome would show:
@@ -96,6 +112,13 @@ FILE_TEMPLATES = {
 - Closest work:
 - What is actually different:
 - What novelty review must verify:
+
+## Assumptions and Disconfirmation
+
+- Core assumptions:
+- Disconfirming observation:
+- Cheapest kill test:
+- Stop or revise if:
 
 ## Minimum Validation
 
@@ -146,6 +169,8 @@ EMPTY_SCORES = {
 EMPTY_DECISION = {
     "decision": "generate_more",
     "selected_idea_ids": [],
+    "confidence": "low",
+    "novelty_check_status": "not_checked",
     "rationale": "",
     "next_skill": None,
     "required_handoffs": [],
