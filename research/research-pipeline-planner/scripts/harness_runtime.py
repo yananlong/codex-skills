@@ -8,9 +8,15 @@ import hashlib
 import json
 import os
 import tempfile
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+
+try:
+    import fcntl
+except ImportError:  # pragma: no cover - non-POSIX fallback
+    fcntl = None
 
 SCHEMA_VERSION = "1.0"
 EVIDENCE_CLASSES = {
@@ -57,28 +63,30 @@ def event_hash(event_without_hash: dict[str, Any]) -> str:
 def read_events(path: Path) -> list[dict[str, Any]]:
     if not path.exists():
         return []
-    events = []
+    events: list[dict[str, Any]] = []
     for line_no, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
         if not line.strip():
             continue
         try:
-            events.append(json.loads(line))
+            event = json.loads(line)
         except json.JSONDecodeError as exc:
             raise SystemExit(f"invalid JSON in {path} line {line_no}: {exc}") from exc
+        if not isinstance(event, dict):
+            raise SystemExit(f"event at {path} line {line_no} must be an object")
+        events.append(event)
     return events
 
 
 def verify_chain(events: list[dict[str, Any]]) -> None:
     previous = None
-    for idx, event in enumerate(events, start=1):
+    for index, event in enumerate(events, start=1):
         stored = event.get("event_hash")
         body = dict(event)
         body.pop("event_hash", None)
         if body.get("previous_event_hash") != previous:
-            raise SystemExit(f"event chain mismatch at event {idx}")
-        computed = event_hash(body)
-        if stored != computed:
-            raise SystemExit(f"event hash mismatch at event {idx}")
+            raise SystemExit(f"event chain mismatch at event {index}")
+        if stored != event_hash(body):
+            raise SystemExit(f"event hash mismatch at event {index}")
         previous = stored
 
 
@@ -89,10 +97,10 @@ def append_event(
     work_item_id: str | None,
     details: dict[str, Any],
 ) -> dict[str, Any]:
+    root.mkdir(parents=True, exist_ok=True)
     events_path = root / "harness-events.jsonl"
     events = read_events(events_path)
     verify_chain(events)
-    previous = events[-1]["event_hash"] if events else None
     event = {
         "schema_version": SCHEMA_VERSION,
         "event_id": f"EV-{len(events) + 1:06d}",
@@ -100,7 +108,7 @@ def append_event(
         "event_type": event_type,
         "actor": actor,
         "work_item_id": work_item_id,
-        "previous_event_hash": previous,
+        "previous_event_hash": events[-1]["event_hash"] if events else None,
         "details": details,
     }
     event["event_hash"] = event_hash(event)
@@ -119,7 +127,7 @@ def initial_state() -> dict[str, Any]:
         "last_event_id": None,
         "last_event_hash": None,
         "last_checkpoint_id": None,
-        "updated_at": utc_now(),
+        "updated_at": None,
     }
 
 
@@ -143,7 +151,16 @@ def apply_event(state: dict[str, Any], work_items: dict[str, Any], event: dict[s
         if any(item.get("work_item_id") == work_item_id for item in work_items["items"]):
             raise SystemExit(f"duplicate work item in event log: {work_item_id}")
         item = dict(details["work_item"])
-        item["state"] = "ready" if not item.get("dependencies") else "queued"
+        dependencies = item.get("dependencies", [])
+        item["state"] = (
+            "ready"
+            if not dependencies
+            or all(
+                find_item(work_items, dependency)["state"] == "completed"
+                for dependency in dependencies
+            )
+            else "queued"
+        )
         item["attempt"] = 0
         item["episodes"] = []
         item["verifications"] = []
@@ -182,7 +199,7 @@ def apply_event(state: dict[str, Any], work_items: dict[str, Any], event: dict[s
         state["status"] = (
             "completed"
             if work_items["items"]
-            and all(item["state"] == "completed" for item in work_items["items"])
+            and all(candidate["state"] == "completed" for candidate in work_items["items"])
             else "initialized"
         )
     elif event_type == "verification_revise":
@@ -190,23 +207,15 @@ def apply_event(state: dict[str, Any], work_items: dict[str, Any], event: dict[s
         if item["state"] != "awaiting_verification":
             raise SystemExit(f"cannot revise {work_item_id} from {item['state']}")
         item["verifications"].append(details)
-        if item["attempt"] >= item["attempt_budget"]:
-            item["state"] = "blocked"
-            state["status"] = "blocked"
-        else:
-            item["state"] = "ready"
-            state["status"] = "initialized"
+        item["state"] = "blocked" if item["attempt"] >= item["attempt_budget"] else "ready"
+        state["status"] = "blocked" if item["state"] == "blocked" else "initialized"
         state["active_work_item_id"] = None
     elif event_type == "work_item_failed_retryable":
         item = find_item(work_items, work_item_id)
         if item["state"] != "running":
             raise SystemExit(f"cannot fail {work_item_id} from {item['state']}")
-        if item["attempt"] >= item["attempt_budget"]:
-            item["state"] = "blocked"
-            state["status"] = "blocked"
-        else:
-            item["state"] = "ready"
-            state["status"] = "initialized"
+        item["state"] = "blocked" if item["attempt"] >= item["attempt_budget"] else "ready"
+        state["status"] = "blocked" if item["state"] == "blocked" else "initialized"
         state["active_work_item_id"] = None
     elif event_type == "work_item_blocked":
         item = find_item(work_items, work_item_id)
@@ -249,6 +258,12 @@ def validate_work_item(args: argparse.Namespace) -> dict[str, Any]:
         raise SystemExit("at least one --acceptance-check is required")
     if not args.expected_artifact:
         raise SystemExit("at least one --expected-artifact is required")
+    if not args.write_scope:
+        raise SystemExit("at least one --write-scope is required")
+    if args.attempt_budget < 1:
+        raise SystemExit("--attempt-budget must be positive")
+    if args.tool_call_budget < 0:
+        raise SystemExit("--tool-call-budget must be non-negative")
     return {
         "work_item_id": args.work_item_id,
         "stage": args.stage,
@@ -263,11 +278,20 @@ def validate_work_item(args: argparse.Namespace) -> dict[str, Any]:
         "dependencies": args.depends_on or [],
         "attempt_budget": args.attempt_budget,
         "tool_call_budget": args.tool_call_budget,
-        "write_scope": args.write_scope or [],
+        "write_scope": args.write_scope,
         "permission_policy": args.permission_policy,
         "predecessor_failures": args.predecessor_failure or [],
         "evidence_class": args.evidence_class,
     }
+
+
+def path_is_in_scope(root: Path, artifact: str, scopes: list[str]) -> bool:
+    candidate = (root / artifact).resolve()
+    for scope in scopes:
+        scope_path = (root / scope).resolve()
+        if candidate == scope_path or scope_path in candidate.parents:
+            return True
+    return False
 
 
 def validate_episode(root: Path, item: dict[str, Any], episode_path: Path) -> dict[str, Any]:
@@ -291,6 +315,8 @@ def validate_episode(root: Path, item: dict[str, Any], episode_path: Path) -> di
     missing = sorted(required - set(episode))
     if missing:
         raise SystemExit("episode missing fields: " + ", ".join(missing))
+    if episode["schema_version"] != SCHEMA_VERSION:
+        raise SystemExit("episode schema_version mismatch")
     if episode["work_item_id"] != item["work_item_id"]:
         raise SystemExit("episode work_item_id mismatch")
     if episode["attempt"] != item["attempt"]:
@@ -303,10 +329,18 @@ def validate_episode(root: Path, item: dict[str, Any], episode_path: Path) -> di
         raise SystemExit("invalid episode outcome")
     if episode["transition_request"] not in {"approve", "revise", "block"}:
         raise SystemExit("invalid transition_request")
+
     if episode["outcome"] == "completed":
         artifacts = episode.get("artifacts")
         if not isinstance(artifacts, list) or not artifacts:
             raise SystemExit("completed episode must list artifacts")
+        missing_expected = [
+            artifact for artifact in item["expected_artifacts"] if artifact not in artifacts
+        ]
+        if missing_expected:
+            raise SystemExit(
+                "completed episode missing expected artifacts: " + ", ".join(missing_expected)
+            )
         for artifact in artifacts:
             candidate = (root / artifact).resolve()
             try:
@@ -315,6 +349,23 @@ def validate_episode(root: Path, item: dict[str, Any], episode_path: Path) -> di
                 raise SystemExit(f"artifact escapes suite root: {artifact}") from exc
             if not candidate.exists():
                 raise SystemExit(f"episode artifact does not exist: {artifact}")
+            if not path_is_in_scope(root, artifact, item["write_scope"]):
+                raise SystemExit(
+                    f"episode artifact is outside declared write scope: {artifact}"
+                )
+
+        tool_calls = episode.get("tool_calls", [])
+        if not isinstance(tool_calls, list):
+            raise SystemExit("episode.tool_calls must be a list when present")
+        observed = episode.get("observed_usage", {})
+        if not isinstance(observed, dict):
+            raise SystemExit("episode.observed_usage must be an object when present")
+        observed_calls = observed.get("max_tool_calls", len(tool_calls))
+        if not isinstance(observed_calls, int) or observed_calls < len(tool_calls):
+            raise SystemExit("episode observed tool-call usage is invalid")
+        if observed_calls > item["tool_call_budget"]:
+            raise SystemExit("episode exceeds the work item tool-call budget")
+
         results = {
             entry.get("check_id"): entry
             for entry in episode.get("verification", [])
@@ -341,7 +392,6 @@ def project_after_event(root: Path, event: dict[str, Any]) -> None:
 
 def command_add(args: argparse.Namespace) -> None:
     root = args.root.resolve()
-    root.mkdir(parents=True, exist_ok=True)
     _, work_items = replay(root, write=True)
     if any(item["work_item_id"] == args.work_item_id for item in work_items["items"]):
         raise SystemExit(f"work item already exists: {args.work_item_id}")
@@ -403,6 +453,8 @@ def command_verify(args: argparse.Namespace) -> None:
     root = args.root.resolve()
     _, work_items = replay(root, write=True)
     item = find_item(work_items, args.work_item_id)
+    if args.actor == item["owner_skill"] and not args.self_review:
+        raise SystemExit("worker-role verification must be explicitly marked --self-review")
     if item["state"] != "awaiting_verification":
         raise SystemExit("work item is not awaiting verification")
     event_type = {
@@ -410,13 +462,16 @@ def command_verify(args: argparse.Namespace) -> None:
         "revise": "verification_revise",
         "block": "work_item_blocked",
     }[args.decision]
-    details = {
-        "decision": args.decision,
-        "evidence": args.evidence,
-        "self_review": args.self_review,
-    }
     event = append_event(
-        root, event_type, args.actor, args.work_item_id, details
+        root,
+        event_type,
+        args.actor,
+        args.work_item_id,
+        {
+            "decision": args.decision,
+            "evidence": args.evidence,
+            "self_review": args.self_review,
+        },
     )
     project_after_event(root, event)
     print(f"verification {args.decision}: {args.work_item_id}")
@@ -455,15 +510,17 @@ def command_checkpoint(args: argparse.Namespace) -> None:
     checkpoints = root / "checkpoints"
     checkpoints.mkdir(parents=True, exist_ok=True)
     checkpoint_id = args.checkpoint_id or f"CP-{len(list(checkpoints.glob('*.json'))) + 1:06d}"
-    manifest = {
-        "schema_version": SCHEMA_VERSION,
-        "checkpoint_id": checkpoint_id,
-        "created_at": utc_now(),
-        "reason": args.reason,
-        "state": state,
-        "work_items": work_items,
-    }
-    atomic_write_json(checkpoints / f"{checkpoint_id}.json", manifest)
+    atomic_write_json(
+        checkpoints / f"{checkpoint_id}.json",
+        {
+            "schema_version": SCHEMA_VERSION,
+            "checkpoint_id": checkpoint_id,
+            "created_at": utc_now(),
+            "reason": args.reason,
+            "state": state,
+            "work_items": work_items,
+        },
+    )
     event = append_event(
         root,
         "checkpoint_saved",
@@ -492,6 +549,19 @@ def command_replay(args: argparse.Namespace) -> None:
     print("replayed")
 
 
+@contextmanager
+def runtime_lock(root: Path):
+    root.mkdir(parents=True, exist_ok=True)
+    with (root / ".harness.lock").open("a+", encoding="utf-8") as handle:
+        if fcntl is not None:
+            fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            if fcntl is not None:
+                fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--root", type=Path, required=True, help="Research-suite root")
@@ -512,9 +582,7 @@ def build_parser() -> argparse.ArgumentParser:
     add.add_argument("--permission-policy", default="least_privilege")
     add.add_argument("--predecessor-failure", action="append", default=[])
     add.add_argument(
-        "--evidence-class",
-        choices=sorted(EVIDENCE_CLASSES),
-        default="exploratory",
+        "--evidence-class", choices=sorted(EVIDENCE_CLASSES), default="exploratory"
     )
     add.add_argument("--actor", default="research-pipeline-planner")
     add.set_defaults(func=command_add)
@@ -581,7 +649,8 @@ def build_parser() -> argparse.ArgumentParser:
 
 def main() -> int:
     args = build_parser().parse_args()
-    args.func(args)
+    with runtime_lock(args.root.resolve()):
+        args.func(args)
     return 0
 
 
