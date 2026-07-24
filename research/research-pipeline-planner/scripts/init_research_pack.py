@@ -4,9 +4,9 @@
 from __future__ import annotations
 
 import argparse
-import json
-from datetime import datetime, timezone
 from pathlib import Path
+
+import harness_runtime
 
 
 STAGE_DIRS = [
@@ -147,14 +147,6 @@ Consequential decisions must also be represented by a machine event in `harness-
 }
 
 
-def utc_now() -> str:
-    return datetime.now(timezone.utc).isoformat()
-
-
-def write_json(path: Path, value: object) -> None:
-    path.write_text(json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-
-
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("target_dir", type=Path, help="Directory where the pack will be created.")
@@ -195,22 +187,24 @@ def main() -> None:
         print(f"created {path}")
 
     if not args.legacy:
-        state = {
-            "schema_version": "1.0",
-            "status": "initialized",
-            "active_work_item_id": None,
-            "last_event_id": None,
-            "last_event_hash": None,
-            "last_checkpoint_id": None,
-            "updated_at": utc_now(),
-        }
-        work_items = {"schema_version": "1.0", "items": []}
-        write_json(args.target_dir / "HARNESS_STATE.json", state)
-        write_json(args.target_dir / "work-items.json", work_items)
-        (args.target_dir / "harness-events.jsonl").write_text("", encoding="utf-8")
+        for name in ("HARNESS_STATE.json", "work-items.json", "harness-events.jsonl"):
+            path = args.target_dir / name
+            if path.exists():
+                path.unlink()
+        event = harness_runtime.append_event(
+            args.target_dir,
+            "observation_recorded",
+            "init_research_pack",
+            None,
+            {
+                "category": "harness_initialized",
+                "note": "Initialized a harness-backed research suite.",
+            },
+        )
+        harness_runtime.replay(args.target_dir, write=True)
         print(f"created {args.target_dir / 'HARNESS_STATE.json'}")
         print(f"created {args.target_dir / 'work-items.json'}")
-        print(f"created {args.target_dir / 'harness-events.jsonl'}")
+        print(f"created {args.target_dir / 'harness-events.jsonl'} at {event['event_id']}")
 
 
 if __name__ == "__main__":
