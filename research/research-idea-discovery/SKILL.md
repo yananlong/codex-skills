@@ -13,7 +13,8 @@ description: Generate, filter, rank, and hand off grounded research ideas from a
 4. Generate a diverse idea bank, then filter before ranking. Do not present raw brainstorming as a recommendation.
 5. Score ideas on clarity, novelty signal, feasibility, testability, and significance; also record source basis, assumptions, novelty questions, and kill criteria.
 6. Select at most 1-3 ideas for downstream validation and write the handoff artifacts.
-7. Route the selected idea to `research-novelty-review` before experiment planning unless novelty has already been pressure-tested.
+7. Label selected ideas as exploratory hypotheses unless stronger evidence already exists and is explicitly traced; ranking does not upgrade evidence status.
+8. Route the selected idea to `research-novelty-review` before experiment planning unless novelty has already been pressure-tested.
 
 ## Modes
 
@@ -29,11 +30,12 @@ description: Generate, filter, rank, and hand off grounded research ideas from a
 - Read upstream context from `research-brief.md`, `artifact-index.md`, `./zotero/`, `./literature-review/`, and existing `./ideation/` artifacts when present.
 - Write all required outputs under `./ideation/` and update `artifact-index.md` when the runtime task includes file maintenance.
 - Handoff selected ideas to `research-novelty-review`; hand off a frozen claim plus evaluation goal to `research-experiment-plan` only after novelty risk is acceptable.
+- Preserve failed ideas, outcome-informed selection, and prior evidence class across handoffs; a new stage must not erase selection history.
 
 ## Input Contract
 
 - Minimum: broad research direction, problem area, paper limitation, or project notes.
-- Prefer: target venue/audience, domain, available data, compute budget, timeline, non-goals, prior failed ideas, known closest work, and desired contribution type.
+- Prefer: target venue/audience, domain, available data, compute budget, timeline, non-goals, prior failed ideas, known closest work, desired contribution type, and whether any candidate was suggested after inspecting relevant outcomes.
 - Use `research-zotero` or existing `./zotero/` artifacts when the user wants to seed ideas from a curated library.
 - Use `research-systematic-literature-review` first when the landscape is too unfamiliar or evidence coverage is the blocking task.
 
@@ -59,6 +61,8 @@ In orchestrated mode these live under `./ideation/`. Validate tracked artifacts 
 - Do not treat "apply X to Y" as a publishable idea unless the application exposes a surprising mechanism, diagnostic, dataset, or empirical finding.
 - Do not select an idea unless it has a credible path to being wrong. If no observation would change the recommendation, revise the idea.
 - Do not use total score alone to justify selection; a selected idea needs a concrete novelty question, minimum validation, and at least one stated disconfirmation or kill criterion.
+- Do not present a ranked or polished idea as empirically supported merely because it fits the desired paper story.
+- If an idea was selected, modified, or rescued after inspecting relevant outcomes, preserve that history and keep the affected claim exploratory until a separate confirmatory test is designed.
 
 ## Workflow
 
@@ -73,6 +77,7 @@ In orchestrated mode these live under `./ideation/`. Validate tracked artifacts 
   - non-goals and banned directions
 - If the user provided a paper, summarize the paper's core contribution, limitations, and improvement surfaces before generating ideas.
 - If the user provided project notes, extract failed attempts and avoid regenerating them.
+- Record whether candidate generation occurs before or after inspection of task-relevant outcomes.
 
 ### 2) Build the landscape map
 
@@ -118,6 +123,7 @@ In orchestrated mode these live under `./ideation/`. Validate tracked artifacts 
 - Record risk level, estimated effort, blocking questions, and decision status in `idea-scores.json`.
 - Favor ideas with clear falsification paths over ideas that only sound ambitious.
 - Treat the rubric as a gate, not a calculator. A high average cannot rescue novelty signal below 3, testability below 3, missing source basis, or missing kill criteria.
+- Keep idea quality, novelty signal, and evidence class separate; none is a substitute for the others.
 
 ### 6) Select and hand off
 
@@ -129,6 +135,8 @@ In orchestrated mode these live under `./ideation/`. Validate tracked artifacts 
   - minimum viable validation
   - expected positive and negative outcomes
   - assumptions, disconfirmation checks, and kill criteria
+  - selection history and current evidence class
+  - material prior failures or negative evidence
   - risks, constraints, and unresolved questions
   - recommended next skill
 - Write `ideation-decision.json` with one of:
@@ -138,6 +146,7 @@ In orchestrated mode these live under `./ideation/`. Validate tracked artifacts 
   - `generate_more`
   - `stop`
 - Default next skill is `research-novelty-review` for selected ideas. Use `research-experiment-plan` only when novelty has already been checked and the claim/evaluation goal are frozen.
+- Use `../research-pipeline-planner/references/epistemic-assurance-contract.md` whenever the handoff requests evidence stronger than exploratory.
 
 ## Collaboration
 
@@ -155,5 +164,6 @@ In orchestrated mode these live under `./ideation/`. Validate tracked artifacts 
 - `references/scoring-rubric.md`
 - `references/idea-score-schema.md`
 - `references/ideation-decision-schema.md`
+- `../research-pipeline-planner/references/epistemic-assurance-contract.md`
 - `scripts/init_ideation_pack.py`: create the tracked ideation file set.
 - `scripts/validate_ideation_pack.py`: validate required headings plus `idea-scores.json` and `ideation-decision.json`.
