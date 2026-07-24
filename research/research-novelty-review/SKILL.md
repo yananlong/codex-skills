@@ -12,7 +12,8 @@ description: Run a stringent, adversarial novelty review over a concrete researc
 3. Search strongest overlaps first, not flattering long-tail analogies.
 4. Write down novelty-killing objections explicitly before giving any green light.
 5. When reviewing a paper, consume `research-paper-review` and `research-systematic-literature-review` artifacts before deciding.
-6. End with a 1-5 novelty decision rating, not a coarse ternary label, plus the narrowest defensible positioning.
+6. Keep novelty positioning separate from empirical validity: a strong novelty rating does not show that the method works or authorize evidence promotion.
+7. End with a 1-5 novelty decision rating, not a coarse ternary label, plus the narrowest defensible positioning.
 
 ## Modes
 
@@ -28,6 +29,7 @@ description: Run a stringent, adversarial novelty review over a concrete researc
 - Prefer the canonical directory `./novelty-review/`.
 - Read upstream context from `research-brief.md`, `artifact-index.md`, `./literature-review/`, and `./zotero/` when present.
 - Keep outputs legible to downstream experiment planning and paper planning.
+- Preserve whether the proposed contribution was formulated before or after inspecting task-relevant outcomes; novelty review must not erase outcome-informed selection.
 
 ### Paper-review integrated mode
 
@@ -49,6 +51,7 @@ description: Run a stringent, adversarial novelty review over a concrete researc
 - `research-zotero` supplies curated prior-art seeds when the user has a relevant library or collection.
 - `research-review-loop` can track whether novelty/positioning issues have been resolved across revisions.
 - `research-paper-plan` can use the narrowest defensible positioning from this skill as the contribution statement for a manuscript.
+- `research-experiment-plan` must independently establish the decision contract and evidential route; do not treat a novelty decision as an experiment gate.
 
 ## Input contract
 
@@ -60,6 +63,7 @@ description: Run a stringent, adversarial novelty review over a concrete researc
   - existing literature or review artifacts
   - existing `research-paper-review` summary and context artifacts
   - existing Zotero library artifacts
+  - selection history and current evidence class
 
 ## Hard stops
 
@@ -68,6 +72,9 @@ description: Run a stringent, adversarial novelty review over a concrete researc
 - Stop if browsing or a usable corpus is unavailable.
 - Stop if the claim bundles so many moving parts that a fair novelty comparison is impossible.
 - In standalone mode, do not force suite initialization when a direct adversarial review will do.
+- Do not change cases, comparators, contribution boundaries, or search interpretation merely to preserve a desired novelty rating after unfavorable evidence appears.
+- Do not describe novelty as independently established unless a materially separate review pass actually occurred; a separate role label in the same context is self-review.
+- Do not use novelty pressure to convert an outcome-informed claim into a confirmatory one. Preserve the exploratory status and design a separate confirmatory evaluation downstream.
 
 ## Output contract
 
@@ -78,7 +85,7 @@ description: Run a stringent, adversarial novelty review over a concrete researc
   - `novelty-decision.json`
 - In orchestrated mode, these live under `./novelty-review/`.
 - In standalone mode, any target directory is valid.
-- `novelty-decision.json` should capture the final 1-5 novelty rating, confidence rating, and the exact narrow positioning that survives the review.
+- `novelty-decision.json` should capture the final 1-5 novelty rating, confidence rating, the exact narrow positioning that survives the review, selection-history caveats, and whether the review was self-review or materially independent.
 - In paper-review integrated mode, `novelty-decision.json` should also capture:
   - `impact_positioning_rating` (1-5)
   - `literature_context_used`
@@ -99,6 +106,7 @@ description: Run a stringent, adversarial novelty review over a concrete researc
   - artifact or dataset
   - empirical finding
 - Reject blended claims that hide which part is allegedly new.
+- Record which components were specified before versus after inspection of relevant outcomes.
 
 ### 2) Search with a kill-shot mindset
 
@@ -115,6 +123,7 @@ description: Run a stringent, adversarial novelty review over a concrete researc
 - Record closest overlaps, not just vaguely related work.
 - Score how much each prior work threatens the novelty claim on a 1-5 scale.
 - Prefer concrete overlap dimensions over narrative hand-waving.
+- Keep negative and contradictory evidence visible even when a narrow positioning survives.
 
 ### 4) Write the objections first
 
@@ -140,8 +149,10 @@ description: Run a stringent, adversarial novelty review over a concrete researc
   - `3`: narrow proceed only; some novelty survives but only under a sharply reduced claim
   - `4`: proceed with careful positioning; novelty looks real but vulnerable
   - `5`: strong novelty position; closest overlaps do not materially undercut the core claim
+- State explicitly that the rating governs positioning only. It does not certify empirical correctness, confirmatory status, implementation validity, or route readiness.
 - If deeper retrieval would materially improve confidence, collaborate with `research-systematic-literature-review`.
-- If a second adversarial pass would help and delegation is explicitly available and permitted, an independent review pass is allowed. Do not assume that permission.
+- If a second adversarial pass would help and delegation is explicitly available and permitted, an independent review pass is allowed. Record the actual independence dimensions; otherwise call it self-review.
+- When handing off to experiment planning, include current evidence class, outcome-informed selection history, unresolved novelty threats, and predecessor failures. Use `../research-pipeline-planner/references/epistemic-assurance-contract.md` for any requested promotion.
 
 ### 6) Feed findings back to paper review when integrated
 
@@ -168,6 +179,7 @@ description: Run a stringent, adversarial novelty review over a concrete researc
 - `references/reviewer-objection-rubric.md`
 - `references/tabmol-ddi-ood-adapter.md`
 - `references/paper-review-integration.md`
+- `../research-pipeline-planner/references/epistemic-assurance-contract.md`
 
 ## Script
 
