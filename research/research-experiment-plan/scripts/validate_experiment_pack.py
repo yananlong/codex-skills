@@ -32,6 +32,14 @@ TRACKER_STATUSES = {
 
 BLOCK_PRIORITIES = {"must-run", "nice-to-have", "defer"}
 DECISION_IF_UNPROVEN = {"reframe", "drop", "defer"}
+EVIDENCE_CLASSES = {
+    "exploratory",
+    "confirmatory",
+    "independently_verified",
+    "operational_high_stakes",
+}
+STRONG_EVIDENCE_CLASSES = EVIDENCE_CLASSES - {"exploratory"}
+PLACEHOLDER_VALUES = {"", "n/a", "na", "none", "null", "tbd", "todo", "unknown"}
 
 
 def _read(path: Path, label: str, errors: list[str]) -> str:
@@ -79,11 +87,29 @@ def _table_rows(markdown: str, heading: str) -> list[list[str]]:
     return rows
 
 
-def _validate_claim_map(data, errors: list[str]) -> set[str]:
+def _is_meaningful_string(value) -> bool:
+    return isinstance(value, str) and value.strip().lower() not in PLACEHOLDER_VALUES
+
+
+def _require_meaningful_string(entry: dict, field: str, label: str, errors: list[str]) -> None:
+    if not _is_meaningful_string(entry.get(field)):
+        errors.append(f"{label}.{field} must be a substantive non-placeholder string")
+
+
+def _require_list(entry: dict, field: str, label: str, errors: list[str], *, nonempty: bool) -> None:
+    value = entry.get(field)
+    if not isinstance(value, list):
+        errors.append(f"{label}.{field} must be a list")
+    elif nonempty and not value:
+        errors.append(f"{label}.{field} must be a non-empty list")
+
+
+def _validate_claim_map(data, errors: list[str], assurance_profile: str) -> set[str]:
     if not isinstance(data, list) or not data:
         errors.append("claim-map.json must be a non-empty JSON array")
         return set()
     ids: set[str] = set()
+    strong_claim_count = 0
     for idx, entry in enumerate(data, start=1):
         label = f"claim-map.json[{idx}]"
         if not isinstance(entry, dict):
@@ -100,14 +126,34 @@ def _validate_claim_map(data, errors: list[str]) -> set[str]:
             errors.append(
                 f"{label}.decision_if_unproven must be one of {sorted(DECISION_IF_UNPROVEN)}"
             )
+
+        if assurance_profile == "confirmatory":
+            evidence_class = entry.get("evidence_class")
+            if evidence_class not in EVIDENCE_CLASSES:
+                errors.append(f"{label}.evidence_class must be one of {sorted(EVIDENCE_CLASSES)}")
+                continue
+            if evidence_class in STRONG_EVIDENCE_CLASSES:
+                strong_claim_count += 1
+                for field in ("decision_rule", "loss_contract", "falsification_test"):
+                    _require_meaningful_string(entry, field, label, errors)
+                _require_list(entry, "predecessor_failures", label, errors, nonempty=False)
+
+    if assurance_profile == "confirmatory" and strong_claim_count == 0:
+        errors.append(
+            "confirmatory assurance profile requires at least one claim with evidence_class "
+            "confirmatory, independently_verified, or operational_high_stakes"
+        )
     return ids
 
 
-def _validate_run_blocks(data, claim_ids: set[str], errors: list[str]) -> set[str]:
+def _validate_run_blocks(
+    data, claim_ids: set[str], errors: list[str], assurance_profile: str
+) -> set[str]:
     if not isinstance(data, list) or not data:
         errors.append("run-blocks.json must be a non-empty JSON array")
         return set()
     block_ids: set[str] = set()
+    strong_block_count = 0
     for idx, entry in enumerate(data, start=1):
         label = f"run-blocks.json[{idx}]"
         if not isinstance(entry, dict):
@@ -132,6 +178,29 @@ def _validate_run_blocks(data, claim_ids: set[str], errors: list[str]) -> set[st
         seeds = entry.get("seeds")
         if not isinstance(seeds, int) or seeds < 1:
             errors.append(f"{label}.seeds must be a positive integer")
+
+        if assurance_profile == "confirmatory":
+            evidence_class = entry.get("evidence_class")
+            if evidence_class not in EVIDENCE_CLASSES:
+                errors.append(f"{label}.evidence_class must be one of {sorted(EVIDENCE_CLASSES)}")
+                continue
+            if evidence_class in STRONG_EVIDENCE_CLASSES:
+                strong_block_count += 1
+                for field in (
+                    "selection_rule",
+                    "non_vacuity_check",
+                    "complete_outcome_accounting",
+                    "hidden_information_controls",
+                ):
+                    _require_meaningful_string(entry, field, label, errors)
+                _require_list(entry, "independence_requirements", label, errors, nonempty=True)
+                _require_list(entry, "predecessor_failures", label, errors, nonempty=False)
+
+    if assurance_profile == "confirmatory" and strong_block_count == 0:
+        errors.append(
+            "confirmatory assurance profile requires at least one run block with evidence_class "
+            "confirmatory, independently_verified, or operational_high_stakes"
+        )
     return block_ids
 
 
@@ -173,6 +242,16 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--run-blocks", required=True, help="Path to run-blocks.json")
     parser.add_argument("--decision-gates", required=True, help="Path to decision-gates.md")
     parser.add_argument("--bridge", required=True, help="Path to execution-bridge.md")
+    parser.add_argument(
+        "--assurance-profile",
+        choices=("structural", "confirmatory"),
+        default="structural",
+        help=(
+            "Validation depth. 'structural' preserves legacy behavior. 'confirmatory' "
+            "also requires evidence-class, decision-contract, non-vacuity, outcome-accounting, "
+            "hidden-information, independence, and failure-inheritance fields."
+        ),
+    )
     return parser
 
 
@@ -182,7 +261,9 @@ def main() -> int:
 
     plan_md = _read(Path(args.plan).expanduser().resolve(), "plan", errors)
     tracker_md = _read(Path(args.tracker).expanduser().resolve(), "tracker", errors)
-    decision_gates_md = _read(Path(args.decision_gates).expanduser().resolve(), "decision-gates", errors)
+    decision_gates_md = _read(
+        Path(args.decision_gates).expanduser().resolve(), "decision-gates", errors
+    )
     bridge_md = _read(Path(args.bridge).expanduser().resolve(), "bridge", errors)
     claim_map = _load_json(Path(args.claim_map).expanduser().resolve(), "claim-map", errors)
     run_blocks = _load_json(Path(args.run_blocks).expanduser().resolve(), "run-blocks", errors)
@@ -199,8 +280,8 @@ def main() -> int:
     if "# Experiment Tracker" not in tracker_md:
         errors.append("tracker: missing '# Experiment Tracker' heading")
 
-    claim_ids = _validate_claim_map(claim_map, errors)
-    block_ids = _validate_run_blocks(run_blocks, claim_ids, errors)
+    claim_ids = _validate_claim_map(claim_map, errors, args.assurance_profile)
+    block_ids = _validate_run_blocks(run_blocks, claim_ids, errors, args.assurance_profile)
     _validate_tracker(tracker_md, errors)
     _validate_gates(decision_gates_md, block_ids, errors)
 
@@ -210,7 +291,17 @@ def main() -> int:
             print(f"- {err}")
         return 1
 
-    print("Validation passed: experiment pack is structurally consistent.")
+    if args.assurance_profile == "confirmatory":
+        print(
+            "Validation passed: confirmatory assurance fields are structurally present and "
+            "internally consistent. This does not establish that the claimed controls actually "
+            "hold; semantic and independent audit remain required where claimed."
+        )
+    else:
+        print(
+            "Validation passed: experiment pack is structurally consistent. This does not "
+            "certify semantic validity, independence, non-vacuity, or evidential sufficiency."
+        )
     return 0
 
 
