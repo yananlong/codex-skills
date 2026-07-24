@@ -1,0 +1,42 @@
+name: Research assurance regression tests
+
+on:
+  pull_request:
+    paths:
+      - "research/research-pipeline-planner/**"
+      - "research/research-experiment-plan/**"
+      - "documents/adversarial-doc-review/**"
+      - ".github/workflows/research-assurance.yml"
+  push:
+    branches: [main]
+    paths:
+      - "research/research-pipeline-planner/**"
+      - "research/research-experiment-plan/**"
+      - "documents/adversarial-doc-review/**"
+      - ".github/workflows/research-assurance.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Compile changed Python entrypoints
+        run: |
+          python -m py_compile \
+            research/research-pipeline-planner/scripts/harness_runtime.py \
+            research/research-pipeline-planner/scripts/init_research_pack.py \
+            research/research-pipeline-planner/scripts/validate_research_pack.py \
+            research/research-experiment-plan/scripts/validate_experiment_pack.py
+      - name: Run harness runtime tests
+        run: python -m unittest discover -s research/research-pipeline-planner/tests -p 'test_harness_runtime.py' -v
+      - name: Run research-pack tests
+        run: python -m unittest discover -s research/research-pipeline-planner/tests -p 'test_research_pack.py' -v
+      - name: Run experiment assurance tests
+        run: python -m unittest discover -s research/research-experiment-plan/tests -p 'test_validate_experiment_pack.py' -v
