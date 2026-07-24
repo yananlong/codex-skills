@@ -10,9 +10,10 @@ description: Coordinate research as either a standalone staged planning pass or 
 1. Inspect the current project state before asking broad reset questions.
 2. Use this skill as the default first pass when the user asks for project-level sequencing, current-state inspection, or a task that spans two or more research stages.
 3. Decide whether this should stay standalone or use an orchestrated suite pack.
-4. Initialize `research-brief.md`, `task-board.md`, `decision-log.md`, and `artifact-index.md` only when shared stage artifacts will help.
-5. Choose the next blocking stage, then either do that work locally or hand it off to the most relevant sibling skill.
-6. Insert checkpoints before any step that could waste major time, compute, or paper space.
+4. Classify any proposed evidence promotion as exploratory, confirmatory, independently verified, or operational/high-stakes; use `references/epistemic-assurance-contract.md` before authorizing a stronger class.
+5. Initialize `research-brief.md`, `task-board.md`, `decision-log.md`, and `artifact-index.md` only when shared stage artifacts will help.
+6. Choose the next blocking stage, then either do that work locally or hand it off to the most relevant sibling skill.
+7. Insert checkpoints before any step that could waste major time, compute, paper space, or evidential credibility.
 
 ## Routing triggers
 
@@ -34,11 +35,12 @@ Do not force this skill for a clear one-stage request. Route direct ideation, pa
 - Use the canonical suite layout in `references/suite-contract.md`.
 - Keep `artifact-index.md` current and respect the stage gates in `references/stage-gates.md`.
 - Coordinate handoffs, but do not monopolize execution. Any stage skill may still be invoked directly.
+- Keep the evidence class and promotion record visible across handoffs; changing stage or role labels must not silently upgrade the evidence.
 
 ## Input contract
 
 - Minimum: topic or problem, current state, and desired outcome.
-- Prefer: intended audience, success criteria, constraints, deadlines, budget, and existing artifacts.
+- Prefer: intended audience, success criteria, constraints, deadlines, budget, existing artifacts, requested evidence class, and known predecessor failures.
 - If files already imply the current stage, infer it from the artifacts instead of asking generic setup questions.
 
 ## Hard stops
@@ -47,17 +49,20 @@ Do not force this skill for a clear one-stage request. Route direct ideation, pa
 - Stop if critical constraints are missing and the next step could waste substantial work.
 - In standalone mode, do not force suite initialization when a direct answer would be better.
 - In orchestrated mode, do not advance past a stage gate with unresolved blockers.
+- Do not promote exploratory or outcome-informed evidence as confirmatory merely because the artifact is polished, internally consistent, or structurally valid.
+- Stop confirmatory or high-stakes promotion when the decision contract is incomplete, material failure states are omitted, hidden truth is available to the evaluated process, independence is only a role label, or a material predecessor failure has no evidence-backed disposition. Continue only at a weaker evidence class when useful.
 
 ## Workflow
 
 ### 1) Inspect existing state first
 
-- Look for problem statements, literature notes, ideation artifacts, novelty assessments, experiment plans, paper-review artifacts, result artifacts, review notes, and draft outlines.
+- Look for problem statements, literature notes, ideation artifacts, novelty assessments, experiment plans, paper-review artifacts, result artifacts, review notes, draft outlines, decision logs, and failure reviews.
 - Distinguish:
   - no structured artifacts yet
   - partial standalone artifacts
   - an existing suite pack
 - Summarize what already exists before proposing new structure.
+- Identify material predecessor failures and whether they were resolved by new evidence, accepted with claim narrowing, merely reclassified, or omitted.
 
 ### 2) Choose the operating mode deliberately
 
@@ -74,6 +79,8 @@ Do not force this skill for a clear one-stage request. Route direct ideation, pa
   - current stage
   - next blocking decision
   - constraints
+  - current and requested evidence class
+  - material predecessor failures
 - Keep `artifact-index.md` as the source of truth for where stage outputs live.
 
 ### 4) Choose the next stage, not the whole future
@@ -95,18 +102,20 @@ Do not force this skill for a clear one-stage request. Route direct ideation, pa
 
 ### 5) Make checkpoints explicit
 
-- Add a checkpoint whenever the next step could burn major compute, time, or paper space.
+- Add a checkpoint whenever the next step could burn major compute, time, paper space, or evidential credibility.
 - Record whether the decision is:
   - proceed
   - revise scope
+  - narrow evidence class
   - stop
+- For evidence promotion, record the claim or property, provenance, complete decision or loss contract, selection rule, non-vacuity check, predecessor failures, actual independence dimensions, unresolved limitations, and route decision.
 - Log the rationale in `decision-log.md`.
 
 ### 6) Allow collaboration without forcing delegation
 
 - Multi-skill collaboration is valid in both modes.
 - If independent review or parallel work would help and the runtime plus caller explicitly allow delegation, bounded subagent passes are allowed.
-- If delegation is unavailable, keep collaboration within the current agent and the locally available artifacts.
+- If delegation is unavailable, keep collaboration within the current agent and the locally available artifacts, disclose self-review, and avoid calling the result independent.
 
 ## References
 
@@ -116,6 +125,7 @@ Do not force this skill for a clear one-stage request. Route direct ideation, pa
 - `references/suite-contract.md`
 - `references/review-stage-contract.md`
 - `references/stage-gates.md`
+- `references/epistemic-assurance-contract.md`
 - `references/tabmol-ddi-ood-adapter.md`
 
 ## Scripts
