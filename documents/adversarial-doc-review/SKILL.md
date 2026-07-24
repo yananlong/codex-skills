@@ -1,6 +1,6 @@
 ---
 name: adversarial-doc-review
-description: Pedantic, adversarial stress-testing of documents (often Markdown .md) with claim-by-claim scrutiny, internal consistency checks, citation auditing, and up-to-date fact-checking via web search. Use when asked to critique, peer-review, red-team, verify references, or pressure-test time-sensitive statements; default deliverable is a structured report in chat.
+description: Pedantic, adversarial stress-testing of documents with claim-by-claim scrutiny, internal consistency checks, citation auditing, and up-to-date fact-checking. Use when asked to critique, peer-review, red-team, verify references, pressure-test time-sensitive statements, or assess whether validation, verification, independence, immutability, isolation, replay, auditability, or route-readiness claims are actually supported; default deliverable is a structured report in chat.
 ---
 
 # Adversarial Doc Review
@@ -11,7 +11,7 @@ description: Pedantic, adversarial stress-testing of documents (often Markdown .
 2. Build a claim ledger: every definition, assumption, factual claim, normative claim, control claim, and route-authorization claim must be traceable to a location in the document.
 3. Stress-test internally for consistency, logic, edge cases, evidence, citations, non-vacuity, and specification gaming.
 4. Verify externally by default: use a web browsing/search tool to fact-check time-sensitive and externally-checkable claims.
-5. When the document authorizes research evidence or stage advancement, apply `../../research/research-pipeline-planner/references/epistemic-assurance-contract.md` and test whether labels correspond to actual properties.
+5. When the document authorizes research evidence or stage advancement, apply `references/epistemic-assurance-contract.md` and test whether labels correspond to actual properties.
 6. Produce a structured report in chat by default using `references/report-template.md` and `references/review-checklist.md`. If a file is requested, write `<docname>.review.md` next to the document.
 
 ## Workflow decision points
@@ -135,4 +135,4 @@ For documents that claim controls, verification, or research-route readiness:
 
 - `references/review-checklist.md`: full pedantic checklist.
 - `references/report-template.md`: report skeleton to fill.
-- `../../research/research-pipeline-planner/references/epistemic-assurance-contract.md`: proportionate evidence-promotion and independence contract.
+- `references/epistemic-assurance-contract.md`: proportionate evidence-promotion and independence contract.
