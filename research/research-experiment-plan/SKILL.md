@@ -8,10 +8,12 @@ description: Convert a concrete research claim into a tracked, decisive experime
 ## Quick start
 
 1. Freeze the claim, decision rule, and anti-claims before listing runs.
-2. Decide whether this is a standalone plan or the experiment stage inside an orchestrated suite.
-3. Initialize the full experiment pack with `scripts/init_experiment_pack.py` whenever the plan needs tracked execution.
-4. Build the minimum decisive experiment blocks, not a benchmark wishlist.
-5. Separate must-run from nice-to-have runs, attach explicit decision gates, and emit bridge-ready outputs for later execution.
+2. Classify the intended evidence as exploratory, confirmatory, independently verified, or operational/high-stakes; use `../research-pipeline-planner/references/epistemic-assurance-contract.md` when promoting beyond exploratory status.
+3. Decide whether this is a standalone plan or the experiment stage inside an orchestrated suite.
+4. Initialize the full experiment pack with `scripts/init_experiment_pack.py` whenever the plan needs tracked execution.
+5. Build the minimum decisive experiment blocks, not a benchmark wishlist or a paper-defence script.
+6. Run a cheap non-vacuity preflight before expensive or confirmatory execution.
+7. Separate must-run from nice-to-have runs, attach explicit decision gates, and emit bridge-ready outputs for later execution.
 
 ## Constants
 
@@ -35,6 +37,7 @@ description: Convert a concrete research claim into a tracked, decisive experime
 - Prefer the canonical directory `./experiment-plan/`.
 - Read upstream artifacts from `research-brief.md`, `artifact-index.md`, `./ideation/`, `./novelty-review/`, and `./literature-review/` when present.
 - Keep the experiment outputs easy for downstream paper planning and review to consume.
+- Carry forward selection history, evidence class, negative evidence, and material predecessor failures rather than resetting them at the experiment stage.
 
 ## Input contract
 
@@ -46,6 +49,9 @@ description: Convert a concrete research claim into a tracked, decisive experime
   - constraints on data, compute, or deadlines
   - known reviewer objections
   - existing novelty or literature artifacts
+  - current and requested evidence class
+  - case-selection history
+  - material predecessor failures and prior negative results
 
 ## Hard stops
 
@@ -54,6 +60,11 @@ description: Convert a concrete research claim into a tracked, decisive experime
 - Stop if the evaluation target is undefined.
 - Stop if the proposed experiment block mixes too many interventions to interpret cleanly.
 - In standalone mode, do not force extra structure when a compact direct answer is sufficient.
+- Do not design a confirmatory route around cases selected because they already yield the desired answer; preserve them as exploratory and define a separate selection rule.
+- Stop confirmatory promotion when the decision or loss contract omits a decision-relevant error, omission, skip, null, retry, or failure state.
+- Stop confirmatory promotion when the evaluated system can read hidden truth, the oracle and runner share undisclosed hard-coded policy, or the claimed independence is only a role label.
+- Do not treat structural validation, internal agreement, self-hashes, copied digests, environment flags, or field presence as proof that the claimed assurance property holds.
+- A failed non-vacuity preflight normally forces revision or a weaker evidence class; it does not prohibit exploratory work.
 
 ## Output contract
 
@@ -66,9 +77,9 @@ description: Convert a concrete research claim into a tracked, decisive experime
   - `execution-bridge.md`
 - In orchestrated mode, these live under `./experiment-plan/`.
 - In standalone mode, any target directory is valid.
-- `claim-map.json` is the machine-readable source of truth for claims, anti-claims, and evidence thresholds.
-- `run-blocks.json` is the machine-readable source of truth for experiment blocks, dependencies, and pass/fail criteria.
-- `decision-gates.md` records the checkpoints that can halt or narrow the plan before expensive runs.
+- `claim-map.json` is the machine-readable source of truth for claims, anti-claims, evidence class, decision rules, loss contracts, falsification tests, and predecessor failures.
+- `run-blocks.json` is the machine-readable source of truth for experiment blocks, dependencies, pass/fail criteria, selection rules, non-vacuity checks, outcome accounting, hidden-information controls, and independence requirements.
+- `decision-gates.md` records the checkpoints that can halt, narrow, or reclassify the plan before expensive runs.
 - `execution-bridge.md` translates the plan into implementation-ready instructions without forcing another skill to reverse-engineer the planning intent.
 
 ## Workflow
@@ -87,6 +98,8 @@ description: Convert a concrete research claim into a tracked, decisive experime
   - optional supporting contribution
   - reviewer-relevant failure modes
   - data, compute, and deadline constraints
+  - current evidence class and outcome-informed selection history
+  - material predecessor failures and unresolved negative evidence
 - If these are missing, derive the same fields explicitly from the user prompt before planning any block.
 
 ### 1) Freeze the claim map
@@ -97,19 +110,24 @@ description: Convert a concrete research claim into a tracked, decisive experime
   - optional supporting claim
   - anti-claims to rule out
   - minimum convincing evidence
-- cap the number of primary/supporting claims aggressively
-- define what result would force reframing or abandonment
+  - current and requested evidence class
+  - complete decision rule and loss or outcome contract
+  - falsification test
+  - material predecessor failures and their disposition
+- Cap the number of primary/supporting claims aggressively.
+- Define what result would force reframing, reclassification, or abandonment.
 - If the claim map is unstable, revise it before planning runs.
 - Record the claim map in both `experiment-plan.md` and `claim-map.json`.
 
 ### 2) Build the experimental storyline before the detailed blocks
 
-- Start from a compact default storyline and delete any block that does not defend the paper:
+- Start from a compact default storyline and delete any block that does not test a decision-relevant claim:
   - main anchor result
   - novelty isolation
   - simplicity or elegance check
   - frontier-necessity check when a frontier-model-era component is central
   - failure analysis or qualitative diagnosis
+- Do not optimize only for a favorable paper story. A block exists to discriminate among claims, actions, or explanations, including outcomes that weaken the project.
 - Mark each storyline block as:
   - main paper
   - appendix
@@ -117,7 +135,19 @@ description: Convert a concrete research claim into a tracked, decisive experime
 - A stronger modern baseline is preferable to many weak baselines.
 - If the project is intentionally non-frontier, say so explicitly and skip the frontier-necessity block rather than forcing one.
 
-### 3) Build decisive experiment blocks
+### 3) Run the non-vacuity preflight
+
+Before expensive or confirmatory runs, check that:
+
+- at least one plausible case makes competing systems, policies, or actions differ;
+- every decision-relevant error, including failure to act, is penalized by the loss or outcome contract;
+- the comparator can win under a plausible condition rather than being disabled by construction;
+- case selection was not conditioned on the oracle answer or desired outcome;
+- skipped, failed, null, and retried cases remain visible in the accounting.
+
+Record the result in `decision-gates.md` and in each affected block's `non_vacuity_check`. If the preflight fails, revise the plan or keep the evidence exploratory.
+
+### 4) Build decisive experiment blocks
 
 - Use `references/experiment-plan-template.md`.
 - Use `references/experiment-block-schema.md`.
@@ -140,17 +170,24 @@ description: Convert a concrete research claim into a tracked, decisive experime
   - expected paper artifact
   - compute budget
   - dependencies
+  - case-selection rule
+  - non-vacuity check
+  - complete outcome accounting
+  - hidden-information controls
+  - actual independence requirements
 - Write the block objects to `run-blocks.json` rather than leaving the critical structure only in prose.
 
-### 4) Tighten controls and ablations
+### 5) Tighten controls and ablations
 
 - Use `references/control-and-ablation-checklist.md`.
 - Require a fair comparison protocol and the minimum ablations needed to isolate the claimed factor.
 - Flag hidden changes such as altered data, training time, search budget, or model capacity.
 - A simplicity check should usually compare the final method against an overbuilt or tempting extra-component variant.
 - A frontier-necessity check should compare the chosen modern component against the strongest simpler plausible alternative.
+- Treat agreement among implementations that share policy, code, data, or hidden truth as correlated evidence until diversity is demonstrated.
+- State whether review is self-review or materially independent across context, data, implementation, evaluation, and advancement authority.
 
-### 5) Build the run order and decision gates
+### 6) Build the run order and decision gates
 
 - Use `references/run-order-template.md`.
 - Use `references/decision-gates-template.md`.
@@ -159,7 +196,7 @@ description: Convert a concrete research claim into a tracked, decisive experime
 - Every must-run block needs:
   - a gate that opens it
   - a condition that advances the plan
-  - a condition that forces revision
+  - a condition that forces revision or weaker evidence classification
   - a condition that stops the plan
 - Track expected outputs and lifecycle state in `experiment-tracker.md`.
 - Use tracker statuses:
@@ -171,8 +208,9 @@ description: Convert a concrete research claim into a tracked, decisive experime
   - `decisive`
   - `inconclusive`
   - `dropped`
+- Carry material predecessor failures forward until new evidence resolves them; reclassification, replacement, or omission is not resolution.
 
-### 6) Emit the execution bridge
+### 7) Emit the execution bridge
 
 - Use `references/execution-bridge-template.md`.
 - For each must-run block, record:
@@ -181,15 +219,19 @@ description: Convert a concrete research claim into a tracked, decisive experime
   - expected command or implementation entrypoint if known
   - output artifacts the auditor or paper planner should look for
   - blockers that must be resolved before someone starts coding or submitting jobs
+  - evidence class and whether outcome inspection would trigger reclassification
+  - hidden information unavailable to the evaluated system
+  - all failure, skip, null, and retry states that must be retained
 - Keep `execution-bridge.md` concise and implementation-facing. It exists so later stages do not have to reconstruct planning intent from a narrative plan.
 
-### 7) Record risks and collaboration hooks
+### 8) Record risks and collaboration hooks
 
 - Use `references/risk-confound-checklist.md`.
 - If novelty is still uncertain, pull in `research-novelty-review`.
 - If existing results already exist, pull in `research-results-auditor`.
 - If the plan will later feed a draft or response to reviewers, keep outputs legible to `research-paper-plan` and `research-review-loop`.
 - Validate tracked packs with `scripts/validate_experiment_pack.py` before treating them as stable stage artifacts.
+- The default validator profile remains structural for backward compatibility. For confirmatory or high-stakes promotion, run it with `--assurance-profile confirmatory`; even that checks field presence and consistency, not whether the claimed controls actually hold.
 
 ## References
 
@@ -202,8 +244,9 @@ description: Convert a concrete research claim into a tracked, decisive experime
 - `references/control-and-ablation-checklist.md`
 - `references/risk-confound-checklist.md`
 - `references/tabmol-ddi-ood-adapter.md`
+- `../research-pipeline-planner/references/epistemic-assurance-contract.md`
 
 ## Scripts
 
 - `scripts/init_experiment_pack.py`: create the full experiment-planning pack in a standalone directory or the suite's `experiment-plan/` directory.
-- `scripts/validate_experiment_pack.py`: validate required headings, JSON structure, gate references, and tracker states for tracked experiment packs.
+- `scripts/validate_experiment_pack.py`: validate required headings, JSON structure, gate references, and tracker states; use the optional confirmatory assurance profile for evidence-promotion packs.
