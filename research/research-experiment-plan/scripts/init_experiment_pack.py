@@ -19,6 +19,10 @@ FILE_TEMPLATES = {
 - Main constraints:
 - Dominant contribution:
 - Critical reviewer concern:
+- Current evidence class: exploratory
+- Requested evidence class: exploratory
+- Outcome-informed selection history:
+- Material predecessor failures:
 
 ## Claim Map
 
@@ -31,6 +35,15 @@ FILE_TEMPLATES = {
 | Block | Role | Paper placement | Why it exists |
 | --- | --- | --- | --- |
 | main-anchor | anchor / novelty / simplicity / frontier / failure-analysis | main / appendix / cut | |
+
+## Non-Vacuity Preflight
+
+- Discriminating case:
+- Plausible comparator win:
+- Complete loss or outcome contract:
+- Case-selection independence:
+- Skip, failure, null, and retry accounting:
+- Gate result: pass / revise / exploratory-only
 
 ## Experiment Blocks
 
@@ -55,6 +68,15 @@ FILE_TEMPLATES = {
 - Compute budget:
 - Dependencies:
 - Priority: must-run / nice-to-have / defer
+- Current evidence class: exploratory
+- Requested evidence class: exploratory
+- Selection rule:
+- Non-vacuity check:
+- Complete outcome accounting:
+- Hidden-information controls:
+- Independence requirements:
+- Independence evidence:
+- Predecessor failures:
 
 ## Run Order
 
@@ -89,7 +111,18 @@ FILE_TEMPLATES = {
     "anti_claim": "",
     "falsifier": "",
     "decision_if_unproven": "reframe",
-    "linked_blocks": []
+    "linked_blocks": [
+      "B1"
+    ],
+    "current_evidence_class": "exploratory",
+    "evidence_class": "exploratory",
+    "decision_rule": "",
+    "loss_contract": "",
+    "falsification_test": "",
+    "selection_history": [
+      "No task-relevant outcomes inspected at initialization."
+    ],
+    "predecessor_failures": []
   }
 ]
 """,
@@ -115,7 +148,18 @@ FILE_TEMPLATES = {
     "expected_output_artifact": "",
     "compute_budget": "",
     "dependencies": [],
-    "priority": "must-run"
+    "priority": "must-run",
+    "current_evidence_class": "exploratory",
+    "evidence_class": "exploratory",
+    "selection_rule": "",
+    "non_vacuity_check": "",
+    "complete_outcome_accounting": "",
+    "hidden_information_controls": "",
+    "independence_requirements": [],
+    "independence_evidence": "",
+    "operational_threat_model": "",
+    "operational_harms": "",
+    "predecessor_failures": []
   }
 ]
 """,
@@ -132,11 +176,16 @@ FILE_TEMPLATES = {
 ### B1
 
 - Claim IDs:
+- Current evidence class: exploratory
+- Requested evidence class: exploratory
 - Inputs required:
 - Expected implementation entrypoint:
 - Expected command or notebook:
 - Output artifacts to produce:
 - Auditor-facing checks:
+- Hidden information unavailable to the evaluated system:
+- Failure, skip, null, timeout, and retry states to retain:
+- Idempotency and restart requirements:
 - Known blockers:
 """,
 }
