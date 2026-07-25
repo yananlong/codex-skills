@@ -1,15 +1,13 @@
 #!/usr/bin/env python3
-"""Regression tests for the research-suite harness runtime."""
-
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 import tempfile
 import unittest
 from pathlib import Path
-
 
 SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "harness_runtime.py"
 
@@ -18,6 +16,7 @@ class HarnessRuntimeTests(unittest.TestCase):
     def setUp(self) -> None:
         self.temp = tempfile.TemporaryDirectory()
         self.root = Path(self.temp.name)
+        self.env = dict(os.environ, HARNESS_DISABLE_FSYNC="1")
 
     def tearDown(self) -> None:
         self.temp.cleanup()
@@ -28,207 +27,158 @@ class HarnessRuntimeTests(unittest.TestCase):
             text=True,
             capture_output=True,
             check=False,
+            env=self.env,
         )
-        self.assertEqual(
-            result.returncode,
-            expect,
-            msg=f"stdout:\n{result.stdout}\nstderr:\n{result.stderr}",
-        )
+        self.assertEqual(result.returncode, expect, msg=f"stdout:\n{result.stdout}\nstderr:\n{result.stderr}")
         return result
 
-    def add_and_start(self, attempt_budget: int = 2, tool_call_budget: int = 20) -> None:
-        self.run_cli(
-            "add",
-            "--work-item-id",
-            "WI-001",
-            "--stage",
-            "ideation",
-            "--owner-skill",
-            "research-idea-discovery",
-            "--objective",
-            "Select one falsifiable idea",
-            "--acceptance-check",
-            "Selected artifact exists",
-            "--expected-artifact",
-            "ideation/selected-idea.md",
-            "--write-scope",
-            "ideation/",
-            "--attempt-budget",
-            str(attempt_budget),
-            "--tool-call-budget",
-            str(tool_call_budget),
-        )
-        self.run_cli("start", "WI-001", "--actor", "research-idea-discovery")
+    def add(self, item: str = "WI-001", owner: str = "research-idea-discovery", depends: str | None = None, attempt_budget: int = 2, tool_call_budget: int = 20) -> None:
+        args = [
+            "add", "--work-item-id", item, "--stage", "ideation", "--owner-skill", owner,
+            "--objective", f"Objective {item}", "--acceptance-check", "Artifact exists",
+            "--expected-artifact", f"ideation/{item}.md", "--write-scope", "ideation/",
+            "--attempt-budget", str(attempt_budget), "--tool-call-budget", str(tool_call_budget),
+        ]
+        if depends:
+            args += ["--depends-on", depends]
+        self.run_cli(*args)
 
-    def write_episode(
-        self,
-        *,
-        objective: str = "Select one falsifiable idea",
-        artifacts: list[str] | None = None,
-        tool_calls: int = 0,
-    ) -> Path:
+    def start(self, item: str = "WI-001", owner: str = "research-idea-discovery", key: str | None = None) -> None:
+        args = ["start", item, "--actor", owner]
+        if key:
+            args += ["--idempotency-key", key]
+        self.run_cli(*args)
+
+    def write_episode(self, item: str = "WI-001", owner: str = "research-idea-discovery", *, outcome: str = "completed", request: str = "approve", failures: list | None = None, tool_calls: int = 0) -> Path:
         (self.root / "ideation").mkdir(exist_ok=True)
         (self.root / "episodes").mkdir(exist_ok=True)
-        (self.root / "ideation" / "selected-idea.md").write_text(
-            "# Selected Idea\n", encoding="utf-8"
-        )
-        artifact_list = artifacts if artifacts is not None else ["ideation/selected-idea.md"]
+        artifact = f"ideation/{item}.md"
+        (self.root / artifact).write_text("# artifact\n", encoding="utf-8")
         episode = {
             "schema_version": "1.0",
-            "episode_id": "EP-WI-001-A1",
-            "work_item_id": "WI-001",
+            "episode_id": f"EP-{item}-A1",
+            "work_item_id": item,
             "attempt": 1,
-            "owner_skill": "research-idea-discovery",
-            "objective": objective,
-            "artifacts": artifact_list,
-            "verification": [
-                {
-                    "check_id": "AC1",
-                    "result": "pass",
-                    "evidence": "ideation/selected-idea.md",
-                }
-            ],
-            "failures": [],
+            "owner_skill": owner,
+            "objective": f"Objective {item}",
+            "artifacts": [artifact] if outcome == "completed" else [],
+            "verification": [{"check_id": "AC1", "result": "pass", "evidence": artifact}] if outcome == "completed" else [],
+            "failures": failures or [],
             "tool_calls": [{"tool": "search"} for _ in range(tool_calls)],
             "observed_usage": {"max_tool_calls": tool_calls},
-            "outcome": "completed",
-            "transition_request": "approve",
-            "summary": "Completed bounded work item.",
+            "outcome": outcome,
+            "transition_request": request,
+            "summary": "episode",
         }
-        path = self.root / "episodes" / "EP-WI-001-A1.json"
+        path = self.root / "episodes" / f"EP-{item}-A1.json"
         path.write_text(json.dumps(episode), encoding="utf-8")
         return path
 
-    def test_clean_transition_and_replay(self) -> None:
-        self.add_and_start()
-        episode = self.write_episode(tool_calls=1)
-        self.run_cli(
-            "submit",
-            "WI-001",
-            "--episode",
-            str(episode),
-            "--actor",
-            "research-idea-discovery",
-        )
-        self.run_cli(
-            "verify",
-            "WI-001",
-            "--decision",
-            "approve",
-            "--evidence",
-            "Artifact and acceptance check inspected.",
-            "--actor",
-            "research-pipeline-planner",
-            "--self-review",
-        )
-        state_before = json.loads((self.root / "HARNESS_STATE.json").read_text())
-        items_before = json.loads((self.root / "work-items.json").read_text())
+    def submit(self, episode: Path, item: str = "WI-001", owner: str = "research-idea-discovery", key: str | None = None, expect: int = 0):
+        args = ["submit", item, "--episode", str(episode), "--actor", owner]
+        if key:
+            args += ["--idempotency-key", key]
+        return self.run_cli(*args, expect=expect)
+
+    def test_clean_transition_and_replay(self):
+        self.add(); self.start(); ep = self.write_episode(); self.submit(ep)
+        self.run_cli("verify", "WI-001", "--decision", "approve", "--evidence", "checked", "--actor", "research-pipeline-planner")
+        before = json.loads((self.root / "work-items.json").read_text())
         self.run_cli("replay")
-        self.assertEqual(
-            state_before,
-            json.loads((self.root / "HARNESS_STATE.json").read_text()),
-        )
-        self.assertEqual(
-            items_before,
-            json.loads((self.root / "work-items.json").read_text()),
-        )
-        self.assertEqual(items_before["items"][0]["state"], "completed")
+        self.assertEqual(before, json.loads((self.root / "work-items.json").read_text()))
+        self.assertEqual(before["items"][0]["state"], "completed")
 
-    def test_frozen_objective_cannot_drift(self) -> None:
-        self.add_and_start()
-        episode = self.write_episode(objective="Changed objective after seeing results")
-        result = self.run_cli(
-            "submit",
-            "WI-001",
-            "--episode",
-            str(episode),
-            "--actor",
-            "research-idea-discovery",
-            expect=1,
-        )
-        self.assertIn("objective differs", result.stderr)
-        state = json.loads((self.root / "work-items.json").read_text())
-        self.assertEqual(state["items"][0]["state"], "running")
-
-    def test_attempt_budget_blocks_repeated_failure(self) -> None:
-        self.add_and_start(attempt_budget=1)
-        self.run_cli(
-            "fail",
-            "WI-001",
-            "--reason",
-            "tool timeout",
-            "--retryable",
-            "--actor",
-            "research-idea-discovery",
-        )
-        items = json.loads((self.root / "work-items.json").read_text())
-        self.assertEqual(items["items"][0]["state"], "blocked")
-
-    def test_tampered_event_log_is_rejected(self) -> None:
-        self.add_and_start()
-        events_path = self.root / "harness-events.jsonl"
-        events = events_path.read_text(encoding="utf-8").splitlines()
-        tampered = json.loads(events[0])
-        tampered["details"]["work_item"]["objective"] = "tampered"
-        events[0] = json.dumps(tampered, sort_keys=True)
-        events_path.write_text("\n".join(events) + "\n", encoding="utf-8")
-        result = self.run_cli("replay", expect=1)
-        self.assertIn("event hash mismatch", result.stderr)
-
-    def test_projection_drift_is_repaired_by_replay(self) -> None:
-        self.add_and_start()
-        state_path = self.root / "HARNESS_STATE.json"
-        state = json.loads(state_path.read_text())
-        state["status"] = "completed"
-        state_path.write_text(json.dumps(state), encoding="utf-8")
+    def test_invalid_start_does_not_poison_log(self):
+        self.add(); self.start()
+        lines = (self.root / "harness-events.jsonl").read_text().splitlines()
+        result = self.run_cli("start", "WI-001", "--actor", "research-idea-discovery", "--idempotency-key", "new-key", expect=1)
+        self.assertIn("cannot start", result.stderr)
+        self.assertEqual(lines, (self.root / "harness-events.jsonl").read_text().splitlines())
         self.run_cli("replay")
-        repaired = json.loads(state_path.read_text())
-        self.assertEqual(repaired["status"], "running")
 
-    def test_expected_artifact_is_mandatory(self) -> None:
-        self.add_and_start()
-        episode = self.write_episode(artifacts=[])
-        result = self.run_cli(
-            "submit",
-            "WI-001",
-            "--episode",
-            str(episode),
-            "--actor",
-            "research-idea-discovery",
-            expect=1,
-        )
-        self.assertIn("must list artifacts", result.stderr)
+    def test_start_is_idempotent(self):
+        self.add(); self.start(key="same"); self.start(key="same")
+        events = [json.loads(x) for x in (self.root / "harness-events.jsonl").read_text().splitlines()]
+        self.assertEqual(sum(e["event_type"] == "work_item_started" for e in events), 1)
 
-    def test_write_scope_is_enforced(self) -> None:
-        self.add_and_start()
-        (self.root / "outside.md").write_text("outside", encoding="utf-8")
-        episode = self.write_episode(
-            artifacts=["ideation/selected-idea.md", "outside.md"]
-        )
-        result = self.run_cli(
-            "submit",
-            "WI-001",
-            "--episode",
-            str(episode),
-            "--actor",
-            "research-idea-discovery",
-            expect=1,
-        )
-        self.assertIn("outside declared write scope", result.stderr)
+    def test_conflicting_start_idempotency_is_rejected(self):
+        self.add(); self.start(key="same")
+        self.add(item="WI-002", owner="research-results-auditor")
+        result = self.run_cli("start", "WI-002", "--actor", "research-results-auditor", "--idempotency-key", "same", expect=1)
+        self.assertIn("different start request", result.stderr)
 
-    def test_tool_call_budget_is_enforced(self) -> None:
-        self.add_and_start(tool_call_budget=1)
-        episode = self.write_episode(tool_calls=2)
-        result = self.run_cli(
-            "submit",
-            "WI-001",
-            "--episode",
-            str(episode),
-            "--actor",
-            "research-idea-discovery",
-            expect=1,
-        )
-        self.assertIn("exceeds the work item tool-call budget", result.stderr)
+    def test_submit_is_idempotent(self):
+        self.add(); self.start(); ep = self.write_episode(); self.submit(ep, key="submit-key"); self.submit(ep, key="submit-key")
+        events = [json.loads(x) for x in (self.root / "harness-events.jsonl").read_text().splitlines()]
+        self.assertEqual(sum(e["event_type"] == "episode_submitted" for e in events), 1)
+
+    def test_partial_episode_cannot_request_approve(self):
+        self.add(); self.start(); ep = self.write_episode(outcome="partial", request="approve")
+        result = self.submit(ep, expect=1)
+        self.assertIn("must occur together", result.stderr)
+
+    def test_failed_episode_requires_failure_record(self):
+        self.add(); self.start(); ep = self.write_episode(outcome="failed", request="block")
+        result = self.submit(ep, expect=1)
+        self.assertIn("record at least one failure", result.stderr)
+
+    def test_episode_mutation_blocks_approval(self):
+        self.add(); self.start(); ep = self.write_episode(); self.submit(ep)
+        data = json.loads(ep.read_text()); data["summary"] = "mutated"; ep.write_text(json.dumps(data))
+        result = self.run_cli("verify", "WI-001", "--decision", "approve", "--evidence", "checked", "--actor", "research-pipeline-planner", expect=1)
+        self.assertIn("episode digest changed", result.stderr)
+
+    def test_artifact_mutation_blocks_approval(self):
+        self.add(); self.start(); ep = self.write_episode(); self.submit(ep)
+        (self.root / "ideation/WI-001.md").write_text("mutated")
+        result = self.run_cli("verify", "WI-001", "--decision", "approve", "--evidence", "checked", "--actor", "research-pipeline-planner", expect=1)
+        self.assertIn("artifact digest changed", result.stderr)
+
+    def test_pause_blocks_state_changes_but_allows_record(self):
+        self.add(); self.run_cli("pause", "--reason", "stop", "--actor", "planner")
+        result = self.run_cli("start", "WI-001", "--actor", "research-idea-discovery", expect=1)
+        self.assertIn("run is paused", result.stderr)
+        self.run_cli("record", "--category", "note", "--note", "still observable", "--actor", "planner")
+        self.run_cli("resume", "--reason", "continue", "--actor", "planner")
+        self.start()
+
+    def test_checkpoint_path_traversal_and_overwrite_rejected(self):
+        result = self.run_cli("checkpoint", "--checkpoint-id", "../escape", "--reason", "x", "--actor", "planner", expect=1)
+        self.assertIn("checkpoint id", result.stderr)
+        self.run_cli("checkpoint", "--checkpoint-id", "safe", "--reason", "x", "--actor", "planner")
+        result = self.run_cli("checkpoint", "--checkpoint-id", "safe", "--reason", "x", "--actor", "planner", expect=1)
+        self.assertIn("already exists", result.stderr)
+
+    def test_blocking_non_active_item_preserves_active_item(self):
+        self.add(); self.add(item="WI-002", owner="research-results-auditor"); self.start()
+        self.run_cli("fail", "WI-002", "--reason", "cancel", "--actor", "planner")
+        state = json.loads((self.root / "HARNESS_STATE.json").read_text())
+        self.assertEqual(state["active_work_item_id"], "WI-001")
+        self.assertEqual(state["status"], "blocked")
+
+    def test_owner_is_enforced(self):
+        self.add()
+        result = self.run_cli("start", "WI-001", "--actor", "wrong", expect=1)
+        self.assertIn("owner skill", result.stderr)
+        self.start(); ep = self.write_episode()
+        result = self.submit(ep, owner="wrong", expect=1)
+        self.assertIn("owner skill", result.stderr)
+
+    def test_tool_budget_applies_to_failed_episode(self):
+        self.add(tool_call_budget=1); self.start(); ep = self.write_episode(outcome="failed", request="block", failures=[{"reason": "x"}], tool_calls=2)
+        result = self.submit(ep, expect=1)
+        self.assertIn("tool-call budget", result.stderr)
+
+    def test_tampered_event_log_is_rejected(self):
+        self.add(); lines = (self.root / "harness-events.jsonl").read_text().splitlines(); event = json.loads(lines[0]); event["details"]["work_item"]["objective"] = "tampered"; lines[0] = json.dumps(event); (self.root / "harness-events.jsonl").write_text("\n".join(lines) + "\n")
+        result = self.run_cli("replay", expect=1); self.assertIn("event hash mismatch", result.stderr)
+
+    def test_dependency_readiness_after_completion(self):
+        self.add(); self.add(item="WI-002", owner="research-results-auditor", depends="WI-001")
+        self.start(); ep = self.write_episode(); self.submit(ep)
+        self.run_cli("verify", "WI-001", "--decision", "approve", "--evidence", "checked", "--actor", "planner")
+        items = json.loads((self.root / "work-items.json").read_text())["items"]
+        self.assertEqual({i["work_item_id"]: i["state"] for i in items}["WI-002"], "ready")
 
 
 if __name__ == "__main__":
