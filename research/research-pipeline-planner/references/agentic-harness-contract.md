@@ -1,88 +1,98 @@
 # Agentic Research Harness Contract
 
-Use this contract for orchestrated research work that spans stages, sessions, tools, or agents. Keep one-off standalone tasks lightweight. The harness is a control plane around stage skills: it owns state, work selection, transition authority, recovery, and observability; stage skills remain specialized workers.
+Use this contract for orchestrated research work spanning stages, sessions, tools, or agents. Keep one-off standalone tasks lightweight. The repository runtime is a local control plane for state, work selection, transition recording, recovery, and trace validation; it is not an authenticated executor, an external append-only ledger, or an isolation boundary.
 
-## Design basis
+## Assurance boundary
 
-The contract follows current harness-engineering practice:
+The runtime can establish these repository-local properties:
 
-- keep repository-local, versioned knowledge as the system of record and use a short map for progressive disclosure;
-- externalize state so runs can resume after context loss, interruption, or sandbox replacement;
-- make incremental progress on one bounded work item at a time and leave a clean handoff artifact;
-- use an append-only event log plus snapshots for replay and recovery;
-- permit completion only through verifier-backed state transitions;
-- separate harness state and credentials from model-generated execution environments;
-- trace actions, failures, decisions, and interventions across the full trajectory rather than scoring only the final output;
-- turn harness changes into falsifiable, reversible changes with predicted effects and later evaluation;
-- run recurring entropy audits so stale instructions, duplicated artifacts, and bad patterns do not accumulate.
+- events are schema-checked, sequentially identified, hash-chained, and preflighted before append;
+- state and work-item projections can be reconstructed from accepted events;
+- one work item is active by default;
+- objectives, acceptance checks, expected artifacts, and declared write scopes remain frozen in the event history;
+- submitted episode files and declared artifacts are digest-anchored until verification;
+- checkpoint identifiers are path-safe, checkpoint files are no-overwrite through the runtime, and checkpoint contents are digest-anchored;
+- declared attempt and tool-call usage is checked against configured budgets;
+- same-role verification must be explicitly marked as self-review.
+
+The runtime cannot by itself establish:
+
+- authenticated human, agent, or role identity;
+- undisclosed filesystem, network, secret, data, context, or tool activity;
+- process, container, or network isolation;
+- externally anchored immutability or non-repudiation;
+- semantic validity, scientific validity, or material independence.
+
+An external executor must supply and record evidence for those stronger properties. Never infer them from actor labels, environment flags, self-reported usage, local hashes, or successful structural validation.
 
 ## Control-plane artifacts
 
 | Artifact | Authority | Purpose |
 | --- | --- | --- |
-| `harness-events.jsonl` | canonical | append-only, hash-chained transition and observation log |
-| `HARNESS_STATE.json` | projection | current scheduler state; rebuildable from the event log |
-| `work-items.json` | projection | work definitions and lifecycle state; rebuildable from the event log |
-| `episodes/` | canonical evidence | one worker episode package per submitted attempt |
-| `checkpoints/` | recovery aid | resumable snapshots tied to checkpoint events |
+| `harness-events.jsonl` | canonical local history | runtime-appended, hash-chained transition and observation records; locally mutable outside the runtime |
+| `HARNESS_STATE.json` | projection | current scheduler state; rebuildable from events |
+| `work-items.json` | projection | bounded work definitions and lifecycle state; rebuildable from events |
+| `episodes/` | submitted evidence | one digest-anchored worker episode package per attempt |
+| `checkpoints/` | recovery aid | no-overwrite, digest-anchored local snapshots |
 | `research-brief.md` | canonical intent | project frame, success conditions, constraints, and harness policy |
 | `artifact-index.md` | canonical map | paths and authority status for project artifacts |
-| `task-board.md` | human-readable view | optional summary; never the scheduling source of truth |
-| `decision-log.md` | human-readable rationale | consequential decisions mirrored by machine events |
+| `task-board.md` | human-readable view | optional summary; never scheduling authority |
+| `decision-log.md` | human-readable rationale | consequential decisions mirrored by events |
 
-Do not hand-edit `HARNESS_STATE.json` or dynamic fields in `work-items.json`. Use `scripts/harness_runtime.py`; if projections drift, run `replay` and inspect the event that caused the divergence.
+Do not hand-edit projections. Use `scripts/harness_runtime.py`; if projections drift, run `replay` and inspect the event history. When external immutability matters, mirror or anchor the event chain in an independently controlled append-only system.
 
-## Single-writer state machine
+## State machine
 
-The harness runtime is the single writer for machine state. Work-item states are:
+The runtime supports:
 
 `queued -> ready -> running -> awaiting_verification -> completed`
 
-Alternative transitions:
+Alternative transitions include:
 
 - `awaiting_verification -> ready` after `revise`, subject to the attempt budget;
 - `running -> ready` after a retryable failure with attempts remaining;
-- `running` or `awaiting_verification -> blocked` after a non-retryable failure, exhausted budget, or verifier block;
-- any not-yet-completed item may be explicitly cancelled by a future runtime extension, but cancellation must remain in the event log.
+- an incomplete item to `blocked` after a non-retryable failure, exhausted budget, or verifier block.
 
-Only one work item is active by default. Increase concurrency only when work items have disjoint write scopes or the executor provides isolation and conflict handling.
+Events are applied to a copied reconstructed state before the canonical log is appended. A rejected transition must not alter the event log. Aggregate run status is derived from work-item state and pause state rather than trusted as an independent source of truth.
+
+Only one item is active by default. Increase concurrency only when an external executor supplies isolation and conflict handling or the write scopes are demonstrably disjoint.
 
 ## Work-item contract
 
-The planner must freeze one bounded work item before a worker starts. Each item carries:
+Freeze one bounded item before work starts. Each item carries:
 
-- stable `work_item_id`;
-- stage and `owner_skill`;
+- stable `work_item_id`, stage, and declared `owner_skill`;
 - exact objective;
-- input artifacts and a minimal `context_manifest`;
+- declared input/context manifest;
 - expected output artifacts;
 - verifier-readable acceptance checks with stable IDs;
 - dependencies;
-- attempt and usage budgets;
+- attempt and declared usage budgets;
 - declared permission policy and write scope;
 - predecessor failures;
-- evidence class.
+- evidence class;
+- `enforcement_scope`, which defaults to `repository_validation_only`.
 
-Use the context manifest as an allowlist for progressive disclosure. Do not dump the full project history into every worker context. Add a source only when it is needed to execute or verify the current objective.
-
-Permission fields are declarations, not proof of enforcement. The external executor must enforce sandboxing, filesystem boundaries, network policy, secrets handling, and human approval. Keep credentials out of worker context and model-generated compute environments.
+Context manifests, permission policies, actor labels, write scopes, and usage records are declarations unless an external executor supplies enforcement traces. The repository runtime validates the declared episode against them but cannot detect omitted activity.
 
 ## Worker session protocol
 
 For every orchestrated worker session:
 
-1. Read `HARNESS_STATE.json`, the assigned work item in `work-items.json`, and only the context-manifest artifacts needed for the task.
-2. Confirm that the item is `running`, the objective is unchanged, dependencies are complete, and the owner skill matches.
-3. Reproduce or verify the starting state before changing artifacts when the task depends on existing behavior.
-4. Work incrementally toward the acceptance checks. Do not broaden the objective without a new work item.
-5. Record material observations, decisions, tool failures, and scope changes with `harness_runtime.py record`.
-6. Create a checkpoint before risky, expensive, or context-boundary operations.
-7. Leave outputs in the declared write scope and do not silently modify tests, gates, or acceptance checks to obtain a pass.
-8. Write one episode JSON file for the attempt and submit it. The worker requests a transition but cannot approve its own work.
+1. Read the current state, assigned item, and only the context needed for the objective.
+2. Confirm that the item is `running`, dependencies are complete, and the declared owner label matches.
+3. Reproduce or inspect relevant starting behaviour before changing artifacts.
+4. Work toward the frozen acceptance checks without broadening the objective.
+5. Record material observations, failures, and scope changes.
+6. Checkpoint before risky, expensive, destructive, or interruption-sensitive operations.
+7. Leave outputs in the declared write scope and do not weaken tests, gates, or acceptance checks to obtain a pass.
+8. Write one episode JSON file under `episodes/` and request `approve`, `revise`, or `block`.
 
-## Episode package
+A worker may later perform self-review only when the same-role condition is explicitly disclosed with `--self-review`. This is not independent verification.
 
-Each submitted attempt must use this shape:
+## Episode contract
+
+Required episode fields are:
 
 ```json
 {
@@ -91,121 +101,63 @@ Each submitted attempt must use this shape:
   "work_item_id": "WI-001",
   "attempt": 1,
   "owner_skill": "research-idea-discovery",
-  "objective": "Frozen objective copied exactly from the work item",
-  "inputs_used": ["research-brief.md"],
-  "actions": ["high-signal action summary"],
-  "tool_calls": [
-    {
-      "tool": "web search",
-      "purpose": "verify current primary literature",
-      "result": "success",
-      "evidence": "search log path or citation"
-    }
-  ],
+  "objective": "Frozen objective copied exactly",
   "artifacts": ["ideation/selected-idea.md"],
   "verification": [
-    {
-      "check_id": "AC1",
-      "result": "pass",
-      "evidence": "specific artifact location or test output"
-    }
+    {"check_id": "AC1", "result": "pass", "evidence": "specific evidence"}
   ],
   "failures": [],
-  "assumptions": [],
-  "observed_usage": {
-    "max_tool_calls": 7
-  },
+  "tool_calls": [],
+  "observed_usage": {"max_tool_calls": 0},
   "outcome": "completed",
   "transition_request": "approve",
-  "summary": "What changed, what remains, and why the requested transition is justified."
+  "summary": "What changed and what remains."
 }
 ```
 
-Allowed outcomes are `completed`, `partial`, and `failed`. Allowed transition requests are `approve`, `revise`, and `block`.
+Rules:
 
-A completed episode must list at least one artifact and provide passing, evidence-bearing verification for every acceptance check. Structural episode validation does not establish scientific validity; it establishes traceability and completeness of the submitted evidence package.
+- outcomes are `completed`, `partial`, or `failed`;
+- transition requests are `approve`, `revise`, or `block`;
+- `completed` and `approve` must occur together;
+- a failed episode must record at least one failure;
+- completed episodes must include all expected artifacts and evidence-bearing passes for every acceptance check;
+- declared usage budgets apply to all outcomes;
+- the episode file must be under `episodes/`, its filename must match `episode_id`, and the runtime records its digest plus the digests of declared artifacts;
+- approval rechecks those digests.
 
-## Verifier protocol
+Digest continuity detects post-submission mutation of declared files. It does not prove that undeclared files were untouched or that a digest was externally anchored.
 
-The verifier must be distinct from the worker role, even when the same underlying agent performs both sequentially. Disclose self-review and do not call it independent unless context, data, implementation, evaluation, and advancement authority are materially separated.
+## Verification protocol
 
 Before approving:
 
-1. Re-read the frozen work item and acceptance checks.
-2. Inspect the submitted artifacts and evidence rather than trusting the worker summary.
-3. Re-run deterministic checks when feasible.
-4. Confirm that failures, skipped cases, nulls, retries, and deviations are preserved.
-5. Confirm budget and permission-policy compliance from the available trace.
-6. Apply the epistemic-assurance contract when the transition promotes evidence.
-7. Record `approve`, `revise`, or `block` with concrete verifier evidence.
+1. Re-read the frozen item and acceptance checks.
+2. Inspect the submitted episode and artifacts rather than trusting its summary.
+3. Confirm that the episode is completed and explicitly requests approval.
+4. Re-run deterministic checks where feasible.
+5. Confirm that failures, skips, nulls, retries, timeouts, and deviations remain visible.
+6. Treat budget, context, permission, and write-scope compliance as trace-bounded unless executor evidence exists.
+7. Apply the epistemic-assurance contract when a transition promotes evidence.
+8. Record concrete evidence for `approve`, `revise`, or `block`.
+9. Disclose self-review; claim independence only when context, data, implementation, evaluation, and advancement authority are materially separated.
 
-The worker cannot mutate its own acceptance checks after starting. A changed objective, selection rule, metric, or gate requires a new or revised work item and an event explaining the change.
+The runtime validates actor labels and disclosure flags, not real-world identity or organizational independence.
 
-## Checkpoint and recovery protocol
+## Checkpoint, pause, and recovery
 
-- Create checkpoints at context-window boundaries, before expensive runs, before destructive edits, and before requesting human input.
-- Keep side effects before a resumable interruption idempotent or explicitly recorded so replay does not duplicate them.
-- Treat `harness-events.jsonl` as authoritative. Run `replay` to rebuild state after interrupted writes or manual projection drift.
-- On restart, read the latest state, event tail, active work item, checkpoint, and episode before taking action.
-- Never infer completion from the absence of work or a polished final artifact.
+- Checkpoint IDs must be safe basenames and cannot overwrite an existing runtime-created checkpoint.
+- The runtime records a digest of the checkpoint file and a digest of its logical snapshot.
+- Paused runs reject state-changing commands other than `resume`; observations remain recordable.
+- Keep side effects around interruption points idempotent or explicitly recorded.
+- Use `replay` to rebuild projections after interrupted projection writes or manual drift.
+- Never infer completion from the absence of work or a polished artifact.
 
-## Failure and escalation protocol
+## Failure and escalation
 
-Classify failures at least as:
+Classify failures as specification ambiguity, missing context, tool/connector failure, permission boundary, execution/resource failure, verification failure, scientific failure, or harness defect. Retry only when the next attempt changes a documented condition or the failure is plausibly transient. Respect attempt budgets and preserve failed attempts.
 
-- specification or acceptance ambiguity;
-- missing context or inaccessible source;
-- tool or connector failure;
-- permission or approval boundary;
-- execution or resource failure;
-- verification failure;
-- scientific or evidential failure;
-- harness defect.
-
-Retry only when the failure is plausibly transient or the next attempt changes a documented condition. Repeating the same action without a changed hypothesis is not recovery. Respect attempt budgets; after exhaustion, block the item or create an explicit escalation item.
-
-Pause and request human judgment when:
-
-- the next action is irreversible or consequential and approval was not pre-authorized;
-- the objective or acceptance contract is materially ambiguous;
-- required credentials or sensitive data would enter worker context;
-- evidence classes or route decisions depend on normative judgment not encoded in the work item;
-- the harness cannot enforce a declared boundary.
-
-## Observability and harness evolution
-
-Capture three layers:
-
-- **component observability**: every editable prompt, policy, schema, script, and tool configuration has a file-level representation and version history;
-- **experience observability**: episode packages distill the trajectory while preserving links to detailed evidence;
-- **decision observability**: every harness change states a predicted effect, affected tasks, risk, rollback path, and later measured outcome.
-
-Evaluate the system as `model + harness + environment`, not the model alone. Track at minimum:
-
-- task and acceptance-check success;
-- verifier reversals and false completions;
-- retries, blocked items, and failure attribution;
-- tool calls, elapsed time, and cost or token proxies when available;
-- permission-boundary and information-flow violations;
-- recovery success after interruption;
-- context volume and stale-context rate;
-- cross-model and cross-task transfer of harness changes.
-
-Do not optimize the harness against a single visible benchmark without a held-out evaluation set and change log. Every harness edit should be reversible and evaluated against predicted outcomes.
-
-## Entropy audit
-
-Run periodic maintenance work items to:
-
-- find stale or contradictory instructions;
-- detect duplicated schemas, templates, and sources of truth;
-- identify dead work items, orphan artifacts, and unresolved predecessor failures;
-- compact large context manifests into indexed references;
-- promote repeated review feedback into executable checks;
-- remove obsolete workarounds after the underlying defect is fixed;
-- verify that docs describe actual runtime behavior.
-
-Entropy cleanup is ordinary harness work and must use the same work-item, episode, and verifier protocol.
+Pause and seek judgment when an action is irreversible, the objective or acceptance contract is materially ambiguous, credentials or sensitive data would enter worker context, evidence promotion requires normative judgment, or the harness cannot enforce a declared boundary.
 
 ## Runtime commands
 
@@ -218,17 +170,18 @@ python scripts/harness_runtime.py --root <suite> add \
   --owner-skill research-idea-discovery \
   --objective "Generate and select one grounded research idea" \
   --acceptance-check "The selected claim is falsifiable" \
-  --acceptance-check "Selection history and negative evidence are preserved" \
   --context research-brief.md \
   --expected-artifact ideation/selected-idea.md \
   --write-scope ideation/
 
 python scripts/harness_runtime.py --root <suite> start WI-001 \
-  --actor research-idea-discovery
+  --actor research-idea-discovery \
+  --idempotency-key WI-001-attempt-1
 
 python scripts/harness_runtime.py --root <suite> submit WI-001 \
   --episode <suite>/episodes/EP-WI-001-A1.json \
-  --actor research-idea-discovery
+  --actor research-idea-discovery \
+  --idempotency-key WI-001-submit-A1
 
 python scripts/harness_runtime.py --root <suite> verify WI-001 \
   --decision approve \
@@ -236,8 +189,8 @@ python scripts/harness_runtime.py --root <suite> verify WI-001 \
   --actor research-pipeline-planner
 ```
 
-Use `record`, `checkpoint`, `fail`, `pause`, `resume`, `replay`, and `status` for observations, recovery, and control.
+Use stable explicit idempotency keys when a caller may retry after an uncertain response. Use `record`, `checkpoint`, `fail`, `pause`, `resume`, `replay`, and `status` for observation, recovery, and control.
 
-## Compatibility
+## Compatibility and bounded verdict
 
-Legacy suite packs remain valid under `validate_research_pack.py --profile legacy` or automatic legacy detection. New orchestrated packs initialize the harness by default. Do not claim that a legacy pack has durable execution, replayable transitions, or verifier-backed completion merely because its directory layout validates.
+Legacy directory packs remain structurally valid under the legacy profile. Earlier draft harness event logs may require replay or migration when the schema gains derived fields. A passing harness validation means the declared repository artifacts, event chain, projections, dependencies, and recorded digests are internally consistent. It does not establish external immutability, authenticated execution, isolation, semantic validity, or independent verification.
