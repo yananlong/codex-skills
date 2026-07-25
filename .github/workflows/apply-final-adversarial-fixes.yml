@@ -51,11 +51,9 @@ jobs:
         run: python -m unittest discover -s research/research-experiment-plan/tests -p 'test_validate_experiment_pack.py' -v
       - name: Commit fixes
         run: |
-          rm .github/workflows/apply-final-adversarial-fixes.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add \
-            .github/workflows/research-assurance.yml \
             research/research-pipeline-planner/SKILL.md \
             research/research-pipeline-planner/references/agentic-harness-contract.md \
             research/research-pipeline-planner/scripts/harness_runtime.py \
@@ -63,8 +61,7 @@ jobs:
             research/research-pipeline-planner/tests/test_harness_runtime.py \
             research/research-pipeline-planner/tests/test_research_pack.py \
             research/research-experiment-plan/scripts/validate_experiment_pack.py \
-            research/research-experiment-plan/tests/test_validate_experiment_pack.py \
-            .github/workflows/apply-final-adversarial-fixes.yml
+            research/research-experiment-plan/tests/test_validate_experiment_pack.py
           git diff --cached --check
           git commit -m "Close final adversarial review findings"
           git push origin HEAD:agent/reinforce-research-assurance
