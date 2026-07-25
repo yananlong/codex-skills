@@ -1,6 +1,9 @@
 name: Apply final adversarial fixes
 
 on:
+  pull_request:
+    paths:
+      - ".github/workflows/apply-final-adversarial-fixes.yml"
   push:
     branches:
       - agent/reinforce-research-assurance
