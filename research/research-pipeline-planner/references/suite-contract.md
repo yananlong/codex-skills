@@ -6,11 +6,11 @@ Use this contract only when work benefits from shared cross-stage artifacts. Do 
 
 | Artifact | Canonical path | Authority | Purpose |
 | --- | --- | --- | --- |
-| harness event log | `./harness-events.jsonl` | canonical | append-only transition and observation history |
+| harness event log | `./harness-events.jsonl` | canonical | runtime-appended, hash-chained local transition and observation history; not externally immutable |
 | harness state | `./HARNESS_STATE.json` | projection | current scheduler state, rebuildable from events |
 | work items | `./work-items.json` | projection | bounded work definitions and lifecycle state |
-| episodes | `./episodes/` | canonical evidence | one worker-attempt package per submission |
-| checkpoints | `./checkpoints/` | recovery aid | resumable state snapshots |
+| episodes | `./episodes/` | canonical evidence | one digest-anchored worker-attempt package per submission |
+| checkpoints | `./checkpoints/` | recovery aid | no-overwrite, digest-anchored local state snapshots |
 | research brief | `./research-brief.md` | canonical intent | problem frame, constraints, success criteria, harness policy |
 | task board | `./task-board.md` | human-readable view | convenience summary; not scheduling authority |
 | decision log | `./decision-log.md` | human-readable rationale | consequential decisions mirrored by machine events |
@@ -31,12 +31,13 @@ Use this contract only when work benefits from shared cross-stage artifacts. Do 
 - Standalone mode may ignore this layout entirely.
 - Orchestrated mode must follow `agentic-harness-contract.md`.
 - Use `scripts/harness_runtime.py` as the only writer for dynamic machine state.
-- Treat `harness-events.jsonl` as authoritative and rebuild projections with `replay` after interruption or drift.
+- Treat `harness-events.jsonl` as the authoritative local history and rebuild projections with `replay` after interruption or drift. Use an external append-only store or signed anchor when external immutability is required.
 - Keep one active work item by default; allow concurrency only with disjoint write scopes or external isolation and conflict handling.
 - Any sibling skill may still run directly, but an orchestrated stage runs as the owner of a frozen work item and submits an episode package.
 - If an artifact is produced outside the canonical path, record the actual path in `artifact-index.md` and the episode.
 - Do not let task-board prose, artifact presence, or a worker summary advance machine state.
 - Do not reconstruct upstream work from conversational memory when a concrete artifact or episode exists.
+- Treat actor, permission, context, write-scope, and usage fields as declared and repository-validated unless an external executor supplies authenticated identity and enforcement evidence.
 
 ## Work-item handoff map
 
@@ -62,11 +63,11 @@ For an orchestrated stage:
 1. Read the assigned work item, harness state, and only allowlisted context artifacts.
 2. Confirm the item is `running`, dependencies are complete, and owner skill matches.
 3. Preserve the frozen objective and acceptance checks.
-4. Work only within the declared write scope and permission policy.
+4. Work only within the declared write scope and permission policy; recognise that repository validation cannot detect undisclosed external reads, writes, or tool calls.
 5. Record material observations, failures, and scope changes.
 6. Checkpoint before risky, expensive, destructive, or interruptible operations.
 7. Write an episode package and request `approve`, `revise`, or `block`.
-8. Never approve its own transition.
+8. Do not present self-review as independent verification. When the same actor label verifies its own work, pass `--self-review` and disclose the limitation.
 
 ## Collaboration rules
 
