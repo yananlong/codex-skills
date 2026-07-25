@@ -5,6 +5,10 @@ on:
     paths:
       - "research/research-pipeline-planner/**"
       - "research/research-experiment-plan/**"
+      - "research/research-idea-discovery/**"
+      - "research/research-novelty-review/**"
+      - "research/research-results-auditor/**"
+      - "research/research-review-loop/**"
       - "documents/adversarial-doc-review/**"
       - ".github/workflows/research-assurance.yml"
   push:
@@ -12,6 +16,10 @@ on:
     paths:
       - "research/research-pipeline-planner/**"
       - "research/research-experiment-plan/**"
+      - "research/research-idea-discovery/**"
+      - "research/research-novelty-review/**"
+      - "research/research-results-auditor/**"
+      - "research/research-review-loop/**"
       - "documents/adversarial-doc-review/**"
       - ".github/workflows/research-assurance.yml"
 
