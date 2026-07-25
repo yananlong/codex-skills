@@ -40,3 +40,26 @@ jobs:
         run: python -m unittest discover -s research/research-pipeline-planner/tests -p 'test_research_pack.py' -v
       - name: Run experiment assurance tests
         run: python -m unittest discover -s research/research-experiment-plan/tests -p 'test_validate_experiment_pack.py' -v
+      - name: Package changed skills
+        run: |
+          mkdir -p packaged-skills
+          package_skill() {
+            source_dir="$1"
+            skill_name="$2"
+            parent_dir="$(dirname "$source_dir")"
+            base_name="$(basename "$source_dir")"
+            (cd "$parent_dir" && zip -qr "$GITHUB_WORKSPACE/packaged-skills/${skill_name}.zip" "$base_name")
+          }
+          package_skill documents/adversarial-doc-review adversarial-doc-review
+          package_skill research/research-experiment-plan research-experiment-plan
+          package_skill research/research-idea-discovery research-idea-discovery
+          package_skill research/research-novelty-review research-novelty-review
+          package_skill research/research-pipeline-planner research-pipeline-planner
+          package_skill research/research-results-auditor research-results-auditor
+          package_skill research/research-review-loop research-review-loop
+      - name: Upload changed skill packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: changed-skills
+          path: packaged-skills/*.zip
+          if-no-files-found: error
