@@ -175,6 +175,19 @@ x
         cp = self.run_validator(expect=1)
         self.assertIn("Expected command or notebook", cp.stdout)
 
+    def test_bridge_heading_must_match_exact_block_id(self):
+        text = self.paths["bridge"].read_text().replace("### B1", "### B10")
+        self.paths["bridge"].write_text(text)
+        cp = self.run_validator(expect=1)
+        self.assertIn("missing section for B1", cp.stdout)
+
+    def test_invalid_evidence_class_is_controlled_validation_error(self):
+        self.claims[0]["evidence_class"] = "bogus"
+        self.write_all()
+        cp = self.run_validator(expect=1)
+        self.assertIn("evidence_class", cp.stdout)
+        self.assertNotIn("Traceback", cp.stderr)
+
 
 if __name__ == "__main__":
     unittest.main()

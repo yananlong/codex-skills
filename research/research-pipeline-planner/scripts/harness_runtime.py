@@ -296,8 +296,9 @@ def validate_episode(root: Path, item: dict[str, Any], episode_path: Path) -> di
         relative = episode_path.relative_to(root.resolve()).as_posix()
     except ValueError as exc:
         raise SystemExit("episode must be stored inside the suite root") from exc
-    if not relative.startswith("episodes/"):
-        raise SystemExit("episode must be stored under episodes/")
+    relative_path = Path(relative)
+    if relative_path.parent != Path("episodes"):
+        raise SystemExit("episode must be a direct child of episodes/")
     episode = load_json(episode_path, None)
     if not isinstance(episode, dict):
         raise SystemExit("episode must be a JSON object")
@@ -333,6 +334,15 @@ def validate_episode(root: Path, item: dict[str, Any], episode_path: Path) -> di
         raise SystemExit("episode.failures must be a list")
     if episode["outcome"] == "failed" and not failures:
         raise SystemExit("failed episode must record at least one failure")
+    for index, failure in enumerate(failures, start=1):
+        if not isinstance(failure, dict):
+            raise SystemExit(f"episode.failures[{index}] must be an object")
+        for field in ("category", "reason"):
+            value = failure.get(field)
+            if not isinstance(value, str) or not value.strip():
+                raise SystemExit(
+                    f"episode.failures[{index}].{field} must be a substantive string"
+                )
     tool_calls = episode.get("tool_calls", [])
     if not isinstance(tool_calls, list):
         raise SystemExit("episode.tool_calls must be a list when present")

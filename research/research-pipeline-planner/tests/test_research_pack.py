@@ -55,18 +55,35 @@ class ResearchPackTests(unittest.TestCase):
         cp = self.run_cmd(str(VALIDATE), str(self.pack), "--profile", "legacy")
         self.assertIn("legacy research-suite", cp.stdout)
 
-    def test_force_removes_stale_harness_evidence(self):
+    def test_force_removes_stale_harness_evidence_and_preserves_stage_outputs(self):
         self.init()
+        sentinel = self.pack / "ideation/valuable-result.md"
+        sentinel.write_text("keep me")
         (self.pack / "episodes/stale.json").write_text("{}")
         (self.pack / "checkpoints/stale.json").write_text("{}")
         self.init("--force")
+        self.assertTrue(sentinel.exists())
         self.assertFalse((self.pack / "episodes/stale.json").exists())
         self.assertFalse((self.pack / "checkpoints/stale.json").exists())
         self.validate()
 
-    def test_force_legacy_removes_harness_artifacts(self):
+    def test_reset_stage_artifacts_is_explicit_and_destructive(self):
         self.init()
+        sentinel = self.pack / "ideation/valuable-result.md"
+        sentinel.write_text("delete me")
+        self.init("--force", "--reset-stage-artifacts")
+        self.assertFalse(sentinel.exists())
+
+    def test_reset_stage_artifacts_requires_force(self):
+        cp = self.run_cmd(str(INIT), str(self.pack), "--reset-stage-artifacts", expect=1)
+        self.assertIn("requires --force", cp.stderr)
+
+    def test_force_legacy_removes_harness_artifacts_but_preserves_stage_outputs(self):
+        self.init()
+        sentinel = self.pack / "ideation/valuable-result.md"
+        sentinel.write_text("keep me")
         self.init("--force", "--legacy")
+        self.assertTrue(sentinel.exists())
         for name in ("HARNESS_STATE.json", "work-items.json", "harness-events.jsonl", "episodes", "checkpoints"):
             self.assertFalse((self.pack / name).exists())
 
@@ -75,6 +92,18 @@ class ResearchPackTests(unittest.TestCase):
         (self.pack / "episodes/orphan.json").write_text("{}")
         cp = self.validate(expect=1)
         self.assertIn("orphan episode", cp.stdout)
+
+    def test_nested_orphan_evidence_rejected(self):
+        self.init()
+        nested_episode = self.pack / "episodes/nested/orphan.json"
+        nested_checkpoint = self.pack / "checkpoints/nested/orphan.json"
+        nested_episode.parent.mkdir()
+        nested_checkpoint.parent.mkdir()
+        nested_episode.write_text("{}")
+        nested_checkpoint.write_text("{}")
+        cp = self.validate(expect=1)
+        self.assertIn("episodes/nested/orphan.json", cp.stdout)
+        self.assertIn("checkpoints/nested/orphan.json", cp.stdout)
 
     def test_mutated_episode_rejected(self):
         self.init()

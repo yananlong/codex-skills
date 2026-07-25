@@ -157,6 +157,6 @@ Run recurring entropy-audit work items to remove stale instructions, duplicate s
 
 ## Scripts
 
-- `scripts/init_research_pack.py`: initialize a harness-backed suite by default; `--legacy` creates the compatibility layout.
+- `scripts/init_research_pack.py`: initialize a harness-backed suite by default; `--legacy` creates the compatibility layout. `--force` preserves stage outputs, while `--force --reset-stage-artifacts` explicitly deletes them.
 - `scripts/harness_runtime.py`: single-writer event-sourced runtime for work items, episodes, verification, checkpoints, pause/resume, retries, replay, and status.
 - `scripts/validate_research_pack.py`: validate legacy or harness profiles, including event-chain integrity and replayed projection consistency.

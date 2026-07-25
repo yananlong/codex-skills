@@ -120,10 +120,10 @@ Rules:
 - outcomes are `completed`, `partial`, or `failed`;
 - transition requests are `approve`, `revise`, or `block`;
 - `completed` and `approve` must occur together;
-- a failed episode must record at least one failure;
+- a failed episode must record at least one failure object with substantive `category` and `reason` fields;
 - completed episodes must include all expected artifacts and evidence-bearing passes for every acceptance check;
 - declared usage budgets apply to all outcomes;
-- the episode file must be under `episodes/`, its filename must match `episode_id`, and the runtime records its digest plus the digests of declared artifacts;
+- the episode file must be a direct child of `episodes/`, its filename must match `episode_id`, and the runtime records its digest plus the digests of declared artifacts;
 - approval rechecks those digests.
 
 Digest continuity detects post-submission mutation of declared files. It does not prove that undeclared files were untouched or that a digest was externally anchored.

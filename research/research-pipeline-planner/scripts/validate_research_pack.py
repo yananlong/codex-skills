@@ -159,7 +159,7 @@ def validate_evidence(root: Path, work_items: dict, errors: list[str]) -> None:
                     errors.append(f"submitted artifact digest mismatch: {artifact}")
     episodes_dir = root / "episodes"
     if episodes_dir.is_dir():
-        for path in episodes_dir.glob("*.json"):
+        for path in episodes_dir.rglob("*.json"):
             relative = path.relative_to(root).as_posix()
             if relative not in referenced_episodes:
                 errors.append(f"orphan episode package: {relative}")
@@ -198,7 +198,7 @@ def validate_evidence(root: Path, work_items: dict, errors: list[str]) -> None:
                 errors.append(f"checkpoint snapshot_digest mismatch: {relative}")
     checkpoints_dir = root / "checkpoints"
     if checkpoints_dir.is_dir():
-        for path in checkpoints_dir.glob("*.json"):
+        for path in checkpoints_dir.rglob("*.json"):
             relative = path.relative_to(root).as_posix()
             if relative not in referenced_checkpoints:
                 errors.append(f"orphan checkpoint package: {relative}")

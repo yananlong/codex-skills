@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 from pathlib import Path
 from typing import Any
 
@@ -112,8 +113,11 @@ def validate_claims(data, errors: list[str], confirmatory: bool) -> tuple[dict[s
             if evidence != "exploratory":
                 for field in ("decision_rule", "loss_contract", "falsification_test"):
                     require_string(entry, field, label, errors)
-    if confirmatory and not any(c.get("evidence_class") != "exploratory" for c in claims.values()):
-        errors.append("confirmatory assurance profile requires at least one non-exploratory claim")
+    if confirmatory and not any(
+        c.get("evidence_class") in EVIDENCE_CLASSES - {"exploratory"}
+        for c in claims.values()
+    ):
+        errors.append("confirmatory assurance profile requires at least one valid non-exploratory claim")
     return claims, links
 
 
@@ -207,11 +211,20 @@ def validate_links(claims: dict[str, dict], claim_links: dict[str, set[str]], bl
                 errors.append(f"claim {claim_id} links unknown block {block_id}")
             elif claim_id not in block_links.get(block_id, set()):
                 errors.append(f"claim/block links are not reciprocal: {claim_id} -> {block_id}")
-        if confirmatory and claims[claim_id].get("evidence_class") != "exploratory":
-            rank = EVIDENCE_RANK[claims[claim_id]["evidence_class"]]
-            adequate = [bid for bid in linked_blocks if bid in blocks and EVIDENCE_RANK.get(blocks[bid].get("evidence_class"), -1) >= rank]
+        claim_evidence = claims[claim_id].get("evidence_class")
+        if confirmatory and claim_evidence != "exploratory":
+            rank = EVIDENCE_RANK.get(claim_evidence)
+            if rank is None:
+                continue
+            adequate = [
+                bid for bid in linked_blocks
+                if bid in blocks
+                and EVIDENCE_RANK.get(blocks[bid].get("evidence_class"), -1) >= rank
+            ]
             if not adequate:
-                errors.append(f"claim {claim_id} has no linked block at or above evidence class {claims[claim_id]['evidence_class']}")
+                errors.append(
+                    f"claim {claim_id} has no linked block at or above evidence class {claim_evidence}"
+                )
     for block_id, linked_claims in block_links.items():
         for claim_id in linked_claims:
             if claim_id in claims and block_id not in claim_links.get(claim_id, set()):
@@ -282,15 +295,20 @@ def validate_bridge(markdown: str, blocks: dict[str, dict], errors: list[str], c
     if "# Execution Bridge" not in markdown:
         errors.append("bridge: missing '# Execution Bridge' heading")
         return
+    headings = list(re.finditer(r"(?m)^###\s+([^\r\n]+?)\s*$", markdown))
+    sections: dict[str, str] = {}
+    for index, match in enumerate(headings):
+        title = match.group(1).strip()
+        end = headings[index + 1].start() if index + 1 < len(headings) else len(markdown)
+        if title in sections:
+            errors.append(f"execution-bridge.md has duplicate section heading for {title}")
+            continue
+        sections[title] = markdown[match.end():end]
     for block_id in blocks:
-        marker = f"### {block_id}"
-        start = markdown.find(marker)
-        if start < 0:
+        section = sections.get(block_id)
+        if section is None:
             errors.append(f"execution-bridge.md missing section for {block_id}")
             continue
-        tail = markdown[start + len(marker):]
-        end = tail.find("\n### ")
-        section = tail if end < 0 else tail[:end]
         if confirmatory:
             required_labels = (
                 "Claim IDs:", "Expected implementation entrypoint:", "Expected command or notebook:",

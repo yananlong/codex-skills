@@ -122,6 +122,25 @@ class HarnessRuntimeTests(unittest.TestCase):
         result = self.submit(ep, expect=1)
         self.assertIn("record at least one failure", result.stderr)
 
+    def test_failure_entries_must_be_substantive_objects(self):
+        self.add(); self.start()
+        ep = self.write_episode(outcome="failed", request="block", failures=[None])
+        result = self.submit(ep, expect=1)
+        self.assertIn("must be an object", result.stderr)
+        ep = self.write_episode(
+            outcome="failed", request="block", failures=[{"category": "execution", "reason": ""}]
+        )
+        result = self.submit(ep, expect=1)
+        self.assertIn("reason must be a substantive string", result.stderr)
+
+    def test_episode_must_be_direct_child_of_episodes(self):
+        self.add(); self.start(); ep = self.write_episode()
+        nested = self.root / "episodes/nested" / ep.name
+        nested.parent.mkdir()
+        ep.replace(nested)
+        result = self.submit(nested, expect=1)
+        self.assertIn("direct child of episodes", result.stderr)
+
     def test_episode_mutation_blocks_approval(self):
         self.add(); self.start(); ep = self.write_episode(); self.submit(ep)
         data = json.loads(ep.read_text()); data["summary"] = "mutated"; ep.write_text(json.dumps(data))
@@ -165,7 +184,7 @@ class HarnessRuntimeTests(unittest.TestCase):
         self.assertIn("owner skill", result.stderr)
 
     def test_tool_budget_applies_to_failed_episode(self):
-        self.add(tool_call_budget=1); self.start(); ep = self.write_episode(outcome="failed", request="block", failures=[{"reason": "x"}], tool_calls=2)
+        self.add(tool_call_budget=1); self.start(); ep = self.write_episode(outcome="failed", request="block", failures=[{"category": "execution", "reason": "x"}], tool_calls=2)
         result = self.submit(ep, expect=1)
         self.assertIn("tool-call budget", result.stderr)
 
