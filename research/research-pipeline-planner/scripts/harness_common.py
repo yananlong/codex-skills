@@ -12,13 +12,21 @@ from typing import Any
 
 SCHEMA_VERSION = "1.0"
 EVIDENCE_CLASSES = {
-    "exploratory", "confirmatory", "independently_verified", "operational_high_stakes"
+    "exploratory",
+    "confirmatory",
+    "independently_verified",
+    "operational_high_stakes",
 }
 CHECKPOINT_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
+IDENTIFIER_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,191}$")
 
 
 def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def _fsync_enabled() -> bool:
+    return os.environ.get("HARNESS_DISABLE_FSYNC") != "1"
 
 
 def atomic_write_json(path: Path, data: Any) -> None:
@@ -29,7 +37,8 @@ def atomic_write_json(path: Path, data: Any) -> None:
             json.dump(data, handle, indent=2, sort_keys=True)
             handle.write("\n")
             handle.flush()
-            os.fsync(handle.fileno())
+            if _fsync_enabled():
+                os.fsync(handle.fileno())
         os.replace(tmp_name, path)
     finally:
         if os.path.exists(tmp_name):
@@ -45,7 +54,7 @@ def load_json(path: Path, default: Any) -> Any:
         raise SystemExit(f"invalid JSON in {path}: {exc}") from exc
 
 
-def canonical_json(data: dict[str, Any]) -> str:
+def canonical_json(data: Any) -> str:
     return json.dumps(data, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
 
 
@@ -118,9 +127,14 @@ def verify_chain(events: list[dict[str, Any]]) -> None:
 
 def initial_state() -> dict[str, Any]:
     return {
-        "schema_version": SCHEMA_VERSION, "status": "initialized",
-        "active_work_item_id": None, "last_event_id": None, "last_event_hash": None,
-        "last_checkpoint_id": None, "updated_at": None,
+        "schema_version": SCHEMA_VERSION,
+        "status": "initialized",
+        "paused": False,
+        "active_work_item_id": None,
+        "last_event_id": None,
+        "last_event_hash": None,
+        "last_checkpoint_id": None,
+        "updated_at": None,
     }
 
 
@@ -165,3 +179,8 @@ def validate_checkpoint_id(checkpoint_id: str) -> None:
         raise SystemExit(
             "checkpoint id must contain only letters, numbers, dot, underscore, or hyphen"
         )
+
+
+def validate_identifier(value: str, label: str) -> None:
+    if not IDENTIFIER_RE.fullmatch(value):
+        raise SystemExit(f"{label} contains unsupported characters: {value}")
