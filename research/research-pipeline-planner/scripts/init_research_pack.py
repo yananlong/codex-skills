@@ -104,22 +104,36 @@ Consequential decisions must also be represented by a machine event in `harness-
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("target_dir", type=Path)
-    parser.add_argument("--force", action="store_true")
+    parser.add_argument(
+        "--force",
+        action="store_true",
+        help="Replace generated control-plane files while preserving stage outputs.",
+    )
+    parser.add_argument(
+        "--reset-stage-artifacts",
+        action="store_true",
+        help="With --force, also delete and recreate all canonical stage-output directories.",
+    )
     parser.add_argument("--legacy", action="store_true")
     return parser.parse_args()
 
 
-def reset_generated(root: Path) -> None:
+def reset_generated(root: Path, *, reset_stage_artifacts: bool = False) -> None:
     for name in list(FILE_TEMPLATES) + HARNESS_FILES:
         path = root / name
         if path.is_dir():
             shutil.rmtree(path)
         else:
             path.unlink(missing_ok=True)
-    for name in STAGE_DIRS + HARNESS_DIRS:
+    for name in HARNESS_DIRS:
         path = root / name
         if path.exists():
             shutil.rmtree(path)
+    if reset_stage_artifacts:
+        for name in STAGE_DIRS:
+            path = root / name
+            if path.exists():
+                shutil.rmtree(path)
     (root / ".harness.lock").unlink(missing_ok=True)
 
 
@@ -127,6 +141,8 @@ def main() -> None:
     args = parse_args()
     root = args.target_dir.expanduser().resolve()
     root.mkdir(parents=True, exist_ok=True)
+    if args.reset_stage_artifacts and not args.force:
+        raise SystemExit("--reset-stage-artifacts requires --force")
     generated = list(FILE_TEMPLATES) + STAGE_DIRS
     if not args.legacy:
         generated += HARNESS_FILES + HARNESS_DIRS
@@ -134,7 +150,7 @@ def main() -> None:
     if existing and not args.force:
         raise SystemExit("Refusing to overwrite existing files without --force: " + ", ".join(sorted(existing)))
     if args.force:
-        reset_generated(root)
+        reset_generated(root, reset_stage_artifacts=args.reset_stage_artifacts)
     for name, content in FILE_TEMPLATES.items():
         path = root / name
         path.write_text(content, encoding="utf-8")
