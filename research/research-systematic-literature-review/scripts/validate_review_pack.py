@@ -1,280 +1,125 @@
 #!/usr/bin/env python3
-"""Validate systematic literature review markdown artifacts for structure and consistency."""
-
+"""Validate a recall-audited literature review pack."""
 from __future__ import annotations
 
 import argparse
+import json
 import re
-import sys
 from pathlib import Path
-from typing import Dict, List
 
-REQUIRED_METRICS = [
-    "records_identified",
-    "duplicates_removed",
-    "records_screened",
-    "records_excluded",
-    "reports_sought_for_retrieval",
-    "reports_not_retrieved",
-    "reports_assessed_for_eligibility",
-    "reports_excluded",
-    "studies_included",
-]
-
-REQUIRED_HEADINGS = {
-    "protocol": [
-        "# Protocol:",
-        "## Metadata",
-        "## Inputs",
-        "## Assumptions applied",
-        "## Inclusion criteria",
-        "## Exclusion criteria",
-        "## PRISMA scope",
-    ],
-    "search": [
-        "# Search Log:",
-        "## Search metadata",
-        "## Source queries",
-        "## Deduplication ledger",
-        "## Version resolution ledger",
-    ],
-    "screening": [
-        "# Screening Log:",
-        "## PRISMA Counts",
-        "## Decision ledger",
-    ],
-    "evidence": [
-        "# Evidence Table:",
-        "## Extraction matrix",
-    ],
-    "report": [
-        "# Systematic Literature Review:",
-        "## Protocol",
-        "## Search Strategy",
-        "## Screening Decisions",
-        "## Evidence Table",
-        "## Synthesis",
-        "## Adversarial Stress Test",
-        "## Limitations",
-        "## Confidence Assessment",
-        "## PRISMA flow accounting",
-    ],
-}
-
-REQUIRED_EVIDENCE_COLUMNS = ["study_id", "canonical_citation", "publication_url", "publication_status"]
-REQUIRED_SCREENING_COLUMNS = ["study_id", "record_type", "canonical_citation", "publication_url"]
-REQUIRED_VERSION_COLUMNS = ["resolved_publication_url"]
+PROFILES = {"comprehensive-systematic", "bounded-systematic", "critical-evidence-map", "rapid-scan", "novelty-prior-art"}
+SYSTEMATIC = {"comprehensive-systematic", "bounded-systematic"}
+VERDICTS = {"insufficient", "adequate-for-bounded-claims", "adequate-for-comprehensive-claim"}
+COUNTS = ["records_identified", "duplicates_removed", "records_screened", "records_excluded", "reports_sought_for_retrieval", "reports_not_retrieved", "reports_assessed_for_eligibility", "reports_excluded", "studies_included"]
 
 
-def _read_file(path: Path, label: str, errors: List[str]) -> str:
-    if not path.exists():
-        errors.append(f"{label} file not found: {path}")
+def read(path: Path, errors: list[str]) -> str:
+    try:
+        return path.read_text(encoding="utf-8")
+    except FileNotFoundError:
+        errors.append(f"missing file: {path}")
         return ""
-    return path.read_text(encoding="utf-8")
 
 
-def _check_headings(content: str, label: str, required: List[str], errors: List[str]) -> None:
-    for heading in required:
-        if heading not in content:
-            errors.append(f"{label}: missing required heading '{heading}'")
+def table_value(text: str, field: str) -> str | None:
+    match = re.search(rf"\|\s*{re.escape(field)}\s*\|\s*(.*?)\s*\|", text, re.I)
+    return match.group(1).strip() if match else None
 
 
-def _extract_domain(protocol_md: str) -> str | None:
-    match = re.search(r"\|\s*Domain\s*\|\s*(.*?)\s*\|", protocol_md, flags=re.IGNORECASE)
-    if not match:
-        return None
-    return match.group(1).strip()
+def parse_prisma(text: str, errors: list[str]) -> dict[str, int]:
+    result: dict[str, int] = {}
+    for key in COUNTS:
+        value = table_value(text, key)
+        if value is None or not re.fullmatch(r"\d+", value.replace(",", "")):
+            errors.append(f"screening log missing non-negative integer {key}")
+        else:
+            result[key] = int(value.replace(",", ""))
+    if len(result) == len(COUNTS):
+        checks = [
+            (result["records_screened"] == result["records_identified"] - result["duplicates_removed"], "records_screened mismatch"),
+            (result["records_excluded"] == result["records_screened"] - result["reports_sought_for_retrieval"], "records_excluded mismatch"),
+            (result["reports_assessed_for_eligibility"] == result["reports_sought_for_retrieval"] - result["reports_not_retrieved"], "reports assessed mismatch"),
+            (result["reports_excluded"] == result["reports_assessed_for_eligibility"] - result["studies_included"], "reports_excluded mismatch"),
+        ]
+        errors.extend(message for ok, message in checks if not ok)
+    return result
 
 
-def _parse_non_negative_int(raw: str, metric: str) -> int:
-    cleaned = raw.replace(",", "").strip()
-    if not re.fullmatch(r"\d+", cleaned):
-        raise ValueError(f"Metric '{metric}' must be a non-negative integer. Got '{raw}'.")
-    return int(cleaned)
-
-
-def _parse_prisma_counts(screening_md: str) -> Dict[str, int]:
-    counts: Dict[str, int] = {}
-    for line in screening_md.splitlines():
-        stripped = line.strip()
-        if not stripped.startswith("|"):
-            continue
-        cells = [cell.strip() for cell in stripped.strip("|").split("|")]
-        if len(cells) < 2:
-            continue
-        key = cells[0]
-        value = cells[1]
-        if key in {"Metric", "---"}:
-            continue
-        if key in REQUIRED_METRICS:
-            if key in counts:
-                raise ValueError(f"Metric '{key}' appears more than once.")
-            counts[key] = _parse_non_negative_int(value, metric=key)
-
-    missing = [metric for metric in REQUIRED_METRICS if metric not in counts]
-    if missing:
-        raise ValueError("Missing PRISMA metrics: " + ", ".join(missing))
-    return counts
-
-
-def _check_prisma_consistency(counts: Dict[str, int]) -> List[str]:
-    issues: List[str] = []
-
-    if counts["duplicates_removed"] > counts["records_identified"]:
-        issues.append("duplicates_removed cannot exceed records_identified")
-
-    if counts["records_screened"] != counts["records_identified"] - counts["duplicates_removed"]:
-        issues.append("records_screened != records_identified - duplicates_removed")
-
-    if counts["reports_sought_for_retrieval"] > counts["records_screened"]:
-        issues.append("reports_sought_for_retrieval cannot exceed records_screened")
-
-    if counts["records_excluded"] != counts["records_screened"] - counts["reports_sought_for_retrieval"]:
-        issues.append("records_excluded != records_screened - reports_sought_for_retrieval")
-
-    if counts["reports_not_retrieved"] > counts["reports_sought_for_retrieval"]:
-        issues.append("reports_not_retrieved cannot exceed reports_sought_for_retrieval")
-
-    if counts["reports_assessed_for_eligibility"] != counts["reports_sought_for_retrieval"] - counts["reports_not_retrieved"]:
-        issues.append("reports_assessed_for_eligibility != reports_sought_for_retrieval - reports_not_retrieved")
-
-    if counts["studies_included"] > counts["reports_assessed_for_eligibility"]:
-        issues.append("studies_included cannot exceed reports_assessed_for_eligibility")
-
-    if counts["reports_excluded"] != counts["reports_assessed_for_eligibility"] - counts["studies_included"]:
-        issues.append("reports_excluded != reports_assessed_for_eligibility - studies_included")
-
-    return issues
-
-
-def _section_text(markdown: str, section_heading: str) -> str:
-    idx = markdown.find(section_heading)
-    if idx < 0:
+def section(text: str, heading: str) -> str:
+    start = text.find(heading)
+    if start < 0:
         return ""
-    return markdown[idx:].split("\n## ", 1)[0]
-
-
-def _table_header(markdown: str, section_heading: str) -> List[str]:
-    section_text = _section_text(markdown, section_heading)
-    for line in section_text.splitlines():
-        stripped = line.strip()
-        if not stripped.startswith("|"):
-            continue
-        cells = [cell.strip() for cell in stripped.strip("|").split("|")]
-        if not cells:
-            continue
-        if all(set(cell) <= {"-", ":"} for cell in cells):
-            continue
-        return cells
-    return []
-
-
-def _check_table_columns(markdown: str, section_heading: str, required: List[str], label: str, errors: List[str]) -> None:
-    header = _table_header(markdown, section_heading)
-    if not header:
-        errors.append(f"{label}: no table header found under {section_heading}")
-        return
-    missing = [column for column in required if column not in header]
-    if missing:
-        errors.append(f"{label}: missing required table columns under {section_heading}: " + ", ".join(missing))
-
-
-def _table_has_data_rows(markdown: str, section_heading: str) -> bool:
-    section_text = _section_text(markdown, section_heading)
-    rows = []
-    for line in section_text.splitlines():
-        stripped = line.strip()
-        if not stripped.startswith("|"):
-            continue
-        cells = [cell.strip() for cell in stripped.strip("|").split("|")]
-        if not cells:
-            continue
-        if all(set(cell) <= {"-", ":"} for cell in cells):
-            continue
-        if cells[0].lower() in {"run_id", "study_id", "reason", "metric", "field"}:
-            continue
-        rows.append(cells)
-    return len(rows) > 0
-
-
-def _build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        description=(
-            "Validate protocol/search/screening/evidence/report markdown files for required sections, "
-            "mandatory fields, publication URLs, and PRISMA count consistency."
-        )
-    )
-    parser.add_argument("--protocol", required=True, help="Path to <topic>.protocol.md")
-    parser.add_argument("--search-log", required=True, help="Path to <topic>.search-log.md")
-    parser.add_argument("--screening-log", required=True, help="Path to <topic>.screening-log.md")
-    parser.add_argument("--evidence", required=True, help="Path to <topic>.evidence-table.md")
-    parser.add_argument("--report", required=True, help="Path to <topic>.review.md")
-    return parser
+    tail = text[start + len(heading):]
+    next_heading = re.search(r"\n##\s+", tail)
+    return tail[:next_heading.start()] if next_heading else tail
 
 
 def main() -> int:
-    parser = _build_parser()
+    parser = argparse.ArgumentParser(description=__doc__)
+    for arg in ("protocol", "search_log", "recall_audit", "corpus_manifest", "screening_log", "evidence", "report"):
+        parser.add_argument("--" + arg.replace("_", "-"), required=True)
     args = parser.parse_args()
-
-    protocol_path = Path(args.protocol).expanduser().resolve()
-    search_path = Path(args.search_log).expanduser().resolve()
-    screening_path = Path(args.screening_log).expanduser().resolve()
-    evidence_path = Path(args.evidence).expanduser().resolve()
-    report_path = Path(args.report).expanduser().resolve()
-
-    errors: List[str] = []
-
-    protocol_md = _read_file(protocol_path, "protocol", errors)
-    search_md = _read_file(search_path, "search-log", errors)
-    screening_md = _read_file(screening_path, "screening-log", errors)
-    evidence_md = _read_file(evidence_path, "evidence", errors)
-    report_md = _read_file(report_path, "report", errors)
-
-    if errors:
-        print("Validation failed:")
-        for err in errors:
-            print(f"- {err}")
-        return 1
-
-    _check_headings(protocol_md, "protocol", REQUIRED_HEADINGS["protocol"], errors)
-    _check_headings(search_md, "search-log", REQUIRED_HEADINGS["search"], errors)
-    _check_headings(screening_md, "screening-log", REQUIRED_HEADINGS["screening"], errors)
-    _check_headings(evidence_md, "evidence", REQUIRED_HEADINGS["evidence"], errors)
-    _check_headings(report_md, "report", REQUIRED_HEADINGS["report"], errors)
-
-    _check_table_columns(evidence_md, "## Extraction matrix", REQUIRED_EVIDENCE_COLUMNS, "evidence", errors)
-    _check_table_columns(screening_md, "## Decision ledger", REQUIRED_SCREENING_COLUMNS, "screening-log", errors)
-    _check_table_columns(search_md, "## Version resolution ledger", REQUIRED_VERSION_COLUMNS, "search-log", errors)
-
-    domain = _extract_domain(protocol_md)
-    if not domain:
-        errors.append("protocol: missing Domain value in metadata table")
-    elif domain.lower() in {"tbd", "unset", "none", "n/a", "na", "unknown"}:
-        errors.append(f"protocol: invalid Domain value '{domain}'")
-
-    if not _table_has_data_rows(search_md, "## Source queries"):
-        errors.append("search-log: Source queries table has no data rows")
-
-    if not _table_has_data_rows(evidence_md, "## Extraction matrix"):
-        errors.append("evidence: Extraction matrix table has no data rows")
-
+    errors: list[str] = []
+    paths = {key: Path(getattr(args, key)).expanduser().resolve() for key in vars(args)}
+    text = {key: read(path, errors) for key, path in paths.items() if key != "corpus_manifest"}
     try:
-        counts = _parse_prisma_counts(screening_md)
-        issues = _check_prisma_consistency(counts)
-        for issue in issues:
-            errors.append(f"screening-log: {issue}")
-    except ValueError as exc:
-        errors.append(f"screening-log: {exc}")
+        manifest = json.loads(paths["corpus_manifest"].read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        errors.append(f"missing file: {paths['corpus_manifest']}")
+        manifest = {}
+    except json.JSONDecodeError as exc:
+        errors.append(f"invalid corpus manifest JSON: {exc}")
+        manifest = {}
+
+    profile = table_value(text.get("protocol", ""), "Review profile")
+    if profile not in PROFILES:
+        errors.append(f"invalid or missing Review profile: {profile}")
+    if manifest.get("review_profile") != profile:
+        errors.append("corpus manifest review_profile does not match protocol")
+    verdict = manifest.get("assurance_verdict")
+    if verdict not in VERDICTS:
+        errors.append(f"invalid assurance_verdict: {verdict}")
+
+    required_headings = {
+        "protocol": ["## Discovery assurance", "## PRISMA scope"],
+        "search_log": ["## Seed recovery ledger", "## Search-channel decisions", "## Search repairs and late omissions"],
+        "recall_audit": ["## Visible seed recovery", "## Search-channel assurance", "## Stopping rationale", "## Bounded assurance verdict"],
+        "screening_log": ["## PRISMA Counts", "## Decision ledger"],
+        "evidence": ["## Extraction matrix"],
+        "report": ["## Discovery Assurance", "## Search Strategy", "## Synthesis", "## Limitations", "## PRISMA flow accounting"],
+    }
+    for name, headings in required_headings.items():
+        for heading in headings:
+            if heading not in text.get(name, ""):
+                errors.append(f"{name}: missing heading {heading}")
+
+    parse_prisma(text.get("screening_log", ""), errors)
+
+    if profile in SYSTEMATIC:
+        recall = text.get("recall_audit", "")
+        search = text.get("search_log", "")
+        if "seed-001" not in search and "Seeds defined:" not in recall:
+            errors.append("systematic profile lacks a seed recovery record")
+        if "backward-citation" not in search or "forward-citation" not in search:
+            errors.append("systematic profile lacks backward/forward citation-search decisions")
+        stopping = section(recall, "## Stopping rationale")
+        if not stopping.strip() or "TODO" in stopping:
+            errors.append("systematic profile lacks a completed stopping rationale")
+        if not isinstance(manifest.get("records"), list) or not isinstance(manifest.get("seed_ids"), list):
+            errors.append("corpus manifest records and seed_ids must be lists")
+        if profile == "comprehensive-systematic" and verdict == "adequate-for-comprehensive-claim":
+            if not manifest.get("seed_ids"):
+                errors.append("comprehensive assurance requires non-empty seed_ids")
+            if manifest.get("freeze_date") in (None, ""):
+                errors.append("comprehensive assurance requires a freeze_date")
 
     if errors:
         print("Validation failed:")
-        for err in errors:
-            print(f"- {err}")
+        for error in errors:
+            print(f"- {error}")
         return 1
-
-    print("Validation passed: review pack is structurally consistent.")
+    print(f"Validation passed: review artifacts satisfy the declared {profile} assurance profile with verdict {verdict}. This validates recorded process and consistency, not actual completeness or independent verification.")
     return 0
-
 
 if __name__ == "__main__":
     raise SystemExit(main())
