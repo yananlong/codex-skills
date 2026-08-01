@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Research Commitment Contract",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version", "paper_id", "identity_version", "status", "main_question",
+    "central_object_or_phenomenon", "contribution_class", "minimum_publishable_claim",
+    "primary_evidence_obligation", "intended_audience", "permitted_refinements",
+    "pivot_triggers", "kill_conditions", "successor_idea_policy",
+    "next_mandatory_evidence_artifact", "reconsideration_gate", "selection_history",
+    "predecessor_failures", "last_change_class", "last_change_rationale"
+  ],
+  "properties": {
+    "schema_version": {"const": "1.0"},
+    "paper_id": {"type": "string", "minLength": 1},
+    "identity_version": {"type": "integer", "minimum": 1},
+    "status": {"enum": ["exploring", "committed", "executing", "interpreting", "closed"]},
+    "main_question": {"type": "string"},
+    "central_object_or_phenomenon": {"type": "string"},
+    "contribution_class": {"enum": ["theory", "method", "protocol", "benchmark", "dataset", "empirical-finding", "position", "mixed"]},
+    "minimum_publishable_claim": {"type": "string"},
+    "primary_evidence_obligation": {"type": "string"},
+    "intended_audience": {"type": "string"},
+    "permitted_refinements": {"type": "array", "items": {"type": "string"}},
+    "pivot_triggers": {"type": "array", "items": {"type": "string"}},
+    "kill_conditions": {"type": "array", "items": {"type": "string"}},
+    "successor_idea_policy": {"enum": ["park", "reject", "separate-project"]},
+    "next_mandatory_evidence_artifact": {"type": "string"},
+    "reconsideration_gate": {"type": "string"},
+    "selection_history": {"type": "array"},
+    "predecessor_failures": {"type": "array"},
+    "last_change_class": {"enum": ["D0", "D1", "D2", "D3", "D4"]},
+    "last_change_rationale": {"type": "string", "minLength": 1}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"status": {"enum": ["committed", "executing", "interpreting"]}}},
+      "then": {
+        "properties": {
+          "main_question": {"minLength": 1},
+          "central_object_or_phenomenon": {"minLength": 1},
+          "minimum_publishable_claim": {"minLength": 1},
+          "primary_evidence_obligation": {"minLength": 1},
+          "intended_audience": {"minLength": 1},
+          "next_mandatory_evidence_artifact": {"minLength": 1},
+          "reconsideration_gate": {"minLength": 1},
+          "pivot_triggers": {"minItems": 1},
+          "kill_conditions": {"minItems": 1}
+        }
+      }
+    }
+  ]
+}
