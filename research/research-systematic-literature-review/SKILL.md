@@ -1,215 +1,187 @@
 ---
 name: research-systematic-literature-review
-description: Full systematic literature review (PRISMA 2020 core) with discovery, screening, evidence extraction, synthesis, confidence grading, and adversarial stress-testing across papers. Prefer peer-reviewed published versions over preprints and use this skill either directly or as the coordinated literature stage inside a larger research workflow. Use when asked to run or audit a literature review, evidence synthesis, state-of-the-art survey with explicit methods, citation integrity checks, or confidence-rated conclusions from research publications.
+description: Run or audit literature discovery and evidence synthesis with explicit review profiles, high-recall discovery, seed and challenge-set testing, citation searching, corpus freezing, PRISMA accounting, evidence extraction, confidence grading, and adversarial stress-testing. Use for systematic reviews, bounded evidence maps, state-of-the-art surveys, novelty-critical prior-art searches, or when a research commitment depends on reliable literature coverage.
 ---
 
 # Research Systematic Literature Review
 
 ## Quick start
 
-1. Require `domain` before substantive review work. In paper-context mode, infer it from the target paper summary only when the field is clear; otherwise stop and ask.
-2. Collect optional inputs including whether the user wants deep technical/mathematical exposition. If `technical_exposition` is not provided, ask the user to choose between `standard` and `detailed_math` for full systematic reviews; in paper-context mode default to `standard` unless the paper-review task requests mathematical positioning. Apply defaults for missing non-domain inputs and log assumptions.
-3. Check tool access. If web browsing/search is unavailable and no corpus or Zotero access is provided, stop and ask for browsing access, `research-zotero`, or a user corpus.
-4. Initialize the full review artifact pack with `scripts/init_review_pack.py` for full systematic mode; in paper-context mode, create the smaller paper-context files from `references/paper-context-template.md`.
-5. If Zotero is relevant, invoke `research-zotero` first or consume existing `./zotero/` artifacts.
-6. Run discovery, deduplication (including preprint-to-published-version resolution), screening, extraction, synthesis, and adversarial checks.
-7. For every included study or context work, record a canonical `publication_url`. Prefer the published journal/proceedings/venue page, DOI resolver, PubMed/PMC record, society digital-library page, or accepted venue record. Use a preprint URL only when no published/accepted version exists, and label that status explicitly.
-8. For paper-review integration, use paper-context mode when the task is bounded related-work/impact contextualization rather than a full systematic review.
-9. Generate PRISMA flow accounting with `scripts/prisma_flow_md.py` and insert it into `<topic>.review.md` for full systematic mode.
-10. Validate the full pack with `scripts/validate_review_pack.py` before returning output when full systematic mode is used; in paper-context mode, validate the four-file exchange bundle with `scripts/paper_context_artifacts.py validate`.
-11. Preserve independence and synergy: this skill can run as a standalone SLR, but when a paper-review workspace is supplied, write the bounded context exchange bundle into `<review_dir>/context/` so paper-review and novelty-review can consume it without redoing discovery.
-12. If the user asks for project-level sequencing, current-state inspection, or coordination across multiple research stages, invoke `research-pipeline-planner` first instead of treating literature review as the whole task.
+1. Require a clear domain and research question before substantive work.
+2. Declare one review profile: `comprehensive-systematic`, `bounded-systematic`, `critical-evidence-map`, `rapid-scan`, or `novelty-prior-art`.
+3. Check search, corpus, and Zotero access; stop or narrow the profile when the requested assurance is impossible.
+4. Initialize the full review pack with `scripts/init_review_pack.py` for systematic profiles; use paper-context mode only for bounded contextualization.
+5. Complete discovery assurance before expensive extraction: seed set, optional withheld challenge set, multi-channel search decisions, citation search, search repair, recall audit, stopping rationale, and corpus freeze.
+6. Screen, deduplicate, resolve preprints to canonical publications, extract evidence, synthesize, and grade confidence only after the candidate corpus is frozen.
+7. Generate PRISMA flow accounting and validate the declared assurance profile with `scripts/validate_review_pack.py`.
+8. State exactly what the review assurance supports. Structural validity and PRISMA consistency do not establish that all important publications were found.
 
-## Modes
+## Review profiles
 
-### Full systematic review mode
+### Comprehensive systematic
 
-- Use this when the user asks for a systematic literature review, evidence synthesis, state-of-the-art survey with explicit methods, or a decision that requires broad coverage.
-- Follow the full PRISMA-oriented workflow and output contract below.
-- This mode should not be silently substituted with a quick related-work scan.
+Use only when broad, high-recall coverage is required and source access supports it. Require visible seeds, a withheld challenge set when feasible, backward and forward citation searching, explicit venue/author/benchmark/grey-literature decisions, search-strategy review, corpus freeze, and a strong stopping rationale.
 
-### Paper-context evidence map mode
+### Bounded systematic
 
-- Use this mode when `research-paper-review` needs external context for one paper's novelty, impact, related-work adequacy, benchmark coverage, or SOTA claims.
-- This is a bounded evidence map, not a full systematic review, unless the user explicitly asks for full PRISMA coverage.
-- Inputs should come from `research-paper-review/summary.md` when available: paper title/domain, one-sentence contribution claim, novelty dimensions, cited closest prior work, benchmark/evaluation context, and 3-8 targeted context questions.
-- Output may be smaller than a full review pack, but must still log sources, queries, inclusion decisions, version-resolution decisions, canonical publication URLs, and confidence limits.
-- When invoked from a paper-review workspace, write outputs under `<review_dir>/context/`. When invoked independently, keep outputs in a caller-chosen directory and record that directory when a later paper-review stage consumes it.
-- Required paper-context outputs: `literature-context.md`, `literature-context-search-log.md`, `literature-context-evidence-table.md`, and `literature-context-decision.json`.
-- `literature-context-decision.json` should include `contextualization_rating`, `impact_evidence_rating`, `coverage_confidence_rating`, `closest_prior_work`, `related_work_omissions`, `benchmark_context_gaps`, and `limits_of_search`.
+Use when the review is systematic within explicit source, venue, date, language, corpus, or publication-type boundaries. Apply the same discovery-assurance machinery inside those boundaries and state what remains outside them.
 
-### Independent / orchestrated boundary
+### Critical evidence map
 
-- Standalone SLR mode owns its own artifact directory, topic slug, protocol, PRISMA accounting, evidence table, synthesis, and confidence assessment. It must not require a paper-review workspace.
-- Orchestrated paper-context mode is an adapter, not a demotion of SLR. It keeps the SLR responsibilities for source discovery, deduplication, screening, evidence extraction, and confidence limits, but scopes them to the target paper claims supplied by paper-review.
-- If `research-paper-review` supplies `<review_dir>/summary.md` and `<review_dir>/context/context-plan.md`, treat `<review_dir>/context/` as the exchange directory and use `scripts/paper_context_artifacts.py init --review-dir <review_dir>` to scaffold artifacts when useful.
-- If this skill runs first and paper-review runs later, do not relocate the SLR pack. Paper-review should preserve the original paths in `artifact-index.md` or copy only the four bounded paper-context outputs into its `context/` directory with provenance.
+Use for structured, adversarial contextualization without a completeness claim. Log sources, queries, important omissions, and confidence limits, but do not imply systematic recall.
 
-## Relationship to sibling skills
+### Rapid scan
 
-- `research-paper-review` owns technical critique of a single paper. When it needs external grounding for related-work, impact, SOTA, benchmark, or significance claims, this skill supplies an independently valid paper-context evidence map or full systematic review.
-- `research-idea-discovery` owns generating and ranking candidate ideas. This skill can supply the landscape evidence that seeds ideation, but it should not turn a literature review into unsupported brainstorming unless the user asks for idea discovery.
-- `research-novelty-review` owns adversarial novelty and positioning decisions. It should consume this skill's paper-context evidence map when available instead of duplicating broad discovery.
-- `research-zotero` owns library sync and citation export. This skill may consume Zotero artifacts but should still screen records against the protocol.
-- `research-review-loop` may consume literature-context artifacts as evidence for whether a revised paper has fixed related-work or overclaim issues.
-- `research-paper-plan` may consume the synthesis and confidence assessment to decide how strongly the manuscript can frame its contribution.
+Use when speed is prioritized and omissions are expected. Return orientation and next-search recommendations rather than a definitive synthesis.
+
+### Novelty-oriented prior-art
+
+Use for closest-work and claim-killing discovery around a concrete contribution. Prefer `research-novelty-review` for the final positioning decision, while this skill owns broader retrieval assurance when needed.
+
+## Paper-context mode
+
+Use when `research-paper-review` needs bounded context for novelty, impact, related work, benchmark coverage, or SOTA claims. This mode remains a bounded evidence map unless the full systematic workflow is completed. Required outputs are `literature-context.md`, `literature-context-search-log.md`, `literature-context-evidence-table.md`, and `literature-context-decision.json`.
 
 ## Input contract
 
-### Required input
+Required:
 
-- `domain`: mandatory. Do not continue without this value.
+- `domain`
+- `research_question` or a topic specific enough to derive one
+- `review_profile`
 
-### Optional inputs with defaults
+Prefer:
 
-- `research_question`: default to "What does current evidence show about <topic> in <domain>?"
-- `inclusion_criteria`: default to peer-reviewed primary studies (published) relevant to topic and domain; use high-quality preprints only when no published version exists or when recency is essential, and label them.
-- `exclusion_criteria`: default to off-topic studies, non-substantive summaries, and sources without sufficient methodological detail.
-- `date_range`: default to the last 10 years through today.
-- `study_types`: default to experimental, observational, benchmarking, and systematic-review studies when relevant.
-- `language`: default to English.
-- `population/context`: default to the broad population/context implied by topic and domain.
-- `outcomes`: default to efficacy/performance, robustness, safety, and transferability outcomes where applicable.
-- `quality_threshold`: default to retain studies with at least moderate methodological quality and transparent reporting.
-- `technical_exposition`: default to `standard`. If set to `detailed_math`, the `<topic>.review.md` must include formal definitions/notation, key equations/objectives, and when relevant theorem statements or proof sketches in the `Synthesis` section.
-- `zotero_library_type`, `zotero_library_id`, `zotero_collection_key`, `zotero_query`, `zotero_tags`, and `zotero_access_mode`: optional Zotero controls.
+- intended use of the review
+- target venue or audience
+- scope boundaries
+- known landmark publications
+- a separately held challenge set when available
+- databases, publisher indexes, conference venues, Zotero collections, or user corpora
+- date, language, publication-type, and grey-literature policies
+- desired technical or mathematical exposition
+- whether the review will authorize paper commitment, novelty claims, or expensive execution
 
-## Hard-stop and failover rules
+## Hard stops
 
-- Stop immediately if `domain` is missing.
-- In paper-context mode, `domain` may be inferred from `research-paper-review/summary.md` only when unambiguous; log the inference under assumptions.
-- Stop immediately if web browsing/search is unavailable and there is no user-provided corpus and no `research-zotero` artifact or Zotero API/MCP path.
-- Continue with soft defaults only for non-domain fields and explicitly log all defaults under "Assumptions applied".
+- Stop when domain or question is missing.
+- Stop comprehensive claims when browsing, database, corpus, or citation access is inadequate.
+- Stop expensive extraction when systematic profiles lack a seed set, citation-search decision, recall audit plan, and corpus-freeze plan.
+- Do not treat PRISMA counts, canonical URLs, file presence, or validator success as evidence of adequate recall.
+- Do not manually insert a major missed publication without documenting why the strategy missed it and how the search was repaired.
+- Do not default theoretical, mathematical, philosophical, benchmark, or fast-moving AI reviews to a biomedical primary-study ontology.
 
-## Default output contract
+## Output contract
 
-Primary file: `<topic>.review.md`
+Full systematic profiles produce:
 
-Supporting files:
 - `<topic>.protocol.md`
 - `<topic>.search-log.md`
+- `<topic>.recall-audit.md`
+- `<topic>.corpus-manifest.json`
 - `<topic>.screening-log.md`
 - `<topic>.evidence-table.md`
+- `<topic>.review.md`
+- `<topic>.prisma-flow.md`
 
-Optional support files when Zotero is used:
-- `<topic>.zotero-items.json`
-- `<topic>.zotero-sync.md`
+The report must include `Protocol`, `Discovery Assurance`, `Search Strategy`, `Screening Decisions`, `Evidence Table`, `Synthesis`, `Adversarial Stress Test`, `Limitations`, `Confidence Assessment`, and `PRISMA flow accounting`.
 
-Required sections in `<topic>.review.md`: `Protocol`, `Search Strategy`, `Screening Decisions`, `Evidence Table`, `Synthesis`, `Adversarial Stress Test`, `Limitations`, `Confidence Assessment`, and `PRISMA flow accounting`.
+Every included record must have a canonical `publication_url`, preferring the published or accepted venue record over a preprint when one exists.
 
-The full-review evidence table must include a `publication_url` column for every included study. The URL must point to the canonical published or accepted venue record when one exists; a preprint URL is acceptable only when no published/accepted version exists and `publication_status` makes that clear.
+## Workflow
 
-## Paper-context output contract
+### 1) Define the review protocol and adapter
 
-When invoked from `research-paper-review` for bounded context, the minimum output is:
-- `<review_dir>/context/literature-context.md`
-- `<review_dir>/context/literature-context-search-log.md`
-- `<review_dir>/context/literature-context-evidence-table.md`
-- `<review_dir>/context/literature-context-decision.json`
+- Declare the review profile, intended decision, boundaries, inclusion and exclusion criteria, foundational horizon, current-evidence horizon, update horizon, outcomes or conceptual questions, and quality criteria.
+- Select a domain adapter: empirical intervention, methodological, theoretical/mathematical, benchmark/dataset, interdisciplinary conceptual, novelty/prior-art, or emerging-field.
+- Record defaults and deviations.
 
-When invoked independently, use the same four filenames in the selected output directory and record that directory for later handoff.
+### 2) Build a coverage map and seed set
 
-`literature-context.md` must include `Scope`, `Target paper claims being contextualized`, `Search strategy`, `Closest prior work`, `Related-work coverage assessment`, `Benchmark or evaluation context`, `Impact/significance context`, `Claims that need qualification`, and `Confidence and limitations`.
+- Map expected intellectual lineages, method families, formal objects, evidence types, venues, time strata, and supporting/competing/critical positions.
+- Define visible quasi-gold seeds from user knowledge, recognized foundations, and recent close anchors.
+- When feasible, define a withheld challenge set controlled by a separate reviewer or hidden until evaluation.
+- Seeds test retrieval performance; they do not define the complete relevant corpus.
 
-`literature-context-evidence-table.md` and any closest-prior-work tables must include publication URLs for each retained work, preferring published/accepted venue records over preprint records.
+### 3) Execute multi-channel discovery
 
-This mode must clearly state: "This is a bounded paper-context evidence map, not a full systematic review" unless the full PRISMA workflow was actually completed.
+Record decisions and yields for:
 
-## Artifact naming rules
+- database, publisher, and broad scholarly search;
+- backward citation searching;
+- forward citation searching;
+- related-paper graph exploration;
+- venue census;
+- author or laboratory expansion;
+- benchmark and dataset tracing;
+- prior-review harvesting;
+- grey literature and repository search;
+- Zotero or user-corpus cross-check.
 
-- Normalize `<topic>` to lowercase hyphen-case for file names.
-- Keep full systematic outputs in one SLR review directory. Keep paper-context outputs in `<review_dir>/context/` when called from paper-review, or in one explicit paper-context directory when called independently.
-- Refuse to overwrite existing artifacts unless explicit overwrite is requested.
+For each query or expansion, log the coverage target, exact query or seed, filters, records returned, unique candidates, included yield, new vocabulary, and next repair action.
 
-## Workflow (PRISMA 2020 core + adversarial pass)
+### 4) Repair search and audit recall
 
-### 1) Define protocol
+- Test whether ordinary discovery recovers every visible seed.
+- For each miss, identify terminology, indexing, venue, author, or date failure and repair the strategy.
+- Evaluate withheld challenge recovery when available.
+- Record unique yield and marginal yield by expansion round.
+- Reconsider the original search when citation searching or late challenge work yields material additions.
+- Obtain a materially separate PRESS-style search-strategy review for high-stakes uses when feasible; otherwise disclose self-review.
 
-- Use `references/protocol-template.md`.
-- Record topic, domain, question, inclusion/exclusion criteria, date range, outcomes, and quality threshold.
-- Log every default assumption.
-- In paper-context mode, create the four-file exchange bundle before or during protocol definition:
+### 5) Freeze the candidate corpus
 
-```bash
-python3 scripts/paper_context_artifacts.py init --review-dir <review_dir> \
-  --summary <review_dir>/summary.md \
-  --context-plan <review_dir>/context/context-plan.md
-```
+- Create `<topic>.corpus-manifest.json` with a versioned list of candidate records, seeds, challenge records, search-strategy review, and assurance verdict.
+- Create `<topic>.recall-audit.md` using `references/recall-assurance-contract.md`.
+- State a stopping rationale based on recovery, coverage, marginal yield, constraints, and residual omission risk.
+- Freeze before detailed extraction. Record every post-freeze addition and whether it changes conclusions.
 
-- If no paper-review workspace exists, use `--out-dir <context_dir>` instead of `--review-dir`.
+### 6) Screen and resolve versions
 
-### 2) Execute discovery and search logging
-
-- Use `references/search-strategy-template.md`.
-- Search multiple relevant sources and log exact query strings, filters, and retrieval dates.
-- If Zotero access is available, use `research-zotero` or consume its artifacts and decide whether Zotero is a curated seed library, citation cross-check source, or discovery source for saved collections/tags.
-- If `./zotero/zotero-items.json` already exists, prefer consuming it over re-syncing.
-- If Zotero MCP is available in the runtime, `research-zotero` should prefer it for interactive library inspection; otherwise it should use available API access when configured.
-- For major ML conferences hosted on OpenReview, include OpenReview as a first-class discovery source when applicable, log reproducible query details, and filter to accepted venue papers when using records as canonical publications.
-- Prefer published/peer-reviewed indexing and publisher sources over preprint aggregators when both exist.
-- Use preprint servers primarily for discovery and open-access full text.
-- For every preprint candidate, attempt to resolve the peer-reviewed published version using DOI/journal-ref fields, title+author search, and citation-index sources as needed.
-- If an accepted full conference/journal version exists, treat the preprint as a duplicate publication: keep the accepted/published version as the canonical record/citation and `publication_url`; optionally retain the preprint URL only as a full-text access link in notes.
-- For ML conference records, prefer an accepted venue record over an arXiv preprint only when the venue status is clear; do not treat rejected, withdrawn, or merely submitted records as canonical.
-- Track deduplication and version-resolution decisions explicitly, including the chosen canonical `publication_url` and any supplemental preprint URL.
-- Treat Zotero as a curated discovery aid, not as proof that a paper meets the final inclusion criteria. Every included paper still needs screening and evidence extraction.
-
-### 3) Screen records and account for flow
-
-- Use `references/screening-template.md`.
+- Deduplicate across databases and publication versions.
+- Resolve preprints to accepted or published versions using DOI, venue, title-author, and citation-index searches.
 - Record title/abstract and full-text decisions with reasons.
-- Deduplicate across versions and record preprint supersession as `duplicate-publication`.
-- Preserve the canonical `publication_url` in the decision ledger when promoting a preprint/submission to the published or accepted venue record.
-- Maintain PRISMA count keys exactly as defined in the template.
+- Preserve the canonical publication URL and any supplemental open-access link.
+- Maintain exact PRISMA accounting.
 
-### 4) Extract structured evidence
+### 7) Extract structured evidence
 
-- Use `references/evidence-table-template.md`.
-- Capture design, population/context, outcomes, key results, and risk of bias per study.
-- Capture DOI, venue, publication status, and `publication_url` for each included study.
-- Cite and link the published/accepted version when available; use preprint links only as supplemental access copies or as canonical links when no published/accepted version exists.
+Use an adapter-appropriate table. Capture bibliographic identity, design or argument type, population/context or formal setting, methods, outcomes or propositions, key results, limitations, quality or risk of bias, and relevance to the review question.
 
-### 5) Synthesize findings and grade confidence
+Do not force sample-size, intervention, or effect-size fields onto theoretical or conceptual work when they are inapplicable.
 
-- Use `references/report-template.md`.
-- Separate high-confidence findings, mixed evidence, and unresolved questions.
-- State confidence rationale from consistency, quality, directness, and risk of bias.
-- In paper-context mode, separate closest prior work, context that weakens novelty or impact claims, context that strengthens significance, and benchmark/evaluation norms the paper may be missing.
-- If `technical_exposition=detailed_math`, make the `Synthesis` section math-forward: define the core objects precisely, write the primary learning objectives/constraints, and summarize theoretical results using correct formal statements without over-quoting.
+### 8) Synthesize and grade confidence
 
-### 6) Run adversarial stress-test
+- Separate high-confidence findings, mixed evidence, negative or contradictory evidence, unresolved questions, and coverage-dependent conclusions.
+- Grade confidence using consistency, quality, directness, publication or venue status, and residual omission risk.
+- When technical exposition is requested, define objects precisely and present equations, objectives, theorem statements, or proof sketches without overstating source claims.
 
-- Use `references/adversarial-literature-checklist.md`.
-- Red-team causal claims, endpoint definitions, subgroup claims, publication bias, and citation integrity.
-- Flag unsupported, misleading, or overgeneralized conclusions with concrete fixes.
+### 9) Run adversarial checks
 
-### 7) Apply domain adapter
+- Search specifically for criticism, negative results, predecessor terminology, alternative formulations, and work that would kill the anticipated novelty or conclusion.
+- Check citation integrity and whether each cited source supports the attached statement.
+- Distinguish missing evidence from evidence of absence.
+- Report late major omissions and repair the search process, not only the corpus.
 
-- Use `references/domain-adapters.md`.
-- Start from the generic bias rubric and apply the domain-specific adapter before final conclusions.
+### 10) Validate and report assurance
 
-### 8) Validate and finalize
+- Generate PRISMA flow markdown.
+- Run `scripts/validate_review_pack.py` with the protocol, search log, recall audit, corpus manifest, screening log, evidence table, and report.
+- Use bounded verdicts: `insufficient`, `adequate-for-bounded-claims`, or `adequate-for-comprehensive-claim`.
+- State source and access limitations prominently.
 
-- In full systematic mode, generate PRISMA flow markdown with `scripts/prisma_flow_md.py`.
-- In full systematic mode, validate structural integrity, publication URL fields, and count consistency with `scripts/validate_review_pack.py`.
-- In paper-context mode, validate the exchange bundle:
+## Relationship to sibling skills
 
-```bash
-python3 scripts/paper_context_artifacts.py validate --review-dir <review_dir>
-```
-
-- If no paper-review workspace exists, validate with `--out-dir <context_dir>` instead of `--review-dir`.
-- Return the full review pack or bounded paper-context map with explicit assumptions and known limitations.
-
-## Scripts
-
-- `scripts/init_review_pack.py`: create deterministic Markdown scaffolds for protocol/search/screening/evidence/report.
-- `scripts/paper_context_artifacts.py`: create and validate the four-file paper-context evidence-map exchange bundle.
-- `scripts/prisma_flow_md.py`: parse standardized screening counts and emit PRISMA flow accounting Markdown.
-- `scripts/validate_review_pack.py`: validate required sections, mandatory fields, publication URL fields, and PRISMA count consistency.
+- `research-pipeline-planner` owns whether literature assurance is sufficient for commitment or route advancement.
+- `research-novelty-review` owns the adversarial positioning decision and should consume the recall-audited corpus.
+- `research-zotero` supplies curated seeds and exports but does not establish inclusion or recall.
+- `research-paper-review` consumes bounded context or a full review without duplicating discovery.
+- `research-review-loop` tracks whether omissions and overclaims are actually repaired.
+- `research-paper-plan` uses the narrowest claims supported by the evidence and assurance level.
 
 ## References
 
+- `references/recall-assurance-contract.md`
 - `references/protocol-template.md`
 - `references/search-strategy-template.md`
 - `references/screening-template.md`
@@ -219,4 +191,10 @@ python3 scripts/paper_context_artifacts.py validate --review-dir <review_dir>
 - `references/domain-adapters.md`
 - `references/report-template.md`
 - `references/paper-context-template.md`
-- `../research-zotero/references/zotero-artifact-contract.md`
+
+## Scripts
+
+- `scripts/init_review_pack.py`: initialize the systematic review, recall audit, and corpus manifest artifacts.
+- `scripts/paper_context_artifacts.py`: initialize and validate bounded paper-context outputs.
+- `scripts/prisma_flow_md.py`: generate PRISMA flow accounting.
+- `scripts/validate_review_pack.py`: validate structural consistency and the declared discovery-assurance profile without claiming actual completeness.
