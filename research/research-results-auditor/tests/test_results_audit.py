@@ -103,6 +103,7 @@ class ResultsAuditTests(unittest.TestCase):
             "audit_id": "A1",
             "claim_id": "C1",
             "claim_text": "Method improves accuracy on the frozen held-out test.",
+            "scope": "Frozen held-out test only.",
             "source_mode": "orchestrated",
             "requested_assurance_class": "confirmatory",
             "attained_assurance_class": "confirmatory",
@@ -121,12 +122,17 @@ class ResultsAuditTests(unittest.TestCase):
                     "lineage_relation": "baseline",
                     "parent_run_id": None,
                     "submitted_claim_effect": "strengthen",
+                    "submitted_claim_scope": "held-out test",
                     "verification_decision": "approve",
                     "verified_gate_result": "pass",
                     "verified_scientific_disposition": "supports_claim",
                     "verification_self_review": False,
                 }
             ],
+            "run_selection": {
+                "selection_rule": "Include every experiment run bound to C1 for paper P1 identity version 1.",
+                "excluded_runs": [],
+            },
             "evidence_artifacts": [
                 {
                     "path": "results/B1.json",
@@ -278,6 +284,87 @@ class ResultsAuditTests(unittest.TestCase):
         self.write_all()
         cp = self.validate(expect=1)
         self.assertIn("verification_self_review disagrees", cp.stdout)
+
+    def add_conflicting_run(self) -> None:
+        item = json.loads(json.dumps(self.work_items["items"][0]))
+        item["work_item_id"] = "WI-B2"
+        item["episodes"][0]["episode_id"] = "EP2"
+        item["episodes"][0]["episode_digest"] = "c" * 64
+        item["episodes"][0]["artifact_digests"] = {"results/B2.json": "d" * 64}
+        run = item["episodes"][0]["experiment_run"]
+        run.update(
+            run_id="RUN2",
+            block_id="B2",
+            gate_id="G2",
+            gate_result="fail",
+            scientific_disposition="falsifies_claim",
+        )
+        run["claim_effects"][0].update(effect="kill", scope="held-out test")
+        verification = item["verifications"][0]
+        verification.update(
+            episode_id="EP2",
+            gate_results={"G2": "fail"},
+            scientific_disposition="falsifies_claim",
+        )
+        self.work_items["items"].append(item)
+
+    def test_linked_profile_rejects_standalone_source_mode(self) -> None:
+        record = self.audit["audits"][0]
+        record["source_mode"] = "standalone"
+        record["source_runs"] = []
+        record["evidence_artifacts"][0].update(source="audit", digest="")
+        self.write_all()
+        cp = self.validate(expect=1)
+        self.assertIn("linked profile requires source_mode=orchestrated", cp.stdout)
+
+    def test_omitted_eligible_run_is_rejected(self) -> None:
+        self.add_conflicting_run()
+        self.write_all()
+        cp = self.validate(expect=1)
+        self.assertIn("omits eligible source runs", cp.stdout)
+        self.assertIn("RUN2", cp.stdout)
+
+    def test_explicit_run_exclusion_with_rationale_passes(self) -> None:
+        self.add_conflicting_run()
+        self.audit["audits"][0]["run_selection"]["excluded_runs"] = [
+            {"run_id": "RUN2", "rationale": "Different predeclared diagnostic condition."}
+        ]
+        self.write_all()
+        self.validate()
+
+    def test_operational_support_requires_every_check_to_pass(self) -> None:
+        record = self.audit["audits"][0]
+        record["requested_assurance_class"] = "operational_high_stakes"
+        record["attained_assurance_class"] = "operational_high_stakes"
+        record["verdict"] = "supports_operational_high_stakes_claim"
+        record["independence"] = {
+            "self_review": False,
+            "dimensions": ["context", "data", "implementation", "evaluation", "advancement_authority"],
+            "evidence": "Materially separate execution, evaluation, and advancement authorities.",
+        }
+        for check in record["check_results"]:
+            check["status"] = "pass"
+            if check["check_id"] == "snapshot_continuity":
+                check["status"] = "not_assessed"
+        self.narrative_path.write_text(
+            "# Results Audit\n\n## Audit A1\n\n- Bounded verdict: supports_operational_high_stakes_claim\n",
+            encoding="utf-8",
+        )
+        self.audit_path.write_text(json.dumps(self.audit), encoding="utf-8")
+        cp = self.validate(expect=1)
+        self.assertIn("snapshot_continuity", cp.stdout)
+
+    def test_complete_audit_requires_scope(self) -> None:
+        del self.audit["audits"][0]["scope"]
+        self.write_all()
+        cp = self.validate(expect=1)
+        self.assertIn(".scope must be substantive", cp.stdout)
+
+    def test_submitted_claim_scope_must_match_source_run(self) -> None:
+        self.audit["audits"][0]["source_runs"][0]["submitted_claim_scope"] = "all tasks"
+        self.write_all()
+        cp = self.validate(expect=1)
+        self.assertIn("submitted_claim_scope disagrees", cp.stdout)
 
 
 if __name__ == "__main__":
