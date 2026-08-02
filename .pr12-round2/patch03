@@ -1,0 +1,87 @@
++                        except SystemExit as exc:
++                            errors.append(f"{event_id}: submitted episode fails runtime validation: {exc}")
++                        else:
++                            expected = {
++                                "episode_path": episode["_relative_path"],
++                                "episode_id": episode["episode_id"],
++                                "episode_digest": episode["_digest"],
++                                "artifact_digests": episode["_artifact_digests"],
++                                "outcome": episode["outcome"],
++                                "transition_request": episode["transition_request"],
++                            }
++                            if episode["_experiment_run"] is not None:
++                                expected["experiment_run"] = episode["_experiment_run"]
++                            for field, value in expected.items():
++                                if details.get(field) != value:
++                                    errors.append(
++                                        f"{event_id}: event {field} does not match the digest-anchored episode"
++                                    )
++                            if episode["_experiment_run"] is None and details.get("experiment_run") is not None:
++                                errors.append(
++                                    f"{event_id}: unbound episode event contains experiment_run metadata"
++                                )
++
++                binding = item.get("experiment_binding")
++                if isinstance(binding, dict):
++                    if details.get("verified_execution_snapshot") != item.get("execution_snapshot"):
++                        errors.append(
++                            f"{event_id}: submission snapshot does not match its start event"
++                        )
++                    if details.get("verified_binding_digests") != _expected_binding_digests(binding):
++                        errors.append(
++                            f"{event_id}: submission binding digests do not match the frozen binding"
++                        )
++                elif (
++                    details.get("verified_execution_snapshot") is not None
++                    or details.get("verified_binding_digests") is not None
++                ):
++                    errors.append(
++                        f"{event_id}: unbound episode event contains experiment binding evidence"
++                    )
++
++        try:
++            harness_runtime.apply_event(state, work_items, event)
++        except SystemExit as exc:
++            errors.append(f"{event_id}: event replay failed during semantic audit: {exc}")
++            return
++
+ def validate_experiment_integrity(root: Path, work_items: dict, errors: list[str]) -> None:
+     items = [item for item in work_items.get("items", []) if isinstance(item, dict)]
+     by_id = {item.get("work_item_id"): item for item in items if isinstance(item.get("work_item_id"), str)}
+@@ -506,7 +643,7 @@ def validate_harness(root: Path, errors: list[str]) -> None:
+         return
+     validate_work_items(work_items, errors)
+     try:
+-        replayed_state, replayed_items = harness_runtime.replay(root, write=False)
++        events, replayed_state, replayed_items = harness_runtime.reconstruct(root)
+     except SystemExit as exc:
+         errors.append(f"harness event replay failed: {exc}")
+         return
+@@ -523,6 +660,7 @@ def validate_harness(root: Path, errors: list[str]) -> None:
+         errors.append("HARNESS_STATE.json omits an active work item")
+     elif state.get("active_work_item_id") is not None and active != [state.get("active_work_item_id")]:
+         errors.append("HARNESS_STATE.json active_work_item_id disagrees with work-items.json")
++    validate_experiment_event_history(root, events, errors)
+     validate_experiment_integrity(root, work_items, errors)
+     validate_evidence(root, work_items, errors)
+ 
+diff --git a/research/research-pipeline-planner/tests/test_experiment_pack_integration.py b/research/research-pipeline-planner/tests/test_experiment_pack_integration.py
+index 4a0b1fc..d7d7bbd 100644
+--- a/research/research-pipeline-planner/tests/test_experiment_pack_integration.py
++++ b/research/research-pipeline-planner/tests/test_experiment_pack_integration.py
+@@ -13,6 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
+ SCRIPTS = ROOT / "scripts"
+ sys.path.insert(0, str(SCRIPTS))
+ import validate_research_pack as pack_validator
++from harness_common import event_hash
+ 
+ INIT = SCRIPTS / "init_research_pack.py"
+ RUNTIME = SCRIPTS / "harness_runtime.py"
+@@ -114,12 +115,64 @@ class ExperimentPackIntegrationTests(unittest.TestCase):
+             expect,
+         )
+ 
++    def rewrite_events(self, mutator, expect: int = 0):
++        path = self.suite / "harness-events.jsonl"
++        events = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
++        mutator(events)
