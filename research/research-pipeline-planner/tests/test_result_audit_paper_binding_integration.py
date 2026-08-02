@@ -93,6 +93,7 @@ class ResultAuditPaperBindingIntegrationTests(unittest.TestCase):
             "audit_id": "A1",
             "claim_id": "C1",
             "claim_text": "Method improves accuracy on the frozen held-out task.",
+            "scope": "Frozen held-out task only.",
             "source_mode": "orchestrated",
             "requested_assurance_class": "confirmatory",
             "attained_assurance_class": "confirmatory",
@@ -111,12 +112,17 @@ class ResultAuditPaperBindingIntegrationTests(unittest.TestCase):
                     "lineage_relation": "baseline",
                     "parent_run_id": None,
                     "submitted_claim_effect": "strengthen",
+                    "submitted_claim_scope": "held-out test",
                     "verification_decision": "approve",
                     "verified_gate_result": "pass",
                     "verified_scientific_disposition": "supports_claim",
                     "verification_self_review": False,
                 }
             ],
+            "run_selection": {
+                "selection_rule": "Include every eligible run for the paper identity and source claim.",
+                "excluded_runs": [],
+            },
             "evidence_artifacts": [
                 {
                     "path": "results/B1.json",
@@ -142,6 +148,7 @@ class ResultAuditPaperBindingIntegrationTests(unittest.TestCase):
             "required_assurance_class": "confirmatory",
             "source_claim_ids": ["C1"],
             "audit_ids": ["A1"],
+            "audit_exclusions": [],
             "evidence_artifacts": ["results/B1.json"],
             "planned_sections": ["Results"],
             "exhibit_ids": ["F1"],
@@ -183,9 +190,9 @@ class ResultAuditPaperBindingIntegrationTests(unittest.TestCase):
         c = self.paper_claim
         self.paths["matrix"].write_text(
             "# Claims-Evidence Matrix\n"
-            "| Paper claim ID | Claim | Type | Evidence mode | Support status | Manuscript action | Required assurance | Source claim IDs | Audit IDs | Planned sections | Exhibit IDs | Citation need IDs | Limitation |\n"
-            "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |\n"
-            f"| PC1 | {c['claim']} | {c['claim_type']} | {c['evidence_mode']} | {c['support_status']} | {c['manuscript_action']} | {c['required_assurance_class']} | C1 | A1 | Results | F1 | | {'; '.join(c['limitations'])} |\n",
+            "| Paper claim ID | Claim | Type | Evidence mode | Support status | Manuscript action | Required assurance | Source claim IDs | Audit IDs | Excluded audit IDs | Planned sections | Exhibit IDs | Citation need IDs | Limitation |\n"
+            "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |\n"
+            f"| PC1 | {c['claim']} | {c['claim_type']} | {c['evidence_mode']} | {c['support_status']} | {c['manuscript_action']} | {c['required_assurance_class']} | C1 | A1 | | Results | F1 | | {'; '.join(c['limitations'])} |\n",
             encoding="utf-8",
         )
         self.paths["bindings"].write_text(
@@ -261,6 +268,10 @@ class ResultAuditPaperBindingIntegrationTests(unittest.TestCase):
                 str(self.paths["claim_map"]),
                 "--results-audit",
                 str(self.paths["audit_json"]),
+                "--results-audit-narrative",
+                str(self.paths["audit_md"]),
+                "--work-items",
+                str(self.paths["work_items"]),
             ],
             text=True,
             capture_output=True,
@@ -278,7 +289,7 @@ class ResultAuditPaperBindingIntegrationTests(unittest.TestCase):
         self.write_all()
         self.run_audit_validator()
         cp = self.run_paper_validator(expect=1)
-        self.assertIn("lacks a positive audit at required assurance class confirmatory", cp.stdout)
+        self.assertIn("lacks a positive same-scope audit at required assurance class confirmatory", cp.stdout)
 
     def test_negative_audit_requires_nonassertive_manuscript_action(self) -> None:
         self.audit_record["verdict"] = "does_not_support_claim"
