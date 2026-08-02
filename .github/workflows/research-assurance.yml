@@ -47,9 +47,14 @@ jobs:
             research/research-pipeline-planner/scripts/validate_research_commitment.py \
             research/research-systematic-literature-review/scripts/init_review_pack.py \
             research/research-systematic-literature-review/scripts/validate_review_pack.py \
+            research/research-experiment-plan/scripts/init_experiment_pack.py \
             research/research-experiment-plan/scripts/validate_experiment_pack.py
       - name: Run harness runtime tests
         run: python -m unittest discover -s research/research-pipeline-planner/tests -p 'test_harness_runtime.py' -v
+      - name: Run experiment runtime tests
+        run: python -m unittest discover -s research/research-pipeline-planner/tests -p 'test_experiment_runtime.py' -v
+      - name: Run experiment pack integration tests
+        run: python -m unittest discover -s research/research-pipeline-planner/tests -p 'test_experiment_pack_integration.py' -v
       - name: Run research-pack tests
         run: python -m unittest discover -s research/research-pipeline-planner/tests -p 'test_research_pack.py' -v
       - name: Run research-commitment tests
