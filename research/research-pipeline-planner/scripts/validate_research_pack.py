@@ -6,6 +6,7 @@ import argparse
 import json
 import sys
 from pathlib import Path
+from typing import Any
 
 import harness_runtime
 from harness_common import SCHEMA_VERSION, canonical_json, path_digest, resolve_inside_root, sha256_bytes
@@ -35,6 +36,14 @@ HARNESS_INDEX_ROWS = [
     "./episodes/", "./checkpoints/",
 ]
 WORK_STATES = {"queued", "ready", "running", "awaiting_verification", "completed", "blocked"}
+GATE_RESULTS = {"pass", "fail", "inconclusive", "not_applicable"}
+SCIENTIFIC_DISPOSITIONS = {
+    "supports_claim", "weakens_claim", "falsifies_claim", "inconclusive", "diagnostic_only",
+}
+LINEAGE_RELATIONS = {
+    "baseline", "replication", "ablation", "parameter_variation", "negative_control",
+    "sensitivity", "alternative_hypothesis", "technical_retry",
+}
 
 
 def parse_args() -> argparse.Namespace:
@@ -123,16 +132,23 @@ def validate_work_items(data, errors: list[str]) -> None:
         ):
             if not isinstance(item.get(field), list):
                 errors.append(f"{label}.{field} must be a list")
+        activation = item.get("activation_conditions", [])
+        if not isinstance(activation, list):
+            errors.append(f"{label}.activation_conditions must be a list when present")
+        if item.get("experiment_binding") is not None and not isinstance(item.get("experiment_binding"), dict):
+            errors.append(f"{label}.experiment_binding must be an object when present")
         if not isinstance(item.get("attempt"), int) or item["attempt"] < 0:
             errors.append(f"{label}.attempt must be a non-negative integer")
         if not isinstance(item.get("attempt_budget"), int) or item["attempt_budget"] < 1:
             errors.append(f"{label}.attempt_budget must be a positive integer")
+        if not isinstance(item.get("tool_call_budget"), int) or item["tool_call_budget"] < 0:
+            errors.append(f"{label}.tool_call_budget must be a non-negative integer")
     if active > 1:
         errors.append("single-writer policy allows at most one active work item")
     for index, item in enumerate(items, 1):
-        for dep in item.get("dependencies", []):
-            if dep not in ids:
-                errors.append(f"work-items.json.items[{index}] references unknown dependency: {dep}")
+        for dependency in item.get("dependencies", []):
+            if dependency not in ids:
+                errors.append(f"work-items.json.items[{index}] references unknown dependency: {dependency}")
     graph = {
         item.get("work_item_id"): item.get("dependencies", [])
         for item in items
@@ -148,14 +164,186 @@ def validate_work_items(data, errors: list[str]) -> None:
         if node in visited:
             return
         visiting.add(node)
-        for dep in graph.get(node, []):
-            if dep in graph:
-                visit(dep)
+        for dependency in graph.get(node, []):
+            if dependency in graph:
+                visit(dependency)
         visiting.remove(node)
         visited.add(node)
 
     for node in graph:
         visit(node)
+
+
+def _validate_bound_file(
+    root: Path,
+    binding: dict[str, Any],
+    path_field: str,
+    digest_field: str,
+    label: str,
+    errors: list[str],
+) -> Any:
+    relative = binding.get(path_field)
+    expected = binding.get(digest_field)
+    if not isinstance(relative, str) or not relative or not isinstance(expected, str) or not expected:
+        errors.append(f"experiment binding lacks {path_field} or {digest_field}")
+        return None
+    try:
+        path = resolve_inside_root(root, relative, label)
+    except SystemExit as exc:
+        errors.append(str(exc))
+        return None
+    if not path.is_file():
+        errors.append(f"bound {label} file is missing: {relative}")
+        return None
+    if path_digest(path) != expected:
+        errors.append(f"bound {label} digest mismatch: {relative}")
+    return read_json(path, errors)
+
+
+def validate_experiment_integrity(root: Path, work_items: dict, errors: list[str]) -> None:
+    items = [item for item in work_items.get("items", []) if isinstance(item, dict)]
+    by_id = {item.get("work_item_id"): item for item in items if isinstance(item.get("work_item_id"), str)}
+    run_index: dict[str, tuple[dict[str, Any], dict[str, Any]]] = {}
+
+    for item in items:
+        wid = item.get("work_item_id", "<unknown>")
+        binding = item.get("experiment_binding")
+        activation = item.get("activation_conditions", [])
+        if activation and binding is None:
+            errors.append(f"{wid}: activation conditions require an experiment binding")
+        if isinstance(activation, list):
+            for index, condition in enumerate(activation, 1):
+                label = f"{wid}.activation_conditions[{index}]"
+                if not isinstance(condition, dict):
+                    errors.append(f"{label} must be an object")
+                    continue
+                predecessor = condition.get("predecessor_work_item_id")
+                gate_id = condition.get("gate_id")
+                allowed = condition.get("allowed_results")
+                if predecessor not in by_id:
+                    errors.append(f"{label} references unknown predecessor {predecessor}")
+                if predecessor not in item.get("dependencies", []):
+                    errors.append(f"{label} predecessor must also be a dependency")
+                if not isinstance(gate_id, str) or not gate_id:
+                    errors.append(f"{label}.gate_id must be substantive")
+                if not isinstance(allowed, list) or not allowed:
+                    errors.append(f"{label}.allowed_results must be a non-empty list")
+                elif set(allowed) - GATE_RESULTS:
+                    errors.append(f"{label}.allowed_results contains unsupported values")
+
+        if binding is None:
+            for record in item.get("episodes", []):
+                if isinstance(record, dict) and record.get("experiment_run") is not None:
+                    errors.append(f"{wid}: unbound work item contains experiment_run metadata")
+            continue
+        if not isinstance(binding, dict):
+            continue
+        for field in ("block_id", "decision_gate_id", "paper_id"):
+            if not isinstance(binding.get(field), str) or not binding[field]:
+                errors.append(f"{wid}.experiment_binding.{field} must be substantive")
+        if not isinstance(binding.get("identity_version"), int) or binding.get("identity_version", 0) < 1:
+            errors.append(f"{wid}.experiment_binding.identity_version must be positive")
+        claim_map = _validate_bound_file(root, binding, "claim_map_path", "claim_map_digest", "claim-map", errors)
+        run_blocks = _validate_bound_file(root, binding, "run_blocks_path", "run_blocks_digest", "run-blocks", errors)
+        commitment = _validate_bound_file(root, binding, "commitment_path", "commitment_digest", "commitment", errors)
+        if isinstance(commitment, dict) and (
+            commitment.get("paper_id") != binding.get("paper_id")
+            or commitment.get("identity_version") != binding.get("identity_version")
+        ):
+            errors.append(f"{wid}: bound commitment identity mismatch")
+        if isinstance(claim_map, list):
+            claim_ids = {
+                entry.get("claim_id")
+                for entry in claim_map
+                if isinstance(entry, dict) and isinstance(entry.get("claim_id"), str)
+            }
+            if set(binding.get("claim_ids", [])) - claim_ids:
+                errors.append(f"{wid}: binding references unknown claim IDs")
+        if isinstance(run_blocks, list):
+            matches = [
+                block for block in run_blocks
+                if isinstance(block, dict) and block.get("block_id") == binding.get("block_id")
+            ]
+            if len(matches) != 1:
+                errors.append(f"{wid}: bound block does not resolve exactly once")
+            elif matches[0].get("decision_gate_id") != binding.get("decision_gate_id"):
+                errors.append(f"{wid}: bound block gate does not match the binding")
+
+        if item.get("state") in {"running", "awaiting_verification", "completed"}:
+            snapshot = item.get("execution_snapshot")
+            if not isinstance(snapshot, dict):
+                errors.append(f"{wid}: started experiment item lacks execution_snapshot")
+            else:
+                for field in ("declared_inputs", "declared_evaluator_artifacts"):
+                    values = snapshot.get(field)
+                    if not isinstance(values, dict):
+                        errors.append(f"{wid}.execution_snapshot.{field} must be an object")
+                        continue
+                    for relative, expected in values.items():
+                        try:
+                            path = resolve_inside_root(root, relative, field)
+                        except SystemExit as exc:
+                            errors.append(str(exc))
+                            continue
+                        if not path.exists() or path_digest(path) != expected:
+                            errors.append(f"{wid}: declared snapshot digest mismatch: {relative}")
+
+        for record in item.get("episodes", []):
+            if not isinstance(record, dict):
+                continue
+            run = record.get("experiment_run")
+            if not isinstance(run, dict):
+                errors.append(f"{wid}: experiment-bound episode lacks experiment_run")
+                continue
+            run_id = run.get("run_id")
+            if not isinstance(run_id, str) or not run_id:
+                errors.append(f"{wid}: experiment run ID must be substantive")
+                continue
+            if run_id in run_index:
+                errors.append(f"duplicate experiment run ID: {run_id}")
+            else:
+                run_index[run_id] = (item, record)
+            if run.get("block_id") != binding.get("block_id"):
+                errors.append(f"{wid}: experiment run block does not match binding")
+            if run.get("gate_id") != binding.get("decision_gate_id"):
+                errors.append(f"{wid}: experiment run gate does not match binding")
+            if run.get("gate_result") not in GATE_RESULTS:
+                errors.append(f"{wid}: invalid experiment gate result")
+            if run.get("scientific_disposition") not in SCIENTIFIC_DISPOSITIONS:
+                errors.append(f"{wid}: invalid scientific disposition")
+            if run.get("relation") not in LINEAGE_RELATIONS:
+                errors.append(f"{wid}: invalid experiment lineage relation")
+            if run.get("relation") not in binding.get("allowed_lineage_relations", []):
+                errors.append(f"{wid}: experiment lineage relation is not allowed by the binding")
+
+        if item.get("state") == "completed" and item.get("episodes"):
+            latest = item["episodes"][-1]
+            run = latest.get("experiment_run") if isinstance(latest, dict) else None
+            verification = item.get("verifications", [])[-1] if item.get("verifications") else None
+            if isinstance(run, dict) and isinstance(verification, dict):
+                if verification.get("gate_results", {}).get(run.get("gate_id")) != run.get("gate_result"):
+                    errors.append(f"{wid}: verified gate result does not match the submitted run")
+                if verification.get("scientific_disposition") != run.get("scientific_disposition"):
+                    errors.append(f"{wid}: verified scientific disposition does not match the submitted run")
+
+    for run_id, (item, record) in run_index.items():
+        run = record["experiment_run"]
+        parent_id = run.get("parent_run_id")
+        if parent_id is None:
+            continue
+        if parent_id not in run_index:
+            errors.append(f"experiment run {run_id} references unknown parent {parent_id}")
+            continue
+        parent_item, parent_record = run_index[parent_id]
+        binding = item.get("experiment_binding", {})
+        parent_binding = parent_item.get("experiment_binding", {})
+        if (
+            binding.get("paper_id") != parent_binding.get("paper_id")
+            or binding.get("identity_version") != parent_binding.get("identity_version")
+        ):
+            errors.append(f"experiment run {run_id} has a parent from another paper identity")
+        if run.get("relation") == "technical_retry" and run.get("block_id") != parent_record["experiment_run"].get("block_id"):
+            errors.append(f"technical retry {run_id} has a parent from another block")
 
 
 def validate_evidence(root: Path, work_items: dict, errors: list[str]) -> None:
@@ -273,6 +461,7 @@ def validate_harness(root: Path, errors: list[str]) -> None:
         errors.append("HARNESS_STATE.json omits an active work item")
     elif state.get("active_work_item_id") is not None and active != [state.get("active_work_item_id")]:
         errors.append("HARNESS_STATE.json active_work_item_id disagrees with work-items.json")
+    validate_experiment_integrity(root, work_items, errors)
     validate_evidence(root, work_items, errors)
 
 
@@ -294,9 +483,10 @@ def main() -> int:
     if profile == "harness":
         print(
             "Validation passed: commitment structure, harness layout, event chain, projections, "
-            "dependency graph, and digest-anchored evidence are internally consistent. This is "
-            "repository validation only; it does not establish authenticated approval, external "
-            "immutability, executor isolation, scientific validity, or independent verification."
+            "dependency graph, experiment bindings, accepted gate results, lineage references, "
+            "and digest-anchored evidence are internally consistent. This is repository validation "
+            "only; declared snapshots are not proof of filesystem isolation, external immutability, "
+            "scientific validity, or independent verification."
         )
     else:
         print(
