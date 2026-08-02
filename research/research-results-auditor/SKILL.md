@@ -30,7 +30,8 @@ description: Audit ML/statistics experiment outputs for validity, confounds, sta
 - Use the canonical directory `./results-audit/`.
 - Read `research-commitment.json`, `experiment-plan/claim-map.json`, the bound work item, submitted episode, verifier record, result artifacts, and relevant predecessor failures.
 - Resolve run IDs and parent relations from event-backed work-item records or `harness_runtime.py experiment-lineage`; never infer lineage from filenames.
-- Use `source_mode=orchestrated` and bind every source run to its exact work item, episode digest, submitted run metadata, verifier decision, and verified gate/disposition.
+- Use `source_mode=orchestrated`, freeze the exact claim scope, and bind every included source run to its work item, episode digest, scoped submitted effect, verifier decision, and verified gate/disposition.
+- Account for every eligible run under the same paper identity and source claim. Include it or place it in `run_selection.excluded_runs` with a substantive rationale; never silently select only favorable runs.
 - Keep the audit legible to paper planning, review-loop, rebuttal, and later claim narrowing.
 
 ## Input contract
@@ -56,10 +57,11 @@ Prefer:
 Write `results-audit.json` as the authority for downstream claim support. It contains:
 
 - paper identity and audit status;
-- stable audit ID and source claim ID;
+- stable audit ID, source claim ID, and exact scope;
 - requested and attained assurance classes;
 - bounded verdict and audited claim effect;
 - exact source-run and verifier bindings when orchestrated;
+- a run-selection rule plus explicit exclusions covering every eligible run;
 - evidence artifact paths and digests;
 - required check results with rationales and evidence paths;
 - actual independence dimensions and self-review disclosure;
@@ -97,14 +99,15 @@ The narrative may explain the audit but must not promote, soften, or replace the
 - Do not call results independently verified when the audit is self-review or when evaluation and advancement authority are not materially separated.
 - Do not describe start/submission digest equality as executor isolation or filesystem immutability.
 - Do not omit skips, nulls, retries, initial failures, resource failures, or exclusions that could affect the claim.
-- Preserve outcome-informed case or metric selection as exploratory unless a separate confirmatory evaluation exists.
+- Do not omit an eligible run. Include it or record an explicit exclusion and rationale in `run_selection`.
+- Preserve outcome-informed case, metric, or run selection as exploratory unless a separate confirmatory evaluation exists.
 - Do not let a prose result summary override a negative or inconclusive machine-readable audit.
 
 ## Audit workflow
 
 ### 1) Reconstruct the intended claim and evidence route
 
-- Freeze the source claim ID and bounded claim text.
+- Freeze the source claim ID, bounded claim text, and exact population/task/split/condition/metric scope.
 - Identify the exact numbers, plots, tables, or artifacts intended to support it.
 - Record requested assurance and the paper identity.
 - For orchestrated work, resolve work item, episode, run, block, gate, lineage parent, submitted claim effect, verifier decision, verified gate, and verified disposition.
@@ -118,6 +121,7 @@ The narrative may explain the audit but must not promote, soften, or replace the
 
 ### 3) Check run lineage and verification semantics
 
+- Enumerate every eligible run for the same paper identity and source claim before interpreting any one run.
 - Verify that the lineage relation is permitted by the bound block.
 - Require parents for technical retries, ablations, parameter variations, and sensitivity runs.
 - Do not count a technical retry as independent replication.
@@ -146,7 +150,7 @@ Use `pass`, `fail`, `inconclusive`, or `not_assessed`, with a substantive ration
 - Positive exploratory support requires passing protocol, metric, and provenance checks.
 - Positive confirmatory support additionally requires baseline fairness, outcome accounting, inferential support, and confound control; orchestrated work also requires snapshot continuity.
 - Independent support requires a passing independence check, no self-review, evaluation and advancement-authority separation, and at least one additional independence dimension.
-- Operational/high-stakes support requires all independence dimensions and every required check to pass.
+- Operational/high-stakes support requires all independence dimensions and every required check, including snapshot continuity and independence, to pass.
 - Keep assurance strength separate from direction of evidence: a confirmatory audit may conclude `does_not_support_claim`.
 
 ### 6) Preserve failure inheritance and write the handoff
