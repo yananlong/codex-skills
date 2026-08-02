@@ -1,0 +1,38 @@
+diff --git a/research/research-pipeline-planner/references/agentic-harness-contract.md b/research/research-pipeline-planner/references/agentic-harness-contract.md
+index 05e841b..bef8b80 100644
+--- a/research/research-pipeline-planner/references/agentic-harness-contract.md
++++ b/research/research-pipeline-planner/references/agentic-harness-contract.md
+@@ -173,7 +173,7 @@ Before approving:
+ 
+ For experiment approval, the verifier must record the same gate result and scientific disposition submitted by the worker after inspecting the evidence. Approval does not convert `fail` or `inconclusive` into `pass`. Gate-conditioned downstream work becomes ready only from an allowed verified result.
+ 
+-The runtime validates actor labels and disclosure flags, not real-world identity or organizational independence.
++The runtime validates actor labels and disclosure flags, not real-world identity or organizational independence. Replay re-enforces the same-role disclosure rule, verifier evidence, episode binding, and experiment gate/disposition consistency so command-time authorization cannot disappear from the event projection.
+ 
+ ## Checkpoint, pause, and recovery
+ 
+@@ -230,4 +230,4 @@ Use stable explicit idempotency keys when a caller may retry after an uncertain
+ 
+ Legacy directory packs and unbound work items remain structurally valid under their existing profiles. New experiment-specific fields are required only when `experiment_binding` is present. Earlier draft harness event logs may require replay or migration when the schema gains derived fields.
+ 
+-A passing harness validation means the declared repository artifacts, event chain, projections, dependencies, recorded digests, experiment bindings, gate records, and lineage references are internally consistent. It does not establish external immutability, authenticated execution, isolation, semantic validity, scientific validity, or independent verification.
++A passing harness validation means the declared repository artifacts, event chain, projections, dependencies, recorded digests, experiment bindings, gate records, lineage references, and event-to-episode projections are internally consistent. Every submitted episode is revalidated against the historical work-item state that preceded its event. It does not establish external immutability, authenticated execution, isolation, semantic validity, scientific validity, or independent verification.
+diff --git a/research/research-pipeline-planner/references/experiment-execution-binding.md b/research/research-pipeline-planner/references/experiment-execution-binding.md
+index 4a8f9d6..88107bb 100644
+--- a/research/research-pipeline-planner/references/experiment-execution-binding.md
++++ b/research/research-pipeline-planner/references/experiment-execution-binding.md
+@@ -119,7 +119,7 @@ Allowed relations are:
+ - `alternative_hypothesis`
+ - `technical_retry`
+ 
+-`baseline` has no parent. `technical_retry`, `ablation`, `parameter_variation`, and `sensitivity` require a parent run. Other non-baseline runs without a parent require a substantive `parent_rationale`. Parent runs must belong to the same paper identity; technical retries must use the same block.
++`parent_run_id` must be JSON `null` or a substantive run-ID string. `baseline` has no parent. `technical_retry`, `ablation`, `parameter_variation`, and `sensitivity` require a parent run. Other non-baseline runs without a parent require a substantive `parent_rationale`. Parent runs must already exist, must belong to the same paper identity, and technical retries must use the same block.
+ 
+ A failed or partial attempt may still be a lineage node even when it produces no required scientific output. Such a run must use `gate_result=inconclusive` or `not_applicable`, use `scientific_disposition=inconclusive` or `diagnostic_only`, and may record only `unchanged` or `inconclusive` claim effects. This preserves the failed attempt as the parent of a later `technical_retry` without misrepresenting execution failure as scientific evidence.
+ 
+@@ -160,4 +160,4 @@ python scripts/harness_runtime.py --root <suite> verify WI-B1 \
+   --actor research-pipeline-planner
+ ```
+ 
+-Approval establishes that the declared work item was completed and inspected. It does not convert a failed gate into a passing one or establish scientific validity beyond the declared evidence class.
++Approval establishes that the declared work item was completed and inspected. Replay rechecks verifier-role disclosure, substantive evidence, the referenced episode, and exact gate/disposition agreement. Revision or block events may omit gate/disposition fields; when present, they must still agree with the submitted run. Approval does not convert a failed gate into a passing one or establish scientific validity beyond the declared evidence class. `revise` and verifier-originated `block` decisions remain attached to their episode in the derived verification history and lineage projection.
