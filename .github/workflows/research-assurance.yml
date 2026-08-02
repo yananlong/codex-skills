@@ -63,6 +63,7 @@ jobs:
         run: python -m unittest discover -s research/research-systematic-literature-review/tests -p 'test_review_pack.py' -v
       - name: Run experiment assurance tests
         run: python -m unittest discover -s research/research-experiment-plan/tests -p 'test_validate_experiment_pack.py' -v
+      # Archives are release artifacts; generated Python bytecode is forbidden.
       - name: Archive changed skills
         run: |
           mkdir -p packaged-skills
