@@ -1,0 +1,60 @@
++        cp = self.validate(expect=1)
++        self.assertIn("submission snapshot does not match its start event", cp.stdout)
++
+     def test_pack_integrity_rejects_activation_gate_not_owned_by_predecessor(self):
+         self.add("WI-B1", "B1")
+         self.add("WI-B2", "B2", depends="WI-B1", activation="WI-B1:G1:pass")
+diff --git a/research/research-pipeline-planner/tests/test_experiment_runtime.py b/research/research-pipeline-planner/tests/test_experiment_runtime.py
+index 37f9b8c..05d7bf6 100644
+--- a/research/research-pipeline-planner/tests/test_experiment_runtime.py
++++ b/research/research-pipeline-planner/tests/test_experiment_runtime.py
+@@ -262,6 +262,22 @@ class ExperimentRuntimeTests(unittest.TestCase):
+         cp = self.submit("WI-B1", ep, expect=1)
+         self.assertIn("baseline experiment run cannot have", cp.stderr)
+ 
++    def test_parent_run_id_must_be_null_or_substantive_string(self):
++        self.add_experiment("WI-B1", "B1")
++        self.start("WI-B1")
++        for invalid_parent in ("", 17):
++            with self.subTest(parent_run_id=invalid_parent):
++                run_suffix = "EMPTY" if invalid_parent == "" else str(invalid_parent)
++                episode = self.episode(
++                    "WI-B1", "B1", f"RUN-B1-{run_suffix}",
++                    relation="replication", parent_rationale="No canonical parent is available.",
++                )
++                data = json.loads(episode.read_text(encoding="utf-8"))
++                data["experiment_run"]["parent_run_id"] = invalid_parent
++                episode.write_text(json.dumps(data), encoding="utf-8")
++                cp = self.submit("WI-B1", episode, expect=1)
++                self.assertIn("must be null or a substantive string", cp.stderr)
++
+     def test_activation_predecessor_must_also_be_dependency(self):
+         self.add_experiment("WI-B1", "B1")
+         cp = self.run_cli(
+@@ -357,6 +373,26 @@ class ExperimentRuntimeTests(unittest.TestCase):
+         cp = self.verify("WI-B1", "G1", "fail", "supports_claim", expect=1)
+         self.assertIn("matching --gate-result", cp.stderr)
+ 
++    def test_verifier_block_is_preserved_in_lineage_projection(self):
++        self.add_experiment("WI-B1", "B1")
++        self.start("WI-B1")
++        episode = self.episode("WI-B1", "B1", "RUN-B1-BLOCKED")
++        self.submit("WI-B1", episode)
++        self.run_cli(
++            "verify", "WI-B1", "--decision", "block", "--evidence", "fatal audit defect",
++            "--gate-result", "G1=pass", "--scientific-disposition", "supports_claim",
++            "--actor", "research-pipeline-planner",
++        )
++        projected = json.loads((self.root / "work-items.json").read_text(encoding="utf-8"))
++        verification = projected["items"][0]["verifications"][-1]
++        self.assertEqual(verification["decision"], "block")
++        self.assertEqual(verification["episode_id"], "EP-WI-B1-A1")
++        lineage = json.loads(self.run_cli("experiment-lineage", "--block-id", "B1").stdout)
++        self.assertEqual(lineage["nodes"][0]["verification_decision"], "block")
++        self.run_cli("replay")
++        replayed = json.loads(self.run_cli("experiment-lineage", "--block-id", "B1").stdout)
++        self.assertEqual(replayed["nodes"][0]["verification_decision"], "block")
++
+     def test_lineage_projection_is_replay_deterministic(self):
+         self.add_experiment("WI-B1", "B1")
+         self.start("WI-B1")
