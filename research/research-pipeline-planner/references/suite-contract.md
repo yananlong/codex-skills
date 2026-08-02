@@ -101,7 +101,8 @@ The result-audit work item must preserve:
 - submitted and verified gate/disposition records;
 - verifier decision and self-review disclosure;
 - result artifact paths and digests;
-- requested assurance, check results, limitations, and predecessor failures.
+- exact audit scope, requested assurance, check results, limitations, and predecessor failures;
+- a run-selection rule covering every eligible run, with explicit exclusion rationales.
 
 It returns `results-audit/results-audit.json`, whose audit IDs and bounded verdicts become the only result-audit inputs paper planning may use for empirical promotion.
 
@@ -109,12 +110,12 @@ The paper-plan work item must preserve:
 
 - paper identity;
 - stable paper claim IDs and source claim IDs;
-- result-audit IDs and required assurance thresholds;
-- audited evidence paths;
+- linked result-audit IDs, explicit audit exclusions, and required assurance thresholds;
+- audited evidence paths and exact compatible scope;
 - support status and allowed manuscript action;
 - scope, limitations, missing evidence, exhibits, and citation needs.
 
-A negative or inadequate audit must remain visible in the paper binding. Do not omit it by selecting only a preferred run or by adding an extra Markdown claim row.
+A negative or inadequate audit must remain visible in the paper binding. Every relevant audit must be linked or explicitly excluded with a real scope difference and rationale. The paper validator must revalidate the exact audit JSON, narrative, and work-item bindings; do not bypass this by selecting only a preferred run, passing a skeletal audit object, or adding an extra Markdown claim row.
 
 ## Worker protocol
 
