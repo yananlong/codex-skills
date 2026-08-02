@@ -116,12 +116,15 @@ class ExperimentPackIntegrationTests(unittest.TestCase):
         cp = self.validate()
         self.assertIn("experiment bindings", cp.stdout)
 
-    def test_pack_validation_detects_post_completion_snapshot_mutation(self):
+    def test_post_completion_revisions_do_not_rewrite_historical_snapshot(self):
         self.add("WI-B1", "B1")
         self.complete("WI-B1", "B1", "pass", "supports_claim", "strengthen")
         (self.suite / "evaluation/score.py").write_text("print('changed')\n", encoding="utf-8")
-        cp = self.validate(expect=1)
-        self.assertIn("declared snapshot digest mismatch", cp.stdout)
+        blocks = json.loads((self.suite / "experiment-plan/run-blocks.json").read_text())
+        blocks[0]["setup_note"] = "later planning revision"
+        (self.suite / "experiment-plan/run-blocks.json").write_text(json.dumps(blocks), encoding="utf-8")
+        cp = self.validate()
+        self.assertIn("event-recorded start/submission digest equality", cp.stdout)
 
     def test_failed_gate_keeps_conditioned_item_queued_and_pack_valid(self):
         self.add("WI-B1", "B1")
