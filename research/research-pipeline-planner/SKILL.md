@@ -13,9 +13,10 @@ description: Coordinate research as either a standalone staged planning pass or 
 4. In orchestrated mode, initialize the suite with `scripts/init_research_pack.py`, then use `scripts/harness_runtime.py` as the only writer for work-item and run state.
 5. Freeze one paper identity before moving from exploration into a paper-bearing route; keep one active paper identity and one active work item by default.
 6. Freeze each work item with explicit inputs, outputs, acceptance checks, permissions, budgets, dependencies, predecessor failures, evidence class, and relation to the commitment contract.
-7. Run the assigned stage skill as a bounded worker, require an episode package, and authorize transition only after verifier inspection.
-8. Apply `references/epistemic-assurance-contract.md`, `references/agentic-harness-contract.md`, `references/stage-gates.md`, and `references/research-commitment-contract.md` as appropriate.
-9. Treat D3-D4 identity changes as pivot requests, not ordinary revisions.
+7. For experiment execution, bind the work item to one frozen claim map, run block, decision gate, and declared snapshot set using `references/experiment-execution-binding.md`.
+8. Run the assigned stage skill as a bounded worker, require an episode package, and authorize transition only after verifier inspection.
+9. Apply `references/epistemic-assurance-contract.md`, `references/agentic-harness-contract.md`, `references/stage-gates.md`, and `references/research-commitment-contract.md` as appropriate.
+10. Treat D3-D4 identity changes as pivot requests, not ordinary revisions.
 
 ## Routing triggers
 
@@ -39,6 +40,7 @@ Do not force this skill for a clear one-stage request unless the user asks for p
 - Use `scripts/harness_runtime.py`; do not hand-edit dynamic machine state.
 - Keep one active work item by default. Increase concurrency only with disjoint write scopes or external isolation and conflict handling.
 - Treat stage skills as bounded workers. The planner owns scheduling, transition authority, and D3-D4 pivot authorization, not every stage's substantive work.
+- Bind executable experiment work to one `run-blocks.json` block and preserve technical outcome, scientific disposition, and decision-gate result as separate dimensions.
 - Keep `artifact-index.md` current, but never use Markdown status alone as scheduling authority.
 - Preserve evidence class, selection history, predecessor failures, negative evidence, and commitment identity across handoffs.
 
@@ -55,6 +57,8 @@ Do not force this skill for a clear one-stage request unless the user asks for p
 - Stop a committed route if `research-commitment.json` is missing or invalid.
 - Do not advance from prose, file presence, a worker's self-report, or a validator pass alone.
 - Do not let a worker change its frozen objective, acceptance checks, selection rule, metric, gate, or paper identity after starting; create or revise the work item and record an event.
+- Do not treat technical experiment completion as scientific gate success.
+- Do not unlock a downstream experiment solely because its predecessor completed; require its declared activation gate when one exists.
 - Do not authorize conceptual reconsideration before the declared next mandatory evidence artifact unless a recorded pivot trigger or kill condition has fired.
 - Do not enact D3-D4 changes without an explicit pivot request and planner authorization.
 - Do not retry an unchanged failed action without a documented changed hypothesis or transient-failure basis.
@@ -105,11 +109,22 @@ Use `harness_runtime.py add` and include:
 - paper ID and identity version when the route is committed;
 - whether the work produces the next mandatory evidence artifact.
 
+For experiment execution, also include:
+
+- claim-map and run-block paths;
+- one bound block ID and its decision gate;
+- the commitment artifact;
+- declared input and evaluator snapshot paths;
+- required outputs;
+- allowed lineage relations;
+- any gate-conditioned activation rule for downstream work.
+
 Prefer one next blocking decision over a speculative long queue. Context manifests are allowlists; do not dump the full project history into every worker.
 
 ### 4) Start and supervise the worker episode
 
 - Start through the runtime to create the attempt and idempotency key.
+- For experiment-bound work, start records digest snapshots of the declared inputs and evaluator artifacts. This is a repository-local continuity check, not an isolation claim.
 - Require the worker to read only assigned context, confirm dependencies, objective, and commitment identity, work incrementally, preserve failures, and write only inside declared scope.
 - Record material observations, tool failures, selection changes, and apparent D3-D4 drift.
 - Checkpoint before expensive runs, destructive edits, external writes, approval boundaries, and context-window transitions.
@@ -128,13 +143,14 @@ A completed episode must:
 - remain within budgets and permissions;
 - preserve the active paper identity or explicitly request a pivot.
 
-Structural episode validity establishes traceability, not scientific correctness.
+An experiment-bound episode must additionally record a stable run ID, lineage relation and parent, gate result, scientific disposition, scoped claim effects, and interpretation. Structural episode validity establishes traceability, not scientific correctness.
 
 ### 6) Verify and authorize transition
 
 - Re-read the frozen work item and commitment contract, then inspect the actual artifacts.
 - Re-run deterministic checks where feasible.
 - Confirm failure accounting, permission compliance, selection history, evidence class, and identity consistency.
+- For experiment work, verify the submitted gate result and scientific disposition exactly; approval confirms completion and inspection, not that the gate passed.
 - Invoke `research-results-auditor` when experimental outputs determine advancement.
 - Apply the assurance contract to evidence promotion.
 - Record `approve`, `revise`, `block`, `pivot-request`, or `park-successor` with concrete evidence in the appropriate machine and human-readable records.
@@ -143,6 +159,7 @@ Structural episode validity establishes traceability, not scientific correctness
 ### 7) Apply paper-identity and stage gates
 
 - Use `references/stage-gates.md` for stage-specific decisions.
+- Use activation conditions to distinguish structural dependency completion from scientific permission to open a later experiment.
 - D0-D2 changes may proceed when documented and consistent with the contract.
 - D3 requires a pivot request covering the fatal defect or fired trigger, why D0-D2 repair is insufficient, switching cost, discarded evidence, new literature and validation burden, and successor-project feasibility.
 - D4 closes or parks the current lineage and initializes a new paper ID.
@@ -153,15 +170,15 @@ Structural episode validity establishes traceability, not scientific correctness
 - Classify failures as specification, missing context, tool/connector, permission, execution/resource, verification, scientific/evidential, identity-drift, or harness defects.
 - Retry only plausibly transient or changed-condition failures within the attempt budget.
 - Use the same idempotency key for replay of the same logical attempt; use a new attempt when inputs or policy change.
-- Preserve all attempts, failures, and negative evidence in the event log.
+- Preserve all attempts, failures, negative evidence, and experiment lineage in the event log.
 - Pause for human judgment at irreversible actions, ambiguous acceptance contracts, sensitive-data boundaries, normative evidence-class decisions, D3-D4 pivots, or unenforceable permissions.
 - Prefer submit, split, park, or kill over indefinite conceptual expansion once the mandatory evidence route is exhausted.
 
 ### 9) Evaluate and maintain the harness
 
-Track task success, verifier reversals, false completion, retries, blocked work, tool usage, permission violations, identity-drift events, pivot requests, late literature omissions, recovery after interruption, context volume, stale context, and cross-task transfer.
+Track task success, verifier reversals, false completion, retries, blocked work, tool usage, permission violations, identity-drift events, pivot requests, late literature omissions, experiment-gate mismatches, recovery after interruption, context volume, stale context, and cross-task transfer.
 
-Every harness change must state its predicted effect, affected tasks, risk, rollback path, and evaluation result. Maintain regression cases for clean transition, missing artifact, retry, interruption/resume, malformed episode, blocked evidence promotion, predecessor-failure carry-forward, event completeness, unapproved D3-D4 drift, and literature-recall failure.
+Every harness change must state its predicted effect, affected tasks, risk, rollback path, and evaluation result. Maintain regression cases for clean transition, missing artifact, retry, interruption/resume, malformed episode, blocked evidence promotion, predecessor-failure carry-forward, event completeness, unapproved D3-D4 drift, literature-recall failure, failed experiment gates, and lineage replay.
 
 Run recurring entropy-audit work items to remove stale instructions, duplicate schemas, orphan artifacts, dead work, and obsolete workarounds.
 
@@ -170,6 +187,7 @@ Run recurring entropy-audit work items to remove stale instructions, duplicate s
 - `references/research-commitment-contract.md`
 - `references/research-commitment.schema.json`
 - `references/agentic-harness-contract.md`
+- `references/experiment-execution-binding.md`
 - `references/epistemic-assurance-contract.md`
 - `references/suite-contract.md`
 - `references/stage-gates.md`
@@ -184,5 +202,5 @@ Run recurring entropy-audit work items to remove stale instructions, duplicate s
 - `scripts/init_research_pack.py`: initialize a harness-backed suite and an exploring paper-commitment artifact by default; `--legacy` creates the compatibility layout. `--force` preserves stage outputs and the existing commitment, while `--force --reset-stage-artifacts` or `--force --reset-commitment` explicitly resets those scopes.
 - `scripts/init_research_commitment.py`: initialize or explicitly replace `research-commitment.json`.
 - `scripts/validate_research_commitment.py`: validate commitment structure and D3-D4 authorization records without claiming scientific validity.
-- `scripts/harness_runtime.py`: single-writer event-sourced runtime for work items, episodes, verification, checkpoints, pause/resume, retries, replay, and status.
-- `scripts/validate_research_pack.py`: validate legacy or harness profiles, commitment structure, event-chain integrity, and replayed projection consistency.
+- `scripts/harness_runtime.py`: single-writer event-sourced runtime for work items, experiment bindings, lineage, gate-conditioned activation, episodes, verification, checkpoints, pause/resume, retries, replay, and status.
+- `scripts/validate_research_pack.py`: validate legacy or harness profiles, commitment structure, event-chain integrity, replayed projection consistency, experiment bindings, submission snapshots, and gate/lineage references.

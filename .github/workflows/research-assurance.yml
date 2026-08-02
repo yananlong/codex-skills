@@ -47,9 +47,14 @@ jobs:
             research/research-pipeline-planner/scripts/validate_research_commitment.py \
             research/research-systematic-literature-review/scripts/init_review_pack.py \
             research/research-systematic-literature-review/scripts/validate_review_pack.py \
+            research/research-experiment-plan/scripts/init_experiment_pack.py \
             research/research-experiment-plan/scripts/validate_experiment_pack.py
       - name: Run harness runtime tests
         run: python -m unittest discover -s research/research-pipeline-planner/tests -p 'test_harness_runtime.py' -v
+      - name: Run experiment runtime tests
+        run: python -m unittest discover -s research/research-pipeline-planner/tests -p 'test_experiment_runtime.py' -v
+      - name: Run experiment pack integration tests
+        run: python -m unittest discover -s research/research-pipeline-planner/tests -p 'test_experiment_pack_integration.py' -v
       - name: Run research-pack tests
         run: python -m unittest discover -s research/research-pipeline-planner/tests -p 'test_research_pack.py' -v
       - name: Run research-commitment tests
@@ -58,7 +63,8 @@ jobs:
         run: python -m unittest discover -s research/research-systematic-literature-review/tests -p 'test_review_pack.py' -v
       - name: Run experiment assurance tests
         run: python -m unittest discover -s research/research-experiment-plan/tests -p 'test_validate_experiment_pack.py' -v
-      - name: Package changed skills
+      # Archives are release artifacts; generated Python bytecode is forbidden.
+      - name: Archive changed skills
         run: |
           mkdir -p packaged-skills
           package_skill() {
@@ -66,7 +72,11 @@ jobs:
             skill_name="$2"
             parent_dir="$(dirname "$source_dir")"
             base_name="$(basename "$source_dir")"
-            (cd "$parent_dir" && zip -qr "$GITHUB_WORKSPACE/packaged-skills/${skill_name}.zip" "$base_name")
+            (
+              cd "$parent_dir"
+              zip -qr "$GITHUB_WORKSPACE/packaged-skills/${skill_name}.zip" "$base_name" \
+                -x "*/__pycache__/*" "*.pyc" "*.pyo"
+            )
           }
           package_skill documents/adversarial-doc-review adversarial-doc-review
           package_skill research/research-experiment-plan research-experiment-plan
@@ -76,6 +86,13 @@ jobs:
           package_skill research/research-results-auditor research-results-auditor
           package_skill research/research-review-loop research-review-loop
           package_skill research/research-systematic-literature-review research-systematic-literature-review
+
+          for archive in packaged-skills/*.zip; do
+            if unzip -Z1 "$archive" | grep -Eq '(^|/)__pycache__/|\.py[co]$'; then
+              echo "::error file=$archive::archive contains generated Python bytecode"
+              exit 1
+            fi
+          done
       - name: Upload changed skill packages
         uses: actions/upload-artifact@v4
         with:
