@@ -9,6 +9,7 @@ on:
       - "research/research-idea-discovery/**"
       - "research/research-novelty-review/**"
       - "research/research-results-auditor/**"
+      - "research/research-paper-plan/**"
       - "research/research-review-loop/**"
       - "documents/adversarial-doc-review/**"
       - ".github/workflows/research-assurance.yml"
@@ -21,6 +22,7 @@ on:
       - "research/research-idea-discovery/**"
       - "research/research-novelty-review/**"
       - "research/research-results-auditor/**"
+      - "research/research-paper-plan/**"
       - "research/research-review-loop/**"
       - "documents/adversarial-doc-review/**"
       - ".github/workflows/research-assurance.yml"
@@ -48,13 +50,19 @@ jobs:
             research/research-systematic-literature-review/scripts/init_review_pack.py \
             research/research-systematic-literature-review/scripts/validate_review_pack.py \
             research/research-experiment-plan/scripts/init_experiment_pack.py \
-            research/research-experiment-plan/scripts/validate_experiment_pack.py
+            research/research-experiment-plan/scripts/validate_experiment_pack.py \
+            research/research-results-auditor/scripts/init_results_audit.py \
+            research/research-results-auditor/scripts/validate_results_audit.py \
+            research/research-paper-plan/scripts/init_paper_pack.py \
+            research/research-paper-plan/scripts/validate_paper_pack.py
       - name: Run harness runtime tests
         run: python -m unittest discover -s research/research-pipeline-planner/tests -p 'test_harness_runtime.py' -v
       - name: Run experiment runtime tests
         run: python -m unittest discover -s research/research-pipeline-planner/tests -p 'test_experiment_runtime.py' -v
       - name: Run experiment pack integration tests
         run: python -m unittest discover -s research/research-pipeline-planner/tests -p 'test_experiment_pack_integration.py' -v
+      - name: Run result-audit to paper-binding integration tests
+        run: python -m unittest discover -s research/research-pipeline-planner/tests -p 'test_result_audit_paper_binding_integration.py' -v
       - name: Run research-pack tests
         run: python -m unittest discover -s research/research-pipeline-planner/tests -p 'test_research_pack.py' -v
       - name: Run research-commitment tests
@@ -63,6 +71,10 @@ jobs:
         run: python -m unittest discover -s research/research-systematic-literature-review/tests -p 'test_review_pack.py' -v
       - name: Run experiment assurance tests
         run: python -m unittest discover -s research/research-experiment-plan/tests -p 'test_validate_experiment_pack.py' -v
+      - name: Run machine-readable results-audit tests
+        run: python -m unittest discover -s research/research-results-auditor/tests -p 'test_results_audit.py' -v
+      - name: Run paper claim-evidence binding tests
+        run: python -m unittest discover -s research/research-paper-plan/tests -p 'test_paper_pack.py' -v
       # Archives are release artifacts; generated Python bytecode is forbidden.
       - name: Archive changed skills
         run: |
@@ -82,6 +94,7 @@ jobs:
           package_skill research/research-experiment-plan research-experiment-plan
           package_skill research/research-idea-discovery research-idea-discovery
           package_skill research/research-novelty-review research-novelty-review
+          package_skill research/research-paper-plan research-paper-plan
           package_skill research/research-pipeline-planner research-pipeline-planner
           package_skill research/research-results-auditor research-results-auditor
           package_skill research/research-review-loop research-review-loop
