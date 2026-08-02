@@ -44,8 +44,8 @@ MATRIX = """# Claims-Evidence Matrix
 
 `claim-evidence-bindings.json` is canonical. Keep one row per JSON claim using the exact paper claim ID.
 
-| Paper claim ID | Claim | Type | Evidence mode | Support status | Manuscript action | Required assurance | Source claim IDs | Audit IDs | Planned sections | Exhibit IDs | Citation need IDs | Limitation |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Paper claim ID | Claim | Type | Evidence mode | Support status | Manuscript action | Required assurance | Source claim IDs | Audit IDs | Excluded audit IDs | Planned sections | Exhibit IDs | Citation need IDs | Limitation |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 """
 
 FIGURE_PLAN = """# Figure Plan
