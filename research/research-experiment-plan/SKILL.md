@@ -14,6 +14,7 @@ description: Convert a concrete research claim into a tracked, decisive experime
 5. Build the minimum decisive experiment blocks, not a benchmark wishlist or a paper-defence script.
 6. Run a cheap non-vacuity preflight before expensive or confirmatory execution.
 7. Separate must-run from nice-to-have runs, attach explicit decision gates, and emit bridge-ready outputs for later execution.
+8. For orchestrated execution, declare inputs, evaluator artifacts, required outputs, allowed lineage relations, and gate-conditioned downstream activation using `../research-pipeline-planner/references/experiment-execution-binding.md`.
 
 ## Constants
 
@@ -38,6 +39,8 @@ description: Convert a concrete research claim into a tracked, decisive experime
 - Read upstream artifacts from `research-brief.md`, `artifact-index.md`, `./ideation/`, `./novelty-review/`, and `./literature-review/` when present.
 - Keep the experiment outputs easy for downstream paper planning and review to consume.
 - Carry forward selection history, evidence class, negative evidence, and material predecessor failures rather than resetting them at the experiment stage.
+- Treat `claim-map.json` and `run-blocks.json` as frozen inputs when creating an experiment-bound harness work item.
+- Keep technical episode completion, scientific disposition, and decision-gate result distinct. A correctly executed negative experiment may complete while failing its scientific gate.
 
 ## Input contract
 
@@ -64,6 +67,8 @@ description: Convert a concrete research claim into a tracked, decisive experime
 - Stop confirmatory promotion when the decision or loss contract omits a decision-relevant error, omission, skip, null, retry, or failure state.
 - Stop confirmatory promotion when the evaluated system can read hidden truth, the oracle and runner share undisclosed hard-coded policy, or the claimed independence is only a role label.
 - Do not treat structural validation, internal agreement, self-hashes, copied digests, environment flags, or field presence as proof that the claimed assurance property holds.
+- Do not treat a technically completed run as a passing scientific gate.
+- Do not use experiment lineage to encode a D3-D4 paper pivot; route that through the research commitment contract.
 - A failed non-vacuity preflight normally forces revision or a weaker evidence class; it does not prohibit exploratory work.
 
 ## Output contract
@@ -78,8 +83,8 @@ description: Convert a concrete research claim into a tracked, decisive experime
 - In orchestrated mode, these live under `./experiment-plan/`.
 - In standalone mode, any target directory is valid.
 - `claim-map.json` is the machine-readable source of truth for claims, anti-claims, evidence class, decision rules, loss contracts, falsification tests, and predecessor failures.
-- `run-blocks.json` is the machine-readable source of truth for experiment blocks, dependencies, pass/fail criteria, selection rules, non-vacuity checks, outcome accounting, hidden-information controls, and independence requirements.
-- `decision-gates.md` records the checkpoints that can halt, narrow, or reclassify the plan before expensive runs.
+- `run-blocks.json` is the machine-readable source of truth for experiment blocks, dependencies, decision-gate links, pass/fail criteria, selection rules, non-vacuity checks, outcome accounting, hidden-information controls, execution declarations, and allowed lineage relations.
+- `decision-gates.md` records the checkpoints that can halt, narrow, reclassify, or authorize later blocks after a result is interpreted.
 - `execution-bridge.md` translates the plan into implementation-ready instructions without forcing another skill to reverse-engineer the planning intent.
 
 ## Workflow
@@ -168,13 +173,19 @@ Record the result in `decision-gates.md` and in each affected block's `non_vacui
   - success criterion
   - failure interpretation
   - expected paper artifact
-  - compute budget
+  - compute budget as a planning note, not a repository-enforced assurance property
   - dependencies
+  - decision gate ID
   - case-selection rule
   - non-vacuity check
   - complete outcome accounting
   - hidden-information controls
   - actual independence requirements
+  - execution mode and entrypoint when known
+  - declared input snapshot paths
+  - declared evaluator snapshot paths
+  - required output paths
+  - allowed lineage relations
 - Write the block objects to `run-blocks.json` rather than leaving the critical structure only in prose.
 
 ### 5) Tighten controls and ablations
@@ -194,10 +205,11 @@ Record the result in `decision-gates.md` and in each affected block's `non_vacui
 - Put must-run blocks first.
 - Add stop/go gates so later runs depend on what earlier runs actually show.
 - Every must-run block needs:
-  - a gate that opens it
-  - a condition that advances the plan
-  - a condition that forces revision or weaker evidence classification
-  - a condition that stops the plan
+  - a gate bound to that block;
+  - a condition that advances the plan;
+  - a condition that forces revision or weaker evidence classification;
+  - a condition that stops the plan.
+- A dependent block that requires a scientific outcome must declare a gate-conditioned activation rule in the harness, not only a structural dependency.
 - Track expected outputs and lifecycle state in `experiment-tracker.md`.
 - Use tracker statuses:
   - `planned`
@@ -215,13 +227,18 @@ Record the result in `decision-gates.md` and in each affected block's `non_vacui
 - Use `references/execution-bridge-template.md`.
 - For each must-run block, record:
   - exact upstream claim IDs
+  - decision gate ID
   - required inputs and datasets
+  - declared input and evaluator snapshot paths
   - expected command or implementation entrypoint if known
-  - output artifacts the auditor or paper planner should look for
+  - required output artifacts the auditor or paper planner should look for
+  - intended lineage relation and parent-run requirement
   - blockers that must be resolved before someone starts coding or submitting jobs
   - evidence class and whether outcome inspection would trigger reclassification
   - hidden information unavailable to the evaluated system
   - all failure, skip, null, and retry states that must be retained
+  - idempotency and restart requirements
+  - any downstream activation rule governed by the gate
 - Keep `execution-bridge.md` concise and implementation-facing. It exists so later stages do not have to reconstruct planning intent from a narrative plan.
 
 ### 8) Record risks and collaboration hooks
@@ -231,7 +248,7 @@ Record the result in `decision-gates.md` and in each affected block's `non_vacui
 - If existing results already exist, pull in `research-results-auditor`.
 - If the plan will later feed a draft or response to reviewers, keep outputs legible to `research-paper-plan` and `research-review-loop`.
 - Validate tracked packs with `scripts/validate_experiment_pack.py` before treating them as stable stage artifacts.
-- The default validator profile remains structural for backward compatibility. For confirmatory or high-stakes promotion, run it with `--assurance-profile confirmatory`; even that checks field presence and consistency, not whether the claimed controls actually hold.
+- The default validator profile remains structural for backward compatibility. For confirmatory or high-stakes promotion, run it with `--assurance-profile confirmatory`; even that checks field presence, links, and internal consistency, not whether the declared controls actually held.
 
 ## References
 
@@ -244,9 +261,10 @@ Record the result in `decision-gates.md` and in each affected block's `non_vacui
 - `references/control-and-ablation-checklist.md`
 - `references/risk-confound-checklist.md`
 - `references/tabmol-ddi-ood-adapter.md`
+- `../research-pipeline-planner/references/experiment-execution-binding.md`
 - `../research-pipeline-planner/references/epistemic-assurance-contract.md`
 
 ## Scripts
 
-- `scripts/init_experiment_pack.py`: create the full experiment-planning pack in a standalone directory or the suite's `experiment-plan/` directory.
-- `scripts/validate_experiment_pack.py`: validate required headings, JSON structure, gate references, and tracker states; use the optional confirmatory assurance profile for evidence-promotion packs.
+- `scripts/init_experiment_pack.py`: create the full experiment-planning pack in a standalone directory or the suite's `experiment-plan/` directory, including execution and lineage scaffolds.
+- `scripts/validate_experiment_pack.py`: validate required headings, JSON structure, reciprocal claim/block links, gate bindings, execution declarations, lineage policy, tracker states, and confirmatory assurance fields without claiming executor isolation or scientific validity.
