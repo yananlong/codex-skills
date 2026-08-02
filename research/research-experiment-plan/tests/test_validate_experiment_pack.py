@@ -9,6 +9,7 @@ import unittest
 from pathlib import Path
 
 SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "validate_experiment_pack.py"
+INIT = Path(__file__).resolve().parents[1] / "scripts" / "init_experiment_pack.py"
 
 
 class ExperimentValidatorTests(unittest.TestCase):
@@ -34,7 +35,8 @@ class ExperimentValidatorTests(unittest.TestCase):
             "selection_history":["Frozen before targeted outcomes"],"predecessor_failures":[]
         }]
         self.blocks = [{
-            "block_id":"B1","paper_role":"main","claim_ids":["C1"],"anti_claims_ruled_out":["No improvement"],
+            "block_id":"B1","paper_role":"main","claim_ids":["C1"],"decision_gate_id":"G1",
+            "anti_claims_ruled_out":["No improvement"],
             "why_this_block_exists":"Tests the primary claim","dataset_split_task":"Frozen held-out test split",
             "systems_compared":["proposed","baseline"],"fixed_factors":["data"],"variable_factors":["method"],
             "metrics":["accuracy"],"setup_details":"Same compute and preprocessing","seeds":3,
@@ -46,7 +48,15 @@ class ExperimentValidatorTests(unittest.TestCase):
             "complete_outcome_accounting":"Count success, miss, skip, null, retry, timeout and failure",
             "hidden_information_controls":"No oracle labels in model context","independence_requirements":[],
             "independence_evidence":"","operational_threat_model":"","operational_harms":"",
-            "predecessor_failures":[]
+            "predecessor_failures":[],
+            "execution":{
+                "mode":"command",
+                "entrypoint":{"argv":["python","run_b1.py"],"cwd":"."},
+                "declared_inputs":[{"path":"data/test.jsonl","snapshot":"digest-at-start"}],
+                "declared_evaluator_artifacts":[{"path":"evaluation/score.py","snapshot":"digest-at-start"}],
+                "required_outputs":[{"path":"results/B1.json","kind":"metrics"}],
+            },
+            "lineage_policy":{"allowed_relations":["baseline","replication","ablation","technical_retry"]},
         }]
         self.write_all()
 
@@ -88,10 +98,13 @@ x
 ## Block Hand-off
 ### B1
 - Claim IDs: C1
+- Decision gate ID: G1
 - Expected implementation entrypoint: run_b1.py
 - Expected command or notebook: python run_b1.py
 - Output artifacts to produce: results/B1.json
 - Auditor-facing checks: verify split and accounting
+- Intended lineage relation: baseline
+- Parent run ID or rationale: no parent; baseline
 - Hidden information unavailable to the evaluated system: held-out labels
 - Failure, skip, null, timeout, and retry states to retain: all states
 - Idempotency and restart requirements: stable run ID and atomic outputs
@@ -108,9 +121,19 @@ x
         self.assertEqual(cp.returncode, expect, msg=f"stdout:\n{cp.stdout}\nstderr:\n{cp.stderr}")
         return cp
 
+    def test_initialized_pack_passes_structural_profile(self):
+        init_root = self.root / "fresh"
+        cp = subprocess.run([sys.executable, str(INIT), str(init_root)], text=True, capture_output=True)
+        self.assertEqual(cp.returncode, 0, cp.stderr)
+        args = [sys.executable, str(SCRIPT)]
+        for name in self.paths:
+            args += [f"--{name}", str(init_root / self.paths[name].name)]
+        cp = subprocess.run(args, text=True, capture_output=True)
+        self.assertEqual(cp.returncode, 0, msg=f"stdout:\n{cp.stdout}\nstderr:\n{cp.stderr}")
+
     def test_valid_confirmatory_pack(self):
         cp = self.run_validator()
-        self.assertIn("evidence-class ordering", cp.stdout)
+        self.assertIn("decision-gate bindings", cp.stdout)
 
     def test_confirmatory_claim_cannot_link_only_exploratory_block(self):
         self.blocks[0]["evidence_class"] = "exploratory"
@@ -154,8 +177,10 @@ x
         self.assertIn("operational_harms", cp.stdout)
 
     def test_dependency_cycle_rejected(self):
-        second = dict(self.blocks[0])
-        second.update(block_id="B2", claim_ids=["C1"], dependencies=["B1"])
+        second = json.loads(json.dumps(self.blocks[0]))
+        second.update(block_id="B2", claim_ids=["C1"], decision_gate_id="G2", dependencies=["B1"])
+        second["execution"]["required_outputs"] = [{"path":"results/B2.json"}]
+        second["expected_output_artifact"] = "results/B2.json"
         self.blocks[0]["dependencies"]=["B2"]
         self.blocks.append(second)
         self.claims[0]["linked_blocks"].append("B2")
@@ -187,6 +212,36 @@ x
         cp = self.run_validator(expect=1)
         self.assertIn("evidence_class", cp.stdout)
         self.assertNotIn("Traceback", cp.stderr)
+
+    def test_unknown_block_gate_rejected(self):
+        self.blocks[0]["decision_gate_id"] = "G9"
+        self.write_all()
+        cp = self.run_validator(expect=1)
+        self.assertIn("unknown decision gate", cp.stdout)
+
+    def test_gate_must_open_after_its_bound_block(self):
+        text = self.paths["decision-gates"].read_text().replace("| G1 | B1 |", "| G1 | B9 |")
+        self.paths["decision-gates"].write_text(text)
+        cp = self.run_validator(expect=1)
+        self.assertIn("unknown block", cp.stdout)
+
+    def test_confirmatory_must_run_requires_execution(self):
+        del self.blocks[0]["execution"]
+        self.write_all()
+        cp = self.run_validator(expect=1)
+        self.assertIn("execution is required", cp.stdout)
+
+    def test_required_output_must_match_expected_output(self):
+        self.blocks[0]["execution"]["required_outputs"] = [{"path":"results/other.json"}]
+        self.write_all()
+        cp = self.run_validator(expect=1)
+        self.assertIn("expected_output_artifact", cp.stdout)
+
+    def test_lineage_policy_rejects_pivot(self):
+        self.blocks[0]["lineage_policy"]["allowed_relations"].append("pivot")
+        self.write_all()
+        cp = self.run_validator(expect=1)
+        self.assertIn("unsupported relations", cp.stdout)
 
 
 if __name__ == "__main__":
