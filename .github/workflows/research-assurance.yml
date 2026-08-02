@@ -26,7 +26,7 @@ on:
       - ".github/workflows/research-assurance.yml"
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   tests:
@@ -98,100 +98,3 @@ jobs:
           name: changed-skills
           path: packaged-skills/*.zip
           if-no-files-found: error
-
-# PR12_BOOTSTRAP_BEGIN
-  apply-pr12-fixes:
-    if: github.event_name == 'pull_request' && github.head_ref == 'agent/experiment-gate-lineage'
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: agent/experiment-gate-lineage
-          fetch-depth: 0
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - name: Reassemble and apply fixes
-        run: |
-          cat .pr12-fix/chunk* | tr -d '\n' | base64 -d > /tmp/pr12_apply_fixes.py
-          python /tmp/pr12_apply_fixes.py
-      - name: Compile affected entrypoints
-        run: |
-          python -m py_compile \
-            research/research-pipeline-planner/scripts/harness_runtime.py \
-            research/research-pipeline-planner/scripts/init_research_pack.py \
-            research/research-pipeline-planner/scripts/validate_research_pack.py \
-            research/research-pipeline-planner/scripts/init_research_commitment.py \
-            research/research-pipeline-planner/scripts/validate_research_commitment.py \
-            research/research-systematic-literature-review/scripts/init_review_pack.py \
-            research/research-systematic-literature-review/scripts/validate_review_pack.py \
-            research/research-experiment-plan/scripts/init_experiment_pack.py \
-            research/research-experiment-plan/scripts/validate_experiment_pack.py
-      - name: Run full assurance matrix
-        run: |
-          python -m unittest discover -s research/research-pipeline-planner/tests -p 'test_harness_runtime.py' -v
-          python -m unittest discover -s research/research-pipeline-planner/tests -p 'test_experiment_runtime.py' -v
-          python -m unittest discover -s research/research-pipeline-planner/tests -p 'test_experiment_pack_integration.py' -v
-          python -m unittest discover -s research/research-pipeline-planner/tests -p 'test_research_pack.py' -v
-          python -m unittest discover -s research/research-pipeline-planner/tests -p 'test_research_commitment.py' -v
-          python -m unittest discover -s research/research-systematic-literature-review/tests -p 'test_review_pack.py' -v
-          python -m unittest discover -s research/research-experiment-plan/tests -p 'test_validate_experiment_pack.py' -v
-      - name: Verify clean archives
-        run: |
-          rm -rf packaged-skills
-          mkdir -p packaged-skills
-          package_skill() {
-            source_dir="$1"
-            skill_name="$2"
-            parent_dir="$(dirname "$source_dir")"
-            base_name="$(basename "$source_dir")"
-            (
-              cd "$parent_dir"
-              zip -qr "$GITHUB_WORKSPACE/packaged-skills/${skill_name}.zip" "$base_name" \
-                -x "*/__pycache__/*" "*.pyc" "*.pyo"
-            )
-          }
-          package_skill documents/adversarial-doc-review adversarial-doc-review
-          package_skill research/research-experiment-plan research-experiment-plan
-          package_skill research/research-idea-discovery research-idea-discovery
-          package_skill research/research-novelty-review research-novelty-review
-          package_skill research/research-pipeline-planner research-pipeline-planner
-          package_skill research/research-results-auditor research-results-auditor
-          package_skill research/research-review-loop research-review-loop
-          package_skill research/research-systematic-literature-review research-systematic-literature-review
-          for archive in packaged-skills/*.zip; do
-            if unzip -Z1 "$archive" | grep -Eq '(^|/)__pycache__/|\.py[co]$'; then
-              echo "::error file=$archive::archive contains generated Python bytecode"
-              exit 1
-            fi
-          done
-      - name: Upload repaired clean archives
-        uses: actions/upload-artifact@v4
-        with:
-          name: changed-skills-pr12-fix
-          path: packaged-skills/*.zip
-          if-no-files-found: error
-      - name: Commit fixes and remove bootstrap
-        run: |
-          rm -rf .pr12-fix packaged-skills
-          rm -f .github/workflows/pr12-apply-fixes.yml
-          find research documents -type d -name __pycache__ -prune -exec rm -rf {} +
-          find research documents -type f \( -name '*.pyc' -o -name '*.pyo' \) -delete
-          python - <<'PY'
-          from pathlib import Path
-          path = Path('.github/workflows/research-assurance.yml')
-          text = path.read_text(encoding='utf-8')
-          begin = text.index('\n# PR12_BOOTSTRAP_BEGIN\n')
-          end_marker = '\n# PR12_BOOTSTRAP_END\n'
-          end = text.index(end_marker, begin) + len(end_marker)
-          text = text[:begin] + '\n' + text[end:]
-          text = text.replace('permissions:\n  contents: write\n', 'permissions:\n  contents: read\n', 1)
-          path.write_text(text, encoding='utf-8')
-          PY
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -m "Fix adversarial review blockers in experiment lineage"
-          git push origin HEAD:agent/experiment-gate-lineage
-# PR12_BOOTSTRAP_END
