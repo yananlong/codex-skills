@@ -1,5 +1,6 @@
 # Claims-Evidence Matrix Template
 
-| Claim | Status | Evidence artifact | Planned section | Figure or table | Limitation or caveat |
-| --- | --- | --- | --- | --- | --- |
-| | supported / partial / blocked | | | | |
+`claim-evidence-bindings.json` is canonical. Keep exactly one row per JSON paper claim.
+
+| Paper claim ID | Claim | Type | Evidence mode | Support status | Manuscript action | Required assurance | Source claim IDs | Audit IDs | Planned sections | Exhibit IDs | Citation need IDs | Limitation |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
