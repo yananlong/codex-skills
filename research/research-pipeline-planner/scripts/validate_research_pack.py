@@ -174,13 +174,15 @@ def validate_work_items(data, errors: list[str]) -> None:
         visit(node)
 
 
-def _validate_bound_file(
+def _read_bound_file(
     root: Path,
     binding: dict[str, Any],
     path_field: str,
     digest_field: str,
     label: str,
     errors: list[str],
+    *,
+    require_current: bool,
 ) -> Any:
     relative = binding.get(path_field)
     expected = binding.get(digest_field)
@@ -193,11 +195,22 @@ def _validate_bound_file(
         errors.append(str(exc))
         return None
     if not path.is_file():
-        errors.append(f"bound {label} file is missing: {relative}")
+        if require_current:
+            errors.append(f"bound {label} file is missing: {relative}")
         return None
     if path_digest(path) != expected:
-        errors.append(f"bound {label} digest mismatch: {relative}")
+        if require_current:
+            errors.append(f"bound {label} digest mismatch: {relative}")
+        return None
     return read_json(path, errors)
+
+
+def _expected_binding_digests(binding: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "claim_map_digest": binding.get("claim_map_digest"),
+        "run_blocks_digest": binding.get("run_blocks_digest"),
+        "commitment_digest": binding.get("commitment_digest"),
+    }
 
 
 def validate_experiment_integrity(root: Path, work_items: dict, errors: list[str]) -> None:
@@ -243,9 +256,21 @@ def validate_experiment_integrity(root: Path, work_items: dict, errors: list[str
                 errors.append(f"{wid}.experiment_binding.{field} must be substantive")
         if not isinstance(binding.get("identity_version"), int) or binding.get("identity_version", 0) < 1:
             errors.append(f"{wid}.experiment_binding.identity_version must be positive")
-        claim_map = _validate_bound_file(root, binding, "claim_map_path", "claim_map_digest", "claim-map", errors)
-        run_blocks = _validate_bound_file(root, binding, "run_blocks_path", "run_blocks_digest", "run-blocks", errors)
-        commitment = _validate_bound_file(root, binding, "commitment_path", "commitment_digest", "commitment", errors)
+
+        state = item.get("state")
+        require_current_binding = state in {"queued", "ready", "running"}
+        claim_map = _read_bound_file(
+            root, binding, "claim_map_path", "claim_map_digest", "claim-map", errors,
+            require_current=require_current_binding,
+        )
+        run_blocks = _read_bound_file(
+            root, binding, "run_blocks_path", "run_blocks_digest", "run-blocks", errors,
+            require_current=require_current_binding,
+        )
+        commitment = _read_bound_file(
+            root, binding, "commitment_path", "commitment_digest", "commitment", errors,
+            require_current=require_current_binding,
+        )
         if isinstance(commitment, dict) and (
             commitment.get("paper_id") != binding.get("paper_id")
             or commitment.get("identity_version") != binding.get("identity_version")
@@ -269,8 +294,8 @@ def validate_experiment_integrity(root: Path, work_items: dict, errors: list[str
             elif matches[0].get("decision_gate_id") != binding.get("decision_gate_id"):
                 errors.append(f"{wid}: bound block gate does not match the binding")
 
-        if item.get("state") in {"running", "awaiting_verification", "completed"}:
-            snapshot = item.get("execution_snapshot")
+        snapshot = item.get("execution_snapshot")
+        if state == "running":
             if not isinstance(snapshot, dict):
                 errors.append(f"{wid}: started experiment item lacks execution_snapshot")
             else:
@@ -286,7 +311,21 @@ def validate_experiment_integrity(root: Path, work_items: dict, errors: list[str
                             errors.append(str(exc))
                             continue
                         if not path.exists() or path_digest(path) != expected:
-                            errors.append(f"{wid}: declared snapshot digest mismatch: {relative}")
+                            errors.append(f"{wid}: declared snapshot digest mismatch while running: {relative}")
+        elif state in {"awaiting_verification", "completed"}:
+            if not isinstance(snapshot, dict):
+                errors.append(f"{wid}: submitted experiment item lacks execution_snapshot")
+            if not item.get("episodes"):
+                errors.append(f"{wid}: submitted experiment item lacks an episode record")
+            else:
+                latest_record = item["episodes"][-1]
+                if not isinstance(latest_record, dict):
+                    errors.append(f"{wid}: latest episode record must be an object")
+                else:
+                    if latest_record.get("verified_execution_snapshot") != snapshot:
+                        errors.append(f"{wid}: submission snapshot does not match the start snapshot")
+                    if latest_record.get("verified_binding_digests") != _expected_binding_digests(binding):
+                        errors.append(f"{wid}: submission binding digests do not match the frozen binding")
 
         for record in item.get("episodes", []):
             if not isinstance(record, dict):
@@ -316,7 +355,7 @@ def validate_experiment_integrity(root: Path, work_items: dict, errors: list[str
             if run.get("relation") not in binding.get("allowed_lineage_relations", []):
                 errors.append(f"{wid}: experiment lineage relation is not allowed by the binding")
 
-        if item.get("state") == "completed" and item.get("episodes"):
+        if state == "completed" and item.get("episodes"):
             latest = item["episodes"][-1]
             run = latest.get("experiment_run") if isinstance(latest, dict) else None
             verification = item.get("verifications", [])[-1] if item.get("verifications") else None
@@ -484,8 +523,10 @@ def main() -> int:
         print(
             "Validation passed: commitment structure, harness layout, event chain, projections, "
             "dependency graph, experiment bindings, accepted gate results, lineage references, "
-            "and digest-anchored evidence are internally consistent. This is repository validation "
-            "only; declared snapshots are not proof of filesystem isolation, external immutability, "
+            "and digest-anchored evidence are internally consistent. Submitted experiment history "
+            "uses event-recorded start/submission digest equality, so later legitimate plan or "
+            "evaluator revisions do not rewrite an earlier run. This is repository validation only; "
+            "declared snapshots are not proof of filesystem isolation, external immutability, "
             "scientific validity, or independent verification."
         )
     else:
