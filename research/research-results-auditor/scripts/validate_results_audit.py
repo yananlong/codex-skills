@@ -209,7 +209,10 @@ def validate_source_runs(
         if not isinstance(run, dict):
             errors.append(f"{run_label} must be an object")
             continue
-        for field in ("work_item_id", "episode_id", "episode_digest", "run_id", "block_id", "gate_id"):
+        for field in (
+            "work_item_id", "episode_id", "episode_digest", "run_id", "block_id", "gate_id",
+            "submitted_claim_scope",
+        ):
             require_string(run, field, run_label, errors)
         run_id = run.get("run_id")
         if meaningful(run_id):
@@ -255,6 +258,35 @@ def validate_source_runs(
             errors.append(f"{run_label}.verification_self_review must be boolean")
         normalized.append(run)
     return normalized
+
+
+def validate_run_selection(
+    audit: dict[str, Any], label: str, complete: bool, errors: list[str]
+) -> dict[str, Any]:
+    selection = audit.get("run_selection")
+    if not isinstance(selection, dict):
+        errors.append(f"{label}.run_selection must be an object")
+        return {"selection_rule": "", "excluded_runs": []}
+    if complete and not meaningful(selection.get("selection_rule")):
+        errors.append(f"{label}.run_selection.selection_rule must be substantive")
+    excluded = selection.get("excluded_runs")
+    if not isinstance(excluded, list):
+        errors.append(f"{label}.run_selection.excluded_runs must be a list")
+        excluded = []
+    seen: set[str] = set()
+    normalized: list[dict[str, str]] = []
+    for index, entry in enumerate(excluded, start=1):
+        item_label = f"{label}.run_selection.excluded_runs[{index}]"
+        if not isinstance(entry, dict):
+            errors.append(f"{item_label} must be an object")
+            continue
+        run_id = validate_identifier(entry.get("run_id"), f"{item_label}.run_id", errors)
+        if run_id in seen:
+            errors.append(f"{label}.run_selection.excluded_runs contains duplicate run_id {run_id}")
+        seen.add(run_id)
+        rationale = require_string(entry, "rationale", item_label, errors)
+        normalized.append({"run_id": run_id, "rationale": rationale})
+    return {"selection_rule": selection.get("selection_rule", ""), "excluded_runs": normalized}
 
 
 def validate_evidence_artifacts(
@@ -355,11 +387,14 @@ def validate_verdict_semantics(
         "confound_control",
     }
     if verdict in POSITIVE_VERDICTS:
-        required = exploratory_required
-        if verdict != "supports_exploratory_follow_up":
+        if verdict == "supports_operational_high_stakes_claim":
+            required = set(REQUIRED_CHECKS)
+        elif verdict == "supports_exploratory_follow_up":
+            required = exploratory_required
+        else:
             required = confirmatory_required
-        if source_mode == "orchestrated" and verdict != "supports_exploratory_follow_up":
-            required = required | {"snapshot_continuity"}
+            if source_mode == "orchestrated":
+                required = required | {"snapshot_continuity"}
         missing = sorted(check for check in required if checks.get(check) != "pass")
         if missing:
             errors.append(f"{label}: verdict {verdict} requires pass checks: {', '.join(missing)}")
@@ -417,9 +452,11 @@ def validate_audits(data: dict[str, Any], complete: bool, narrative: str, errors
             errors.append(f"{label}: attained assurance class cannot exceed requested assurance class")
         if complete:
             require_string(audit, "claim_text", label, errors)
+            require_string(audit, "scope", label, errors)
             require_string(audit, "minimum_corrective_action", label, errors)
             require_string(audit, "narrative_anchor", label, errors)
         runs = validate_source_runs(audit, label, complete, str(source_mode), errors)
+        validate_run_selection(audit, label, complete, errors)
         artifacts = validate_evidence_artifacts(audit, label, complete, errors)
         checks = validate_checks(audit, label, complete, errors)
         validate_independence(audit, label, complete, str(attained), checks, errors)
@@ -469,6 +506,29 @@ def find_run(work_items: dict[str, Any], run_id: str) -> tuple[dict[str, Any], d
     return found
 
 
+def eligible_run_ids(
+    work_items: dict[str, Any], paper_id: Any, identity_version: Any, claim_id: Any
+) -> set[str]:
+    eligible: set[str] = set()
+    for item in work_items.get("items", []):
+        if not isinstance(item, dict):
+            continue
+        binding = item.get("experiment_binding")
+        if not isinstance(binding, dict):
+            continue
+        if binding.get("paper_id") != paper_id or binding.get("identity_version") != identity_version:
+            continue
+        if claim_id not in binding.get("claim_ids", []):
+            continue
+        for episode in item.get("episodes", []):
+            if not isinstance(episode, dict):
+                continue
+            run = episode.get("experiment_run")
+            if isinstance(run, dict) and meaningful(run.get("run_id")):
+                eligible.add(str(run["run_id"]))
+    return eligible
+
+
 def validate_linked(
     data: dict[str, Any],
     audits: list[dict[str, Any]],
@@ -500,8 +560,38 @@ def validate_linked(
     for audit in audits:
         audit_id = audit.get("audit_id", "<unknown>")
         claim_id = audit.get("claim_id")
+        if audit.get("source_mode") != "orchestrated":
+            errors.append(f"audit {audit_id}: linked profile requires source_mode=orchestrated")
         if claim_id not in claim_ids:
             errors.append(f"audit {audit_id} references unknown claim_id {claim_id}")
+        included_ids = {
+            str(source.get("run_id"))
+            for source in audit.get("source_runs", [])
+            if isinstance(source, dict) and meaningful(source.get("run_id"))
+        }
+        selection = audit.get("run_selection") if isinstance(audit.get("run_selection"), dict) else {}
+        excluded_entries = selection.get("excluded_runs", []) if isinstance(selection.get("excluded_runs", []), list) else []
+        excluded_ids = {
+            str(entry.get("run_id"))
+            for entry in excluded_entries
+            if isinstance(entry, dict) and meaningful(entry.get("run_id"))
+        }
+        overlap = included_ids & excluded_ids
+        if overlap:
+            errors.append(f"audit {audit_id} includes and excludes the same runs: {', '.join(sorted(overlap))}")
+        eligible = eligible_run_ids(
+            work_items, data.get("paper_id"), data.get("identity_version"), claim_id
+        )
+        missing = eligible - included_ids - excluded_ids
+        if missing:
+            errors.append(
+                f"audit {audit_id} omits eligible source runs without an exclusion record: {', '.join(sorted(missing))}"
+            )
+        unknown_exclusions = excluded_ids - eligible
+        if unknown_exclusions:
+            errors.append(
+                f"audit {audit_id} excludes runs outside the claim/paper binding: {', '.join(sorted(unknown_exclusions))}"
+            )
         matched_artifacts: dict[str, str] = {}
         for source in audit.get("source_runs", []):
             if not isinstance(source, dict) or not meaningful(source.get("run_id")):
@@ -534,6 +624,11 @@ def validate_linked(
             verified_gate = (
                 gate_results.get(run.get("gate_id")) if isinstance(gate_results, dict) else None
             )
+            effects = [
+                effect
+                for effect in run.get("claim_effects", [])
+                if isinstance(effect, dict) and effect.get("claim_id") == claim_id
+            ]
             expected = {
                 "work_item_id": item.get("work_item_id"),
                 "episode_id": episode.get("episode_id"),
@@ -550,17 +645,13 @@ def validate_linked(
                 "verified_scientific_disposition": verification.get("scientific_disposition"),
                 "verification_self_review": verification.get("self_review"),
             }
-            effects = [
-                effect.get("effect")
-                for effect in run.get("claim_effects", [])
-                if isinstance(effect, dict) and effect.get("claim_id") == claim_id
-            ]
             if len(effects) != 1:
                 errors.append(
                     f"audit {audit_id} source run {source.get('run_id')} must have exactly one submitted claim effect for {claim_id}"
                 )
             else:
-                expected["submitted_claim_effect"] = effects[0]
+                expected["submitted_claim_effect"] = effects[0].get("effect")
+                expected["submitted_claim_scope"] = effects[0].get("scope")
             for field, value in expected.items():
                 if source.get(field) != value:
                     errors.append(
@@ -633,7 +724,7 @@ def main() -> int:
     if args.assurance_profile == "linked":
         print(
             "Validation passed: machine-readable result audits, narrative anchors, claim IDs, source runs, "
-            "episode digests, submitted run metadata, and experiment evidence digests are internally linked. "
+            "episode digests, submitted and verified run metadata, run-selection accounting, and experiment evidence digests are internally linked. "
             "This establishes repository-local consistency only; it does not establish executor isolation, "
             "external immutability, scientific validity, or independent verification beyond the recorded evidence."
         )
