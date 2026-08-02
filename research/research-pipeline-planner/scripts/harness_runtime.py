@@ -365,6 +365,10 @@ def apply_event(state: dict[str, Any], work_items: dict[str, Any], event: dict[s
         }
         if details.get("experiment_run") is not None:
             record["experiment_run"] = copy.deepcopy(details["experiment_run"])
+        if details.get("verified_execution_snapshot") is not None:
+            record["verified_execution_snapshot"] = copy.deepcopy(details["verified_execution_snapshot"])
+        if details.get("verified_binding_digests") is not None:
+            record["verified_binding_digests"] = copy.deepcopy(details["verified_binding_digests"])
         if not all(isinstance(record.get(field), str) and record[field] for field in (
             "episode_path", "episode_id", "episode_digest", "outcome",
             "transition_request", "idempotency_key"
@@ -625,6 +629,17 @@ def _verify_binding_digests(root: Path, item: dict[str, Any]) -> dict[str, Any] 
     if block.get("decision_gate_id") != binding.get("decision_gate_id"):
         raise SystemExit("bound experiment gate changed after work-item creation")
     return block
+
+
+def _binding_digest_record(item: dict[str, Any]) -> dict[str, str]:
+    binding = item.get("experiment_binding")
+    if not isinstance(binding, dict):
+        return {}
+    return {
+        "claim_map_digest": binding["claim_map_digest"],
+        "run_blocks_digest": binding["run_blocks_digest"],
+        "commitment_digest": binding["commitment_digest"],
+    }
 
 
 def _execution_snapshot(root: Path, item: dict[str, Any]) -> dict[str, dict[str, str]] | None:
@@ -976,9 +991,11 @@ def command_submit(args: argparse.Namespace) -> None:
     item = find_item(items, args.work_item_id)
     if args.actor != item["owner_skill"]:
         raise SystemExit("only the declared owner skill may submit the episode")
-    _verify_execution_snapshot(root, item)
-    episode = validate_episode(root, items, item, args.episode.resolve())
-    key = args.idempotency_key or f"{args.work_item_id}:submit:{episode['_digest']}"
+    episode_path = args.episode.resolve()
+    if not episode_path.is_file():
+        raise SystemExit(f"episode file not found: {episode_path}")
+    requested_digest = path_digest(episode_path)
+    key = args.idempotency_key or f"{args.work_item_id}:submit:{requested_digest}"
     matches = [
         event for event in events
         if event.get("event_type") == "episode_submitted"
@@ -987,10 +1004,16 @@ def command_submit(args: argparse.Namespace) -> None:
     if matches:
         match = matches[0]
         details = match.get("details", {})
-        if details.get("episode_digest") != episode["_digest"] or match.get("work_item_id") != args.work_item_id:
+        if (
+            details.get("episode_digest") != requested_digest
+            or match.get("work_item_id") != args.work_item_id
+            or match.get("actor") != args.actor
+        ):
             raise SystemExit("idempotency key was previously used for a different episode submission")
         print(f"already submitted {args.work_item_id}")
         return
+    _verify_execution_snapshot(root, item)
+    episode = validate_episode(root, items, item, episode_path)
     details = {
         "episode_path": episode["_relative_path"],
         "episode_id": episode["episode_id"],
@@ -1002,6 +1025,8 @@ def command_submit(args: argparse.Namespace) -> None:
     }
     if episode["_experiment_run"] is not None:
         details["experiment_run"] = episode["_experiment_run"]
+        details["verified_execution_snapshot"] = copy.deepcopy(item["execution_snapshot"])
+        details["verified_binding_digests"] = _binding_digest_record(item)
     commit_event(root, "episode_submitted", args.actor, args.work_item_id, details)
     print(f"submitted {args.work_item_id}")
 
