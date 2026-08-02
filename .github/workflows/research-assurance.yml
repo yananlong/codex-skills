@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - "research/research-pipeline-planner/**"
+      - "research/research-systematic-literature-review/**"
       - "research/research-experiment-plan/**"
       - "research/research-idea-discovery/**"
       - "research/research-novelty-review/**"
@@ -15,6 +16,7 @@ on:
     branches: [main]
     paths:
       - "research/research-pipeline-planner/**"
+      - "research/research-systematic-literature-review/**"
       - "research/research-experiment-plan/**"
       - "research/research-idea-discovery/**"
       - "research/research-novelty-review/**"
@@ -41,11 +43,19 @@ jobs:
             research/research-pipeline-planner/scripts/harness_runtime.py \
             research/research-pipeline-planner/scripts/init_research_pack.py \
             research/research-pipeline-planner/scripts/validate_research_pack.py \
+            research/research-pipeline-planner/scripts/init_research_commitment.py \
+            research/research-pipeline-planner/scripts/validate_research_commitment.py \
+            research/research-systematic-literature-review/scripts/init_review_pack.py \
+            research/research-systematic-literature-review/scripts/validate_review_pack.py \
             research/research-experiment-plan/scripts/validate_experiment_pack.py
       - name: Run harness runtime tests
         run: python -m unittest discover -s research/research-pipeline-planner/tests -p 'test_harness_runtime.py' -v
       - name: Run research-pack tests
         run: python -m unittest discover -s research/research-pipeline-planner/tests -p 'test_research_pack.py' -v
+      - name: Run research-commitment tests
+        run: python -m unittest discover -s research/research-pipeline-planner/tests -p 'test_research_commitment.py' -v
+      - name: Run literature recall-assurance tests
+        run: python -m unittest discover -s research/research-systematic-literature-review/tests -p 'test_review_pack.py' -v
       - name: Run experiment assurance tests
         run: python -m unittest discover -s research/research-experiment-plan/tests -p 'test_validate_experiment_pack.py' -v
       - name: Package changed skills
@@ -65,6 +75,7 @@ jobs:
           package_skill research/research-pipeline-planner research-pipeline-planner
           package_skill research/research-results-auditor research-results-auditor
           package_skill research/research-review-loop research-review-loop
+          package_skill research/research-systematic-literature-review research-systematic-literature-review
       - name: Upload changed skill packages
         uses: actions/upload-artifact@v4
         with:
