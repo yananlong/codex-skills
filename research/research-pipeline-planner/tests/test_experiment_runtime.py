@@ -193,6 +193,19 @@ class ExperimentRuntimeTests(unittest.TestCase):
         self.verify("WI-B1", "G1", "pass", "supports_claim")
         self.assertEqual(self.states()["WI-B2"], "ready")
 
+    def test_experiment_submission_is_idempotent(self):
+        self.add_experiment("WI-B1", "B1")
+        self.start("WI-B1")
+        ep = self.episode("WI-B1", "B1", "RUN-B1-001")
+        self.submit("WI-B1", ep)
+        cp = self.submit("WI-B1", ep)
+        self.assertIn("already submitted", cp.stdout)
+        events = [
+            json.loads(line)
+            for line in (self.root / "harness-events.jsonl").read_text().splitlines()
+        ]
+        self.assertEqual(sum(event["event_type"] == "episode_submitted" for event in events), 1)
+
     def test_declared_input_mutation_blocks_submission(self):
         self.add_experiment("WI-B1", "B1")
         self.start("WI-B1")
