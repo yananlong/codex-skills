@@ -1,56 +1,54 @@
 # Results Audit Template
 
-## Header
+`results-audit.json` is canonical. Use this file to explain, not replace, the machine-readable verdict.
 
-- Result artifact:
+## Audit Summary
+
+- Paper ID:
+- Identity version:
+- Audit status: draft / complete / superseded
+- Assurance boundary:
+
+## Audit <audit_id>
+
+- Claim ID:
 - Claim under audit:
-- Evaluation protocol:
-- Audit date:
+- Source mode: standalone / orchestrated
+- Requested assurance class:
+- Attained assurance class:
+- Bounded verdict:
+- Audited claim effect:
 - Work item ID:
-- Episode ID:
+- Episode ID and digest:
 - Experiment run ID:
-- Experiment block ID:
+- Block ID and gate ID:
 - Parent run ID and lineage relation:
-- Bound decision gate:
-- Submitted gate result:
-- Verified gate result:
-- Scientific disposition:
+- Submitted gate result and disposition:
+- Verifier decision:
+- Verified gate result and disposition:
+- Verifier self-review disclosure:
 
-## Binding and Snapshot Continuity
+### Evidence artifacts
 
-- Claim-map and run-block binding resolved:
-- Commitment paper ID and identity version:
-- Declared input snapshots inspected:
-- Declared evaluator snapshots inspected:
-- Required outputs present:
-- Limit of the check: digest continuity only; no claim of executor isolation or filesystem immutability
+- Path, kind, source, and digest:
 
-## Protocol Integrity
+### Required checks
 
-- Task/metric match:
+- Protocol integrity:
+- Metric validity:
 - Baseline fairness:
-- Split integrity:
-- Ablation quality:
 - Complete outcome accounting:
+- Inferential support:
+- Confound control:
+- Provenance:
+- Snapshot continuity:
+- Independence:
 
-## Inferential Quality
+### Interpretation
 
-- Uncertainty or interval reporting:
-- Statistical test used:
-- Calibration or threshold sensitivity:
-- Known confounds:
-
-## Lineage Interpretation
-
-- Relation to parent or baseline:
-- What changed relative to the parent:
-- Whether the comparison isolates that change:
-- Whether a technical retry is being misrepresented as independent evidence:
-
-## Claim Support
-
-- What the results clearly support:
-- What they weaken or falsify:
-- What they do not support:
-- Gate consequence for downstream work:
-- Required fixes before citation:
+- What the result supports:
+- What it weakens or falsifies:
+- Strongest evidence against the preferred interpretation:
+- Limitations:
+- Predecessor-failure disposition:
+- Minimum corrective action:
