@@ -1,145 +1,196 @@
 ---
 name: research-results-auditor
-description: Audit ML/statistics experiment outputs for validity, confounds, statistical support, calibration, and mismatch between measured results and claimed conclusions. Use when asked to interpret results, sanity-check benchmarks, review ablations, assess robustness claims, or decide whether an experiment actually supports a paper or project claim.
+description: Audit ML/statistics experiment outputs for validity, confounds, statistical support, calibration, and mismatch between measured results and claimed conclusions. Use when asked to interpret results, sanity-check benchmarks, review ablations, assess robustness claims, decide whether an experiment supports a paper claim, or produce a machine-readable result-audit record for downstream paper planning.
 ---
 
 # Research Results Auditor
 
 ## Quick start
 
-1. Collect the result artifact, the claim it is supposed to support, and the evaluation protocol.
-2. Classify the claimed evidence as exploratory, confirmatory, independently verified, or operational/high-stakes.
-3. Audit metrics, baselines, controls, uncertainty, provenance, selection, complete outcome accounting, and confounds before interpreting the headline result.
-4. When an experiment binding exists, inspect the frozen block, run lineage, declared snapshot continuity, submitted gate result, and verified gate result before assessing the claim.
-5. Separate technical completion, scientific disposition, gate result, and the broader claim the author wants the result to imply.
-6. Test whether assurance labels correspond to real properties rather than file fields, role names, or self-attested controls.
-7. Decide whether this is standalone or the results-audit stage inside an orchestrated suite.
-8. Produce an audit using `references/results-audit-template.md` and the precise verdict language in `../research-pipeline-planner/references/epistemic-assurance-contract.md`.
+1. Collect the concrete result artifact, the exact source claim, and the evaluation protocol.
+2. Classify the requested assurance as exploratory, confirmatory, independently verified, or operational/high-stakes.
+3. In tracked work, initialize `results-audit.json` and `results-audit.md` with `scripts/init_results_audit.py`.
+4. Reconstruct the experiment binding, submitted run, verifier decision, gate result, lineage, artifact digests, and failure history before interpreting the headline metric.
+5. Audit protocol integrity, metrics, baselines, uncertainty, selection, outcome accounting, provenance, confounds, and actual independence.
+6. Record one bounded audit object per claim under review; do not hide conflicting runs inside a prose summary.
+7. Validate with `scripts/validate_results_audit.py`; use the linked profile for orchestrated runs.
+8. Hand the canonical JSON audit to `research-paper-plan` instead of asking it to infer support from figures or filenames.
 
 ## Modes
 
 ### Standalone mode
 
-- Work from the user prompt plus any local result files, tables, plots, logs, or paper claims.
-- Do not require a suite root.
-- If the user asks for project-level sequencing, current-state inspection, or coordination across multiple research stages, invoke `research-pipeline-planner` first instead of treating the audit as an isolated task.
+- Work from the prompt plus concrete local result files, tables, plots, logs, or reported numbers.
+- Do not require a suite root or experiment harness.
+- Use `source_mode=standalone`; retain exact artifact paths and bounded caveats.
+- If the request is really project sequencing or cross-stage coordination, invoke `research-pipeline-planner` first.
 
 ### Orchestrated mode
 
-- Prefer the canonical directory `./results-audit/`.
-- Read upstream context from `research-brief.md`, `artifact-index.md`, `./experiment-plan/`, `./paper-review/`, failure reviews, decision logs, result artifacts, the bound work item, and its submitted episode when present.
-- Resolve experiment run IDs and parent relations through the event-backed work-item records or `harness_runtime.py experiment-lineage`; do not infer lineage from filenames.
-- Check whether downstream experiment activation reflects the verified gate result rather than technical completion alone.
-- Keep the audit legible to downstream paper planning, review-loop, and rebuttal work.
-- Carry material predecessor failures forward until new evidence resolves them; do not reset the ledger because a new result pack exists.
+- Use the canonical directory `./results-audit/`.
+- Read `research-commitment.json`, `experiment-plan/claim-map.json`, the bound work item, submitted episode, verifier record, result artifacts, and relevant predecessor failures.
+- Resolve run IDs and parent relations from event-backed work-item records or `harness_runtime.py experiment-lineage`; never infer lineage from filenames.
+- Use `source_mode=orchestrated` and bind every source run to its exact work item, episode digest, submitted run metadata, verifier decision, and verified gate/disposition.
+- Keep the audit legible to paper planning, review-loop, rebuttal, and later claim narrowing.
 
 ## Input contract
 
-- Minimum:
-  - a real result artifact or concrete reported numbers
-  - the claim those results are supposed to support
-  - the evaluation protocol or enough context to identify missing protocol details
-- Prefer:
-  - experiment plan, claim map, run block, decision gate, work-item binding, submitted episode, parent run, run logs, random seeds, confidence intervals, ablations, baseline details, known reviewer objections, case-selection rule, all skipped/failed/null/retried cases, source code for oracle and runner, provenance records, and the claimed independence arrangement
+Minimum:
+
+- a real result artifact or concrete reported result;
+- the source claim being evaluated;
+- enough protocol information to identify missing controls.
+
+Prefer:
+
+- commitment paper ID and identity version;
+- claim map and run block;
+- work-item and episode records;
+- verifier decision and evidence;
+- run logs, seeds, intervals, ablations, baselines, selection rule, all skipped/failed/null/retried cases, provenance records, and independence evidence.
 
 ## Output contract
 
-- Primary file: `results-audit.md`
-- In orchestrated mode, write the audit under `./results-audit/`.
-- In standalone mode, any target directory is valid.
-- Record the work item, episode, run ID, block ID, lineage relation, parent run, submitted and verified gate results, and scientific disposition when available.
-- End with one of these bounded conclusions:
-  - `structurally valid only`
-  - `internally consistent only`
-  - `supports exploratory follow-up`
-  - `supports the confirmatory claim`
-  - `independently verified`
-  - `inconclusive`
-  - `does not support the claim`
-- State the actual independence dimensions and unresolved predecessor failures beside the verdict.
+### Canonical machine record
+
+Write `results-audit.json` as the authority for downstream claim support. It contains:
+
+- paper identity and audit status;
+- stable audit ID and source claim ID;
+- requested and attained assurance classes;
+- bounded verdict and audited claim effect;
+- exact source-run and verifier bindings when orchestrated;
+- evidence artifact paths and digests;
+- required check results with rationales and evidence paths;
+- actual independence dimensions and self-review disclosure;
+- limitations, predecessor-failure dispositions, and minimum corrective action.
+
+Use the schema in `references/results-audit-schema.md` and the authority rules in `../research-pipeline-planner/references/result-audit-paper-binding-contract.md`.
+
+### Human-readable view
+
+Write `results-audit.md` as the explanatory view. Use one exact heading `## Audit <audit_id>` per JSON record and include the exact line:
+
+```text
+- Bounded verdict: <verdict>
+```
+
+The narrative may explain the audit but must not promote, soften, or replace the JSON verdict.
+
+### Bounded verdicts
+
+- `structurally_valid_only`
+- `internally_consistent_only`
+- `supports_exploratory_follow_up`
+- `supports_confirmatory_claim`
+- `independently_verified`
+- `supports_operational_high_stakes_claim`
+- `inconclusive`
+- `does_not_support_claim`
 
 ## Hard stops
 
-- Do not issue an unqualified pass from file presence, successful commands, schema validation, internal agreement, or polished reporting alone.
-- Do not treat a technically completed or verifier-approved experiment as a passing scientific gate.
-- Do not treat a self-hash as an external lock, an environment flag as isolation, a copied digest as replay, or a role label as independence.
-- Do not describe start/submission digest equality as proof that the executor could not read or alter undeclared state.
-- Do not call results independently verified unless a materially separate evaluator or reproduction pass exists and its independence dimensions are stated.
-- If skips, nulls, retries, initial failures, resource failures, or exclusions that could affect the claim are missing, the verdict cannot exceed `inconclusive` until accounting is repaired.
-- If cases or metrics were selected after inspecting the relevant outcomes, preserve the result as exploratory unless a separate confirmatory evaluation exists.
-- If the loss or outcome contract cannot penalize a decision-relevant mistake, do not accept a confirmatory gate based on that contract.
+- Do not issue an unqualified pass from file presence, successful commands, schema validation, internal agreement, or polished reporting.
+- Do not treat technical completion or verifier approval as a passing scientific gate.
+- Do not issue a positive orchestrated verdict without at least one approved source run.
+- Do not issue confirmatory-or-stronger support without an approved run whose verified gate is `pass`, verified disposition is `supports_claim`, and submitted claim effect is `strengthen`.
+- Do not call results independently verified when the audit is self-review or when evaluation and advancement authority are not materially separated.
+- Do not describe start/submission digest equality as executor isolation or filesystem immutability.
+- Do not omit skips, nulls, retries, initial failures, resource failures, or exclusions that could affect the claim.
+- Preserve outcome-informed case or metric selection as exploratory unless a separate confirmatory evaluation exists.
+- Do not let a prose result summary override a negative or inconclusive machine-readable audit.
 
 ## Audit workflow
 
-### 1) Reconstruct the intended claim and route
+### 1) Reconstruct the intended claim and evidence route
 
-- Write the target claim in one sentence.
-- Identify the exact numbers, plots, tables, artifacts, or control assertions meant to support it.
-- Record the current and requested evidence class.
-- For bound experiment work, resolve the commitment identity, claim ID, block ID, decision gate, run ID, parent run, and lineage relation.
-- Flag any missing result artifact, provenance record, failure ledger, decision rule, or lineage record needed for verification.
+- Freeze the source claim ID and bounded claim text.
+- Identify the exact numbers, plots, tables, or artifacts intended to support it.
+- Record requested assurance and the paper identity.
+- For orchestrated work, resolve work item, episode, run, block, gate, lineage parent, submitted claim effect, verifier decision, verified gate, and verified disposition.
 
 ### 2) Check protocol integrity
 
-- Verify that metrics match the task.
-- Check whether baselines, splits, data filters, search budgets, and stopping rules are comparable.
-- Confirm that ablations isolate the claimed factor rather than multiple changes at once.
+- Verify task/metric fit, comparable baselines, split integrity, search budgets, stopping rules, and isolated ablations.
 - Recover the case-selection rule and identify outcome-conditioned or oracle-conditioned selection.
-- Check whether hidden truth, labels, or adjudication state were available to the evaluated system.
-- Compare declared inputs and evaluator artifacts with their event-recorded start/submission digests; state that this establishes only recorded continuity for declared paths.
+- Check hidden-truth and evaluator leakage controls.
+- Compare declared snapshot and binding records while stating their repository-local assurance boundary.
 
-### 3) Check experiment lineage and gate semantics
+### 3) Check run lineage and verification semantics
 
 - Verify that the lineage relation is permitted by the bound block.
-- Require a valid parent for technical retries, ablations, parameter variations, and sensitivity runs.
-- Check that a technical retry is not counted as independent replication.
-- Confirm that the submitted gate result and scientific disposition match the verifier record.
-- Check that downstream gate-conditioned work opened only after an allowed verified result.
-- Treat a correctly completed negative experiment as valid evidence even when it weakens or falsifies the claim.
+- Require parents for technical retries, ablations, parameter variations, and sensitivity runs.
+- Do not count a technical retry as independent replication.
+- Compare the submitted run with the exact verification record for that episode.
+- Treat a correctly executed negative experiment as valid evidence even when it weakens or falsifies the claim.
 
-### 4) Check assurance properties
+### 4) Complete the required check set
 
-- Compare each assurance label with the actual property claimed.
-- Inspect whether runner, oracle, comparator, and sensitivity checks share hard-coded policy, code paths, data, or hidden truth that could create correlated failure.
-- Distinguish exact regeneration from copying or reusing a recorded digest.
-- Distinguish external anchoring from self-referential integrity checks.
-- State independence across context, data, implementation, evaluation, and advancement authority. If the same agent or team performed multiple roles, call it self-review.
+Record exactly one result for each:
 
-### 5) Check non-vacuity and complete outcome accounting
+- `protocol_integrity`
+- `metric_validity`
+- `baseline_fairness`
+- `outcome_accounting`
+- `inferential_support`
+- `confound_control`
+- `provenance`
+- `snapshot_continuity`
+- `independence`
 
-- Verify that at least one plausible case makes competing systems, policies, or actions differ.
-- Verify that the comparator can win under a plausible condition rather than being disabled by construction.
-- Confirm that every decision-relevant error, including failure to act, appears in the loss or outcome contract.
-- Account for successes, wrong actions, missed actions, skips, nulls, retries, timeouts, initial execution failures, and resource failures.
-- Treat missing or silently reduced set-valued outcomes as a protocol defect, not a harmless formatting choice.
+Use `pass`, `fail`, `inconclusive`, or `not_assessed`, with a substantive rationale and declared evidence paths.
 
-### 6) Check inferential quality
+### 5) Determine assurance and verdict
 
-- Look for class imbalance, calibration problems, threshold sensitivity, unstable aggregates, multiple testing, and cherry-picked best runs.
-- Require statistical tests or uncertainty intervals when claims compare conditions.
-- Treat non-significant or noisy deltas as weak evidence, not wins.
-- Check whether uncertainty analysis matches the actual sampling and selection process.
+- Attained assurance cannot exceed requested assurance.
+- Positive exploratory support requires passing protocol, metric, and provenance checks.
+- Positive confirmatory support additionally requires baseline fairness, outcome accounting, inferential support, and confound control; orchestrated work also requires snapshot continuity.
+- Independent support requires a passing independence check, no self-review, evaluation and advancement-authority separation, and at least one additional independence dimension.
+- Operational/high-stakes support requires all independence dimensions and every required check to pass.
+- Keep assurance strength separate from direction of evidence: a confirmatory audit may conclude `does_not_support_claim`.
 
-### 7) Check confounds, claim drift, and failure inheritance
+### 6) Preserve failure inheritance and write the handoff
 
-- Ask what else could explain the result.
-- Compare the measured quantity with the stated conclusion.
-- Flag any jump from benchmark score to real-world robustness, safety, security, or causality without additional support.
-- Carry each material predecessor failure forward and classify it as resolved by evidence, accepted with claim narrowing, still open, or improperly reclassified/omitted.
-- Treat replacement of the route, artifact, or label as a new claim unless the original failure is actually resolved.
+- Classify each predecessor failure as open, resolved, or accepted with narrowing.
+- State limitations and the minimum corrective action.
+- Write the JSON record first, then the matching narrative section.
+- Validate before handing the audit to paper planning.
 
-### 8) Write the verdict precisely
+## Validation
 
-- Separate structural validity, recorded snapshot continuity, technical completion, internal consistency, exploratory usefulness, confirmatory support, and independent verification.
-- Explain the strongest evidence against the preferred interpretation before giving the final verdict.
-- State the gate consequence for downstream work without converting the gate into a broader scientific certification.
-- List the minimum corrective action needed to reach the next stronger evidence class.
-- Never shorten a bounded verdict into an unqualified “passed,” “validated,” or “verified.”
+Structural validation:
+
+```bash
+python scripts/validate_results_audit.py \
+  --audit results-audit.json \
+  --narrative results-audit.md
+```
+
+Orchestrated linked validation:
+
+```bash
+python scripts/validate_results_audit.py \
+  --audit results-audit/results-audit.json \
+  --narrative results-audit/results-audit.md \
+  --assurance-profile linked \
+  --commitment research-commitment.json \
+  --claim-map experiment-plan/claim-map.json \
+  --work-items work-items.json
+```
+
+A passing validator establishes declared repository consistency, not scientific validity, authenticated execution, external immutability, or real-world independence.
 
 ## References
 
 - `references/results-audit-template.md`
+- `references/results-audit-schema.md`
 - `references/metrics-and-tests-checklist.md`
 - `references/tabmol-ddi-ood-adapter.md`
 - `../research-pipeline-planner/references/experiment-execution-binding.md`
+- `../research-pipeline-planner/references/result-audit-paper-binding-contract.md`
 - `../research-pipeline-planner/references/epistemic-assurance-contract.md`
+
+## Scripts
+
+- `scripts/init_results_audit.py`: initialize `results-audit.json` and `results-audit.md` without overwriting existing work unless `--force` is supplied.
+- `scripts/validate_results_audit.py`: validate audit structure, verdict preconditions, narrative anchors, and optional commitment/claim/run/verifier/evidence bindings.
