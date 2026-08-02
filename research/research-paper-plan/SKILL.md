@@ -1,114 +1,220 @@
 ---
 name: research-paper-plan
-description: Turn supported claims and evidence into a research paper plan that works either as a standalone manuscript-structuring pass or as the paper stage inside a coordinated research workflow. Use when asked to outline a paper, map claims to evidence, plan figures and citations, align experiments to manuscript claims, or keep limitations and threats to validity explicit.
+description: Turn supported claims and evidence into a research paper plan that works either as a standalone manuscript-structuring pass or as the paper stage inside a coordinated research workflow. Use when asked to outline a paper, map claims to evidence, bind audited results to manuscript claims, plan figures and citations, align experiments to manuscript language, or keep limitations and threats to validity explicit.
 ---
 
 # Research Paper Plan
 
 ## Quick start
 
-1. Start from supported claims, not from section titles.
-2. Decide whether this is a standalone paper plan or the paper stage inside an orchestrated suite.
-3. Initialize `paper-plan.md`, `claims-evidence-matrix.md`, `figure-plan.md`, and `citation-plan.md` only when tracked outputs will help.
-4. Block on missing evidence instead of writing around it.
-5. Plan figures, citations, and limitations as first-class parts of the manuscript story.
+1. Start from claims and evidence, not section titles.
+2. Decide whether this is standalone planning or the paper stage inside an orchestrated suite.
+3. In tracked work, initialize `paper-plan.md`, `claims-evidence-matrix.md`, `claim-evidence-bindings.json`, `figure-plan.md`, and `citation-plan.md` with `scripts/init_paper_pack.py`.
+4. Treat `claim-evidence-bindings.json` as the manuscript-support authority; Markdown files are views.
+5. For empirical claims, consume validated `results-audit.json` records rather than inferring support from plots, gate labels, or filenames.
+6. Block, qualify, contradict, or omit claims that outrun the available audit assurance.
+7. Validate with `scripts/validate_paper_pack.py`; use the linked profile in orchestrated work.
 
 ## Modes
 
 ### Standalone mode
 
-- Work from the user prompt plus any local claims, results, notes, or drafts already present.
+- Work from the prompt plus local claims, results, notes, proofs, citations, or drafts.
 - Do not require a suite root.
-- If the user asks for project-level sequencing, current-state inspection, or coordination across multiple research stages, invoke `research-pipeline-planner` first instead of treating manuscript planning as the whole task.
-- If the user is still choosing what idea to pursue, invoke `research-idea-discovery` before paper planning.
-- Collaboration is still allowed: if novelty review, experiment plan, results audit, or review-loop artifacts exist, use them; if another skill would materially improve the manuscript plan, recommend or invoke it.
+- Keep structure compact when a direct outline is sufficient.
+- Invoke `research-results-auditor` when empirical evidence quality is unclear and `research-idea-discovery` when the project has not selected a paper-bearing idea.
 
 ### Orchestrated mode
 
-- Prefer the canonical directory `./paper-plan/`.
-- Read upstream context from `research-brief.md`, `artifact-index.md`, `./ideation/`, `./novelty-review/`, `./experiment-plan/`, `./review-loop/`, and `./zotero/` when present.
-- Keep the paper outputs legible to later drafting and review passes.
+- Use the canonical directory `./paper-plan/`.
+- Read `research-commitment.json`, `experiment-plan/claim-map.json`, `results-audit/results-audit.json`, relevant literature/citation artifacts, predecessor failures, and review-loop state.
+- Preserve paper ID and identity version across every binding.
+- Keep claims, exhibits, citations, and manuscript actions legible to drafting, review-loop, paper review, and rebuttal stages.
 
 ## Input contract
 
-- Minimum:
-  - one or more claims the paper wants the reader to accept
-  - evidence or source artifacts that support those claims
-- Prefer:
-  - target venue or audience
-  - known weaknesses or reviewer objections
-  - desired exhibit list
-  - existing novelty, experiment, results-audit, or review-loop artifacts
-  - existing Zotero exports or library artifacts
+Minimum:
 
-## Hard stops
+- one or more paper claims;
+- concrete evidence or source artifacts;
+- enough information to classify each claim's evidence mode.
 
-- Stop if the user wants a paper plan but there is no credible evidence behind the main claim.
-- Stop if claims outrun the available artifacts and the gap cannot be made explicit.
-- Stop if the venue constraints matter but remain unknown.
-- In standalone mode, do not create excess structure when a compact direct outline is enough.
+Prefer:
+
+- validated result-audit JSON;
+- source experiment claim map;
+- commitment identity;
+- target venue and page budget;
+- known weaknesses and reviewer objections;
+- desired exhibits;
+- verified citation exports or Zotero artifacts.
 
 ## Output contract
 
-- Primary files:
-  - `paper-plan.md`
-  - `claims-evidence-matrix.md`
-  - `figure-plan.md`
-  - `citation-plan.md`
-- In orchestrated mode, these live under `./paper-plan/`.
-- In standalone mode, any target directory is valid.
+### Canonical machine binding
+
+Write `claim-evidence-bindings.json` as the authority for what the manuscript may assert. Each paper claim records:
+
+- stable paper claim ID and bounded text;
+- claim type and evidence mode;
+- support status and manuscript action;
+- required assurance class;
+- source experiment claim IDs and result-audit IDs;
+- audited evidence artifacts;
+- planned sections, exhibit IDs, and citation-need IDs;
+- limitations, missing evidence, scope, and rationale.
+
+Use `references/claim-evidence-binding-schema.md` and `../research-pipeline-planner/references/result-audit-paper-binding-contract.md`.
+
+### Human-readable views
+
+- `paper-plan.md`: paper shape, venue constraints, and section reasoning.
+- `claims-evidence-matrix.md`: exact one-row-per-JSON-claim view.
+- `figure-plan.md`: exhibits with stable IDs and reciprocal paper-claim links.
+- `citation-plan.md`: citation needs with stable IDs and reciprocal paper-claim links.
+
+A complete matrix may not contain extra noncanonical claim rows.
+
+## Evidence modes
+
+- `empirical`: primarily supported by audited experimental results.
+- `theoretical`: supported by proofs, formal arguments, or theory artifacts.
+- `citation`: contextual or prior-work claim supported by verified sources.
+- `mixed`: requires both audited empirical and nonempirical support.
+- `limitation`: records a bounded weakness, failure, or threat to validity.
+
+## Support status and manuscript action
+
+Support status:
+
+- `supported`
+- `partial`
+- `blocked`
+- `contradicted`
+- `withdrawn`
+
+Manuscript action:
+
+- `assert`
+- `qualify`
+- `limitation`
+- `omit`
+
+Rules:
+
+- `assert` requires `supported` status.
+- Empirical or mixed assertion requires at least one positive audit at or above the required assurance class and no unresolved linked negative audit.
+- `qualify` requires explicit limitations.
+- `partial` requires qualification or limitation treatment plus explicit limitations and missing evidence.
+- `blocked`, `contradicted`, and `withdrawn` claims cannot be asserted.
+- `contradicted` requires negative audit evidence and cannot coexist with an adequate positive audit under the same scope without reclassification.
+
+## Hard stops
+
+- Stop if the main paper claim has no credible evidence path.
+- Do not write around missing evidence with rhetorical structure.
+- Do not treat experiment completion, a passing validator, or a polished figure as claim support.
+- Do not let Markdown status differ from the canonical JSON binding.
+- Do not use a result audit for a different source claim or paper identity.
+- Do not assert a confirmatory claim from exploratory-only audit assurance.
+- Do not hide negative audits by linking only the preferred run.
+- Do not treat citations as substitutes for empirical evidence or empirical results as novelty citations.
+- If venue constraints materially affect the plan and remain unknown, preserve the gap rather than inventing requirements.
 
 ## Workflow
 
-### 1) Freeze the supported claims
+### 1) Freeze paper claims
 
-- Use `references/claims-evidence-matrix-template.md`.
-- Separate:
-  - main contribution claims
-  - supporting claims
-  - limitation claims
-- Downgrade or remove claims that do not have a clear evidence path.
+- Assign stable paper claim IDs.
+- Separate primary, supporting, limitation, and context claims.
+- Specify evidence mode, scope, required assurance, and manuscript action.
+- Preserve source experiment claim IDs instead of silently rewriting them.
 
-### 2) Fit the paper shape to the evidence
+### 2) Bind evidence
+
+For empirical and mixed claims:
+
+- link exact result-audit IDs;
+- confirm each audit targets a listed source claim ID;
+- compare attained assurance with required assurance;
+- preserve negative and inconclusive audit records;
+- link only evidence artifacts declared by those audits.
+
+For theoretical claims, link concrete proof or argument artifacts. For citation claims, link stable citation-need IDs and verified sources.
+
+### 3) Decide support status and language
+
+- Use `supported` only when evidence reaches the required threshold.
+- Use `partial` when evidence is promising but below threshold or materially incomplete.
+- Use `blocked` when required evidence is absent.
+- Use `contradicted` when linked audits materially weaken or kill the claim.
+- Use `withdrawn` when the paper no longer advances the claim.
+- Map each status to an allowed manuscript action and state limitations explicitly.
+
+### 4) Fit paper structure to evidence
 
 - Use `references/paper-outline-template.md`, `references/section-archetypes.md`, and `references/venue-adapters.md`.
-- Choose a structure that matches what the evidence can actually support.
-- Treat page budget and venue expectations as constraints, not afterthoughts.
+- Give the strongest evidence the clearest space; do not let thin evidence carry a central section.
+- Treat page budget and venue expectations as constraints.
 
-### 3) Plan exhibits deliberately
+### 5) Plan exhibits and citations with stable links
 
-- Use `references/exhibit-plan-checklist.md`.
-- Every figure and table should answer a paper question or defend a claim.
-- Mark exhibits as:
-  - mandatory
-  - helpful
-  - cut
+- Give every figure/table a stable exhibit ID and reciprocal paper-claim IDs.
+- Mark exhibits mandatory, helpful, or cut.
+- Give every citation need a stable ID and reciprocal paper-claim IDs.
+- Distinguish motivation, novelty, method provenance, benchmark context, and empirical support.
+- Use `research-zotero` or existing Zotero artifacts rather than inventing citations from memory.
 
-### 4) Build the citation plan carefully
+### 6) Validate and hand off
 
-- Use `references/citation-verification-rules.md`.
-- If a Zotero library already exists for the project, invoke `research-zotero` or consume `./zotero/` artifacts before inventing citation structure from memory.
-- Record which claims need citations versus which require empirical evidence.
-- Keep citation verification explicit instead of inventing references from memory.
+- Ensure the Markdown matrix contains exactly the canonical claims.
+- Ensure exhibit and citation references are reciprocal.
+- Run structural validation for standalone packs and linked validation for orchestrated packs.
+- Hand the validated pack to drafting or `research-review-loop`; missing evidence remains a block.
 
-### 5) Keep collaboration open
+## Validation
 
-- Pull in `research-results-auditor` when the evidence quality is unclear.
-- Pull in `research-review-loop` when the story needs an adversarial pass.
-- Pull in `research-novelty-review` when positioning remains unstable.
-- Pull in `research-zotero` when citation grounding, BibTeX export, or CSL-JSON export would materially improve the paper plan.
-- Missing evidence remains a block in every mode. Do not write unsupported paper stories.
+Structural validation:
+
+```bash
+python scripts/validate_paper_pack.py \
+  --plan paper-plan.md \
+  --matrix claims-evidence-matrix.md \
+  --bindings claim-evidence-bindings.json \
+  --figure-plan figure-plan.md \
+  --citation-plan citation-plan.md
+```
+
+Orchestrated linked validation:
+
+```bash
+python scripts/validate_paper_pack.py \
+  --plan paper-plan/paper-plan.md \
+  --matrix paper-plan/claims-evidence-matrix.md \
+  --bindings paper-plan/claim-evidence-bindings.json \
+  --figure-plan paper-plan/figure-plan.md \
+  --citation-plan paper-plan/citation-plan.md \
+  --assurance-profile linked \
+  --commitment research-commitment.json \
+  --claim-map experiment-plan/claim-map.json \
+  --results-audit results-audit/results-audit.json
+```
+
+A passing validator establishes declared linkage and consistency, not scientific validity, citation correctness, or independent verification beyond the linked audit record.
 
 ## References
 
 - `references/paper-outline-template.md`
 - `references/claims-evidence-matrix-template.md`
+- `references/claim-evidence-binding-schema.md`
 - `references/section-archetypes.md`
 - `references/venue-adapters.md`
 - `references/exhibit-plan-checklist.md`
 - `references/citation-verification-rules.md`
 - `references/tabmol-ddi-ood-adapter.md`
+- `../research-pipeline-planner/references/result-audit-paper-binding-contract.md`
 
-## Script
+## Scripts
 
-- `scripts/init_paper_pack.py`: create the core paper-planning files in a standalone directory or the suite's `paper-plan/` directory.
+- `scripts/init_paper_pack.py`: initialize the four Markdown views plus canonical `claim-evidence-bindings.json`.
+- `scripts/validate_paper_pack.py`: validate binding structure, status/action rules, matrix/exhibit/citation reciprocity, paper identity, source claims, result-audit thresholds, and audited artifact paths.
