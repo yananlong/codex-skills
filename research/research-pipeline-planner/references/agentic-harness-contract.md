@@ -173,7 +173,7 @@ Before approving:
 
 For experiment approval, the verifier must record the same gate result and scientific disposition submitted by the worker after inspecting the evidence. Approval does not convert `fail` or `inconclusive` into `pass`. Gate-conditioned downstream work becomes ready only from an allowed verified result.
 
-The runtime validates actor labels and disclosure flags, not real-world identity or organizational independence.
+The runtime validates actor labels and disclosure flags, not real-world identity or organizational independence. Replay re-enforces the same-role disclosure rule, verifier evidence, episode binding, and experiment gate/disposition consistency so command-time authorization cannot disappear from the event projection.
 
 ## Checkpoint, pause, and recovery
 
@@ -230,4 +230,4 @@ Use stable explicit idempotency keys when a caller may retry after an uncertain 
 
 Legacy directory packs and unbound work items remain structurally valid under their existing profiles. New experiment-specific fields are required only when `experiment_binding` is present. Earlier draft harness event logs may require replay or migration when the schema gains derived fields.
 
-A passing harness validation means the declared repository artifacts, event chain, projections, dependencies, recorded digests, experiment bindings, gate records, and lineage references are internally consistent. It does not establish external immutability, authenticated execution, isolation, semantic validity, scientific validity, or independent verification.
+A passing harness validation means the declared repository artifacts, event chain, projections, dependencies, recorded digests, experiment bindings, gate records, lineage references, and event-to-episode projections are internally consistent. Every submitted episode is revalidated against the historical work-item state that preceded its event. It does not establish external immutability, authenticated execution, isolation, semantic validity, scientific validity, or independent verification.

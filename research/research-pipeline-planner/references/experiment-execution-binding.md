@@ -119,7 +119,7 @@ Allowed relations are:
 - `alternative_hypothesis`
 - `technical_retry`
 
-`baseline` has no parent. `technical_retry`, `ablation`, `parameter_variation`, and `sensitivity` require a parent run. Other non-baseline runs without a parent require a substantive `parent_rationale`. Parent runs must belong to the same paper identity; technical retries must use the same block.
+`parent_run_id` must be JSON `null` or a substantive run-ID string. `baseline` has no parent. `technical_retry`, `ablation`, `parameter_variation`, and `sensitivity` require a parent run. Other non-baseline runs without a parent require a substantive `parent_rationale`. Parent runs must already exist, must belong to the same paper identity, and technical retries must use the same block.
 
 A failed or partial attempt may still be a lineage node even when it produces no required scientific output. Such a run must use `gate_result=inconclusive` or `not_applicable`, use `scientific_disposition=inconclusive` or `diagnostic_only`, and may record only `unchanged` or `inconclusive` claim effects. This preserves the failed attempt as the parent of a later `technical_retry` without misrepresenting execution failure as scientific evidence.
 
@@ -160,4 +160,4 @@ python scripts/harness_runtime.py --root <suite> verify WI-B1 \
   --actor research-pipeline-planner
 ```
 
-Approval establishes that the declared work item was completed and inspected. It does not convert a failed gate into a passing one or establish scientific validity beyond the declared evidence class.
+Approval establishes that the declared work item was completed and inspected. Replay rechecks verifier-role disclosure, substantive evidence, the referenced episode, and exact gate/disposition agreement. Revision or block events may omit gate/disposition fields; when present, they must still agree with the submitted run. Approval does not convert a failed gate into a passing one or establish scientific validity beyond the declared evidence class. `revise` and verifier-originated `block` decisions remain attached to their episode in the derived verification history and lineage projection.

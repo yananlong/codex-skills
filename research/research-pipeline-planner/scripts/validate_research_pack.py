@@ -9,7 +9,16 @@ from pathlib import Path
 from typing import Any
 
 import harness_runtime
-from harness_common import SCHEMA_VERSION, canonical_json, path_digest, resolve_inside_root, sha256_bytes
+from harness_common import (
+    SCHEMA_VERSION,
+    canonical_json,
+    find_item,
+    initial_state,
+    initial_work_items,
+    path_digest,
+    resolve_inside_root,
+    sha256_bytes,
+)
 from validate_research_commitment import load_commitment, validate_commitment
 
 BASE_FILES = {
@@ -212,6 +221,134 @@ def _expected_binding_digests(binding: dict[str, Any]) -> dict[str, Any]:
         "commitment_digest": binding.get("commitment_digest"),
     }
 
+
+def _validate_snapshot_shape(
+    binding: dict[str, Any],
+    snapshot: Any,
+    label: str,
+    errors: list[str],
+) -> None:
+    if not isinstance(snapshot, dict):
+        errors.append(f"{label} must be an object")
+        return
+    execution = binding.get("execution")
+    if not isinstance(execution, dict):
+        errors.append(f"{label}: experiment binding lacks execution declaration")
+        return
+    for field in ("declared_inputs", "declared_evaluator_artifacts"):
+        entries = execution.get(field, [])
+        expected_paths = {
+            entry.get("path")
+            for entry in entries
+            if isinstance(entry, dict) and isinstance(entry.get("path"), str)
+        }
+        values = snapshot.get(field)
+        if not isinstance(values, dict):
+            errors.append(f"{label}.{field} must be an object")
+            continue
+        if set(values) != expected_paths:
+            errors.append(f"{label}.{field} paths do not match the frozen execution declaration")
+        for relative, digest in values.items():
+            if not isinstance(relative, str) or not relative or not isinstance(digest, str) or not digest:
+                errors.append(f"{label}.{field} contains a malformed path or digest")
+
+
+def validate_experiment_event_history(
+    root: Path,
+    events: list[dict[str, Any]],
+    errors: list[str],
+) -> None:
+    """Revalidate every submitted episode against the state that preceded its event."""
+    state = initial_state()
+    work_items = initial_work_items()
+    for event in events:
+        event_id = event.get("event_id", "<unknown-event>")
+        event_type = event.get("event_type")
+        details = event.get("details") or {}
+        work_item_id = event.get("work_item_id")
+
+        if event_type == "work_item_started":
+            try:
+                item = find_item(work_items, work_item_id)
+            except SystemExit as exc:
+                errors.append(f"{event_id}: {exc}")
+            else:
+                binding = item.get("experiment_binding")
+                if isinstance(binding, dict):
+                    _validate_snapshot_shape(
+                        binding,
+                        details.get("execution_snapshot"),
+                        f"{event_id}.execution_snapshot",
+                        errors,
+                    )
+
+        if event_type == "episode_submitted":
+            try:
+                item = find_item(work_items, work_item_id)
+            except SystemExit as exc:
+                errors.append(f"{event_id}: {exc}")
+                item = None
+            if item is not None:
+                relative = details.get("episode_path")
+                try:
+                    episode_path = resolve_inside_root(root, relative, "episode path")
+                except SystemExit as exc:
+                    errors.append(f"{event_id}: {exc}")
+                else:
+                    if episode_path.is_file():
+                        try:
+                            episode = harness_runtime.validate_episode(
+                                root,
+                                work_items,
+                                item,
+                                episode_path,
+                            )
+                        except SystemExit as exc:
+                            errors.append(f"{event_id}: submitted episode fails runtime validation: {exc}")
+                        else:
+                            expected = {
+                                "episode_path": episode["_relative_path"],
+                                "episode_id": episode["episode_id"],
+                                "episode_digest": episode["_digest"],
+                                "artifact_digests": episode["_artifact_digests"],
+                                "outcome": episode["outcome"],
+                                "transition_request": episode["transition_request"],
+                            }
+                            if episode["_experiment_run"] is not None:
+                                expected["experiment_run"] = episode["_experiment_run"]
+                            for field, value in expected.items():
+                                if details.get(field) != value:
+                                    errors.append(
+                                        f"{event_id}: event {field} does not match the digest-anchored episode"
+                                    )
+                            if episode["_experiment_run"] is None and details.get("experiment_run") is not None:
+                                errors.append(
+                                    f"{event_id}: unbound episode event contains experiment_run metadata"
+                                )
+
+                binding = item.get("experiment_binding")
+                if isinstance(binding, dict):
+                    if details.get("verified_execution_snapshot") != item.get("execution_snapshot"):
+                        errors.append(
+                            f"{event_id}: submission snapshot does not match its start event"
+                        )
+                    if details.get("verified_binding_digests") != _expected_binding_digests(binding):
+                        errors.append(
+                            f"{event_id}: submission binding digests do not match the frozen binding"
+                        )
+                elif (
+                    details.get("verified_execution_snapshot") is not None
+                    or details.get("verified_binding_digests") is not None
+                ):
+                    errors.append(
+                        f"{event_id}: unbound episode event contains experiment binding evidence"
+                    )
+
+        try:
+            harness_runtime.apply_event(state, work_items, event)
+        except SystemExit as exc:
+            errors.append(f"{event_id}: event replay failed during semantic audit: {exc}")
+            return
 
 def validate_experiment_integrity(root: Path, work_items: dict, errors: list[str]) -> None:
     items = [item for item in work_items.get("items", []) if isinstance(item, dict)]
@@ -506,7 +643,7 @@ def validate_harness(root: Path, errors: list[str]) -> None:
         return
     validate_work_items(work_items, errors)
     try:
-        replayed_state, replayed_items = harness_runtime.replay(root, write=False)
+        events, replayed_state, replayed_items = harness_runtime.reconstruct(root)
     except SystemExit as exc:
         errors.append(f"harness event replay failed: {exc}")
         return
@@ -523,6 +660,7 @@ def validate_harness(root: Path, errors: list[str]) -> None:
         errors.append("HARNESS_STATE.json omits an active work item")
     elif state.get("active_work_item_id") is not None and active != [state.get("active_work_item_id")]:
         errors.append("HARNESS_STATE.json active_work_item_id disagrees with work-items.json")
+    validate_experiment_event_history(root, events, errors)
     validate_experiment_integrity(root, work_items, errors)
     validate_evidence(root, work_items, errors)
 
