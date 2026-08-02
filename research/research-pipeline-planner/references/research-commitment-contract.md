@@ -4,7 +4,7 @@ Use this contract in orchestrated research suites once a project moves from open
 
 ## Purpose
 
-Freeze the paper-level identity across work items so local review, novelty search, or ideation cannot silently replace the project. This contract governs project continuity; frozen work items still govern individual episodes.
+Freeze the paper-level identity across work items so local review, novelty search, ideation, or implementation difficulty cannot silently replace the project. This contract governs project continuity; frozen work items still govern individual episodes.
 
 ## Required object
 
@@ -40,6 +40,23 @@ Freeze the paper-level identity across work items so local review, novelty searc
 - `successor_idea_policy`: `park`, `reject`, `separate-project`
 - `last_change_class`: `D0`, `D1`, `D2`, `D3`, `D4`
 
+`paper_id` must be a stable identifier using letters, numbers, dot, underscore, colon, or hyphen. `identity_version` starts at 1 and changes only under an explicit identity-change decision.
+
+## Selection-history entries
+
+Each entry is an object with at least:
+
+```json
+{
+  "decision": "select-route",
+  "rationale": "Why this decision was made",
+  "timestamp": "optional ISO timestamp",
+  "evidence": ["optional artifact references"]
+}
+```
+
+D3 and D4 states outside exploration require an entry whose decision is `authorize-D3` or `close-and-create-D4`.
+
 ## Identity-change classes
 
 - `D0`: wording, formatting, or presentation only.
@@ -51,12 +68,14 @@ Freeze the paper-level identity across work items so local review, novelty searc
 ## Operating rules
 
 1. Exploration may revise the contract freely while `status=exploring`, but every consequential selection remains in `selection_history`.
-2. Moving to `committed` requires a concrete minimum publishable claim, primary evidence obligation, next mandatory evidence artifact, pivot triggers, and kill conditions.
-3. While `committed` or `executing`, D0-D2 changes may proceed with a recorded rationale; D3-D4 changes require a planner-authorized pivot event and human approval when configured.
-4. Downstream skills may recommend `continue`, `narrow`, `pivot-request`, `kill`, or `park-successor`; they may not enact D3-D4 changes themselves.
-5. A new attractive idea defaults to the successor policy. It does not replace the active paper merely because it scores better after later information became available.
-6. Conceptual reconsideration is blocked until `next_mandatory_evidence_artifact` exists and passes its declared gate, unless a recorded pivot trigger or kill condition has fired.
-7. Reframing, renaming, deleting a claim, or changing contribution class does not resolve predecessor failures. Preserve their dispositions explicitly.
+2. Moving to `committed` requires a concrete main question, central object, minimum publishable claim, primary evidence obligation, intended audience, next mandatory evidence artifact, reconsideration gate, pivot triggers, and kill conditions.
+3. A closed lineage retains its question, object, claim, evidence obligation, and audience so historical identity is not erased.
+4. While committed, executing, or interpreting, D0-D2 changes may proceed with a recorded rationale; D3-D4 changes require a planner-authorized pivot decision and human approval when configured.
+5. Downstream skills may recommend `continue`, `narrow`, `pivot-request`, `kill`, or `park-successor`; they may not enact D3-D4 changes themselves.
+6. A new attractive idea defaults to the successor policy. It does not replace the active paper merely because it scores better after later information became available.
+7. Conceptual reconsideration is blocked until `next_mandatory_evidence_artifact` exists and passes its declared gate, unless a recorded pivot trigger or kill condition has fired.
+8. Reframing, renaming, deleting a claim, or changing contribution class does not resolve predecessor failures. Preserve their dispositions explicitly.
+9. `scripts/init_research_pack.py --force` preserves an existing commitment. Reset it only with the explicit `--reset-commitment` flag or `init_research_commitment.py --force`.
 
 ## Pivot request
 
@@ -81,3 +100,5 @@ A committed project may advance only when:
 - predecessor failures remain visible;
 - literature assurance is proportionate to any novelty or priority claims;
 - the next transition depends on evidence rather than artifact polish alone.
+
+A passing structural validator does not authenticate the approver, establish scientific validity, prove independence, or enforce the contract outside the repository.
