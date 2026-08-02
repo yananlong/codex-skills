@@ -121,6 +121,8 @@ Allowed relations are:
 
 `baseline` has no parent. `technical_retry`, `ablation`, `parameter_variation`, and `sensitivity` require a parent run. Other non-baseline runs without a parent require a substantive `parent_rationale`. Parent runs must belong to the same paper identity; technical retries must use the same block.
 
+A failed or partial attempt may still be a lineage node even when it produces no required scientific output. Such a run must use `gate_result=inconclusive` or `not_applicable`, use `scientific_disposition=inconclusive` or `diagnostic_only`, and may record only `unchanged` or `inconclusive` claim effects. This preserves the failed attempt as the parent of a later `technical_retry` without misrepresenting execution failure as scientific evidence.
+
 `pivot` is deliberately not a lineage relation. D3-D4 changes remain governed by the research commitment contract.
 
 Use `harness_runtime.py experiment-lineage` to derive a lineage view from episodes. The view is not another canonical artifact.
@@ -141,9 +143,9 @@ Ordinary dependencies express structural order. Activation conditions express sc
 }
 ```
 
-The predecessor must also be listed as a dependency. A queued item becomes ready only when all dependencies are completed and every activation condition matches the predecessor's verified gate result.
+The predecessor must also be listed as a dependency, must itself be experiment-bound, and the activation condition must name that predecessor's frozen `decision_gate_id`. A queued item becomes ready only when all dependencies are completed and every activation condition matches the predecessor's verified gate result.
 
-A completed predecessor with a failed or inconclusive gate does not unlock a pass-conditioned downstream item. This prevents technical completion from being substituted for scientific success.
+A completed predecessor with a failed or inconclusive gate does not unlock a pass-conditioned downstream item. This prevents technical completion from being substituted for scientific success and prevents misspelled or unrelated gate IDs from creating permanently queued work.
 
 ## Verification
 
