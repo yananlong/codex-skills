@@ -1,21 +1,29 @@
 #!/usr/bin/env python3
-"""Initialize a Markdown review pack for systematic literature review workflows."""
-
+"""Initialize a recall-audited literature review pack."""
 from __future__ import annotations
 
 import argparse
+import json
 import re
 import sys
 from dataclasses import dataclass
 from datetime import date
 from pathlib import Path
-from typing import Dict, List
+
+PROFILES = {
+    "comprehensive-systematic",
+    "bounded-systematic",
+    "critical-evidence-map",
+    "rapid-scan",
+    "novelty-prior-art",
+}
 
 
 @dataclass(frozen=True)
-class ReviewInputs:
+class Inputs:
     topic: str
     domain: str
+    profile: str
     out_dir: Path
     question: str
     inclusion_criteria: str
@@ -26,67 +34,60 @@ class ReviewInputs:
     population_context: str
     outcomes: str
     quality_threshold: str
-    assumptions: List[str]
+    domain_adapter: str
+    intended_decision: str
+    assumptions: tuple[str, ...]
     today: str
 
 
-def _normalize_topic_to_slug(topic: str) -> str:
-    slug = re.sub(r"[^a-z0-9]+", "-", topic.lower()).strip("-")
+def slugify(value: str) -> str:
+    slug = re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-")
     if not slug:
-        raise ValueError("Topic is invalid after normalization; provide alphanumeric text.")
+        raise ValueError("topic is invalid after normalization")
     return slug
 
 
-def _non_empty(name: str, value: str | None) -> str:
-    if value is None:
-        raise ValueError(f"Missing required value: {name}")
-    trimmed = value.strip()
-    if not trimmed:
-        raise ValueError(f"{name} cannot be empty.")
-    return trimmed
+def require(name: str, value: str | None) -> str:
+    if value is None or not value.strip():
+        raise ValueError(f"{name} is required")
+    return value.strip()
 
 
-def _defaults(topic: str, domain: str) -> Dict[str, str]:
-    today = date.today()
-    default_start = date(today.year - 10, 1, 1)
-    return {
+def resolve(args: argparse.Namespace) -> Inputs:
+    topic = require("topic", args.topic)
+    domain = require("domain", args.domain)
+    assumptions: list[str] = []
+    profile = args.review_profile or "bounded-systematic"
+    if args.review_profile is None:
+        assumptions.append("review_profile defaulted to bounded-systematic; confirm the boundary before searching")
+    if profile not in PROFILES:
+        raise ValueError(f"review-profile must be one of {sorted(PROFILES)}")
+
+    defaults = {
         "question": f"What does current evidence show about {topic} in {domain}?",
-        "inclusion_criteria": (
-            "Include peer-reviewed primary studies (published) directly relevant to topic and domain. "
-            "Use high-quality preprints only when no published version exists or when recency is essential, "
-            "and label them as preprints."
-        ),
-        "exclusion_criteria": (
-            "Exclude off-topic sources, narrative-only commentary without methods, and "
-            "studies with insufficient methodological detail."
-        ),
-        "date_range": f"{default_start.isoformat()} to {today.isoformat()}",
-        "study_types": "Experimental, observational, benchmarking, and systematic-review studies where relevant",
-        "language": "English",
-        "population_context": "Broad population/context implied by topic and domain unless explicitly narrowed",
-        "outcomes": "Efficacy/performance, robustness, safety, and transferability outcomes where applicable",
-        "quality_threshold": "Retain studies with at least moderate methodological quality and transparent reporting",
-        "today": today.isoformat(),
+        "inclusion_criteria": "Include works that directly answer the review question and meet the declared domain-adapter criteria.",
+        "exclusion_criteria": "Exclude off-topic, duplicate-publication, and methodologically or argumentatively non-substantive records.",
+        "date_range": "Foundational horizon unrestricted; current-evidence horizon and update horizon to be declared",
+        "study_types": "Adapter-appropriate empirical, theoretical, methodological, benchmark, software, review, and critical work",
+        "language": "English unless the protocol declares additional languages and coverage limits",
+        "population_context": "Broad context implied by the topic and domain unless explicitly narrowed",
+        "outcomes": "Adapter-appropriate outcomes, propositions, mechanisms, comparisons, criticisms, and negative evidence",
+        "quality_threshold": "Retain records with enough methodological, formal, or argumentative detail for evidence extraction",
+        "domain_adapter": "TODO select an empirical, methodological, theoretical, benchmark, interdisciplinary, novelty, or emerging-field adapter",
+        "intended_decision": "TODO state the decision this review will support",
     }
 
+    def choose(field: str, value: str | None) -> str:
+        if value is not None:
+            return require(field.replace("_", "-"), value)
+        assumptions.append(f"{field} defaulted to: {defaults[field]}")
+        return defaults[field]
 
-def _resolve_inputs(args: argparse.Namespace) -> ReviewInputs:
-    topic = _non_empty("topic", args.topic)
-    domain = _non_empty("domain", args.domain)
-    out_dir = Path(_non_empty("out-dir", args.out_dir)).expanduser().resolve()
-    defaults = _defaults(topic=topic, domain=domain)
-    assumptions: List[str] = []
-
-    def choose(field_name: str, cli_value: str | None) -> str:
-        if cli_value is not None:
-            return _non_empty(field_name, cli_value)
-        assumptions.append(f"{field_name} defaulted to: {defaults[field_name]}")
-        return defaults[field_name]
-
-    return ReviewInputs(
+    return Inputs(
         topic=topic,
         domain=domain,
-        out_dir=out_dir,
+        profile=profile,
+        out_dir=Path(require("out-dir", args.out_dir)).expanduser().resolve(),
         question=choose("question", args.question),
         inclusion_criteria=choose("inclusion_criteria", args.inclusion_criteria),
         exclusion_criteria=choose("exclusion_criteria", args.exclusion_criteria),
@@ -96,57 +97,68 @@ def _resolve_inputs(args: argparse.Namespace) -> ReviewInputs:
         population_context=choose("population_context", args.population_context),
         outcomes=choose("outcomes", args.outcomes),
         quality_threshold=choose("quality_threshold", args.quality_threshold),
-        assumptions=assumptions,
-        today=defaults["today"],
+        domain_adapter=choose("domain_adapter", args.domain_adapter),
+        intended_decision=choose("intended_decision", args.intended_decision),
+        assumptions=tuple(assumptions),
+        today=date.today().isoformat(),
     )
 
 
-def _protocol_md(inputs: ReviewInputs) -> str:
-    assumption_lines = "\n".join(f"- {line}" for line in inputs.assumptions) or "- No defaults were applied."
-    return f"""# Protocol: {inputs.topic}
+def protocol(i: Inputs) -> str:
+    assumptions = "\n".join(f"- {value}" for value in i.assumptions) or "- No defaults were applied."
+    return f"""# Protocol: {i.topic}
 
 ## Metadata
 
 | Field | Value |
 | --- | --- |
-| Topic | {inputs.topic} |
-| Domain | {inputs.domain} |
+| Topic | {i.topic} |
+| Domain | {i.domain} |
+| Review profile | {i.profile} |
 | Protocol version | v1 |
-| Created date | {inputs.today} |
+| Created date | {i.today} |
 | Reviewer | TODO |
 
 ## Inputs
 
 | Input | Value |
 | --- | --- |
-| research_question | {inputs.question} |
-| inclusion_criteria | {inputs.inclusion_criteria} |
-| exclusion_criteria | {inputs.exclusion_criteria} |
-| date_range | {inputs.date_range} |
-| study_types | {inputs.study_types} |
-| language | {inputs.language} |
-| population/context | {inputs.population_context} |
-| outcomes | {inputs.outcomes} |
-| quality_threshold | {inputs.quality_threshold} |
+| research_question | {i.question} |
+| intended_decision | {i.intended_decision} |
+| domain_adapter | {i.domain_adapter} |
+| inclusion_criteria | {i.inclusion_criteria} |
+| exclusion_criteria | {i.exclusion_criteria} |
+| date_range | {i.date_range} |
+| study_types | {i.study_types} |
+| language | {i.language} |
+| population/context | {i.population_context} |
+| outcomes | {i.outcomes} |
+| quality_threshold | {i.quality_threshold} |
 
 ## Assumptions applied
 
-{assumption_lines}
+{assumptions}
 
 ## Inclusion criteria
 
-- TODO
+- TODO convert the protocol inputs into operational inclusion rules.
 
 ## Exclusion criteria
 
-- TODO
+- TODO convert the protocol inputs into operational exclusion rules.
+
+## Discovery assurance
+
+- Visible seed set required: {'yes' if i.profile in {'comprehensive-systematic', 'bounded-systematic'} else 'proportionate to profile'}
+- Withheld challenge set: TODO available / unavailable, custodian, and reason
+- Search-strategy review: TODO required / not required and why
+- Corpus freeze required before detailed extraction: {'yes' if i.profile in {'comprehensive-systematic', 'bounded-systematic'} else 'recommended'}
 
 ## PRISMA scope
 
-- Records identified from all eligible sources.
-- Deduplication performed before title/abstract screening.
-- Full-text eligibility decisions recorded with explicit reasons.
-- Peer-reviewed published or accepted venue records are preferred over preprints.
+- PRISMA accounts for record flow and does not establish retrieval completeness.
+- Canonical published or accepted versions are preferred over duplicate preprints.
+- The review profile and recall audit determine the maximum defensible coverage claim.
 
 ## Deviations log
 
@@ -154,24 +166,44 @@ def _protocol_md(inputs: ReviewInputs) -> str:
 """
 
 
-def _search_log_md(inputs: ReviewInputs) -> str:
-    return f"""# Search Log: {inputs.topic}
+def search_log(i: Inputs) -> str:
+    return f"""# Search Log: {i.topic}
 
 ## Search metadata
 
 | Field | Value |
 | --- | --- |
-| Topic | {inputs.topic} |
-| Domain | {inputs.domain} |
-| Date range | {inputs.date_range} |
-| Language | {inputs.language} |
-| Search date | {inputs.today} |
+| Topic | {i.topic} |
+| Domain | {i.domain} |
+| Review profile | {i.profile} |
+| Date range | {i.date_range} |
+| Language | {i.language} |
+| Search date | {i.today} |
 
 ## Source queries
 
-| run_id | date | source | query_string | filters | records_returned | notes |
-| --- | --- | --- | --- | --- | ---: | --- |
-| run-001 | {inputs.today} | TODO | TODO | TODO | 0 | |
+| run_id | date | channel | source | coverage_target | query_or_seed | filters | records_returned | unique_candidates | included_yield | new_vocabulary | next_repair_action |
+| --- | --- | --- | --- | --- | --- | --- | ---: | ---: | ---: | --- | --- |
+| run-001 | {i.today} | database | TODO | TODO | TODO | TODO | 0 | 0 | 0 | | |
+
+## Seed recovery ledger
+
+| seed_id | canonical_citation | why_seeded | recovered_by_run | recovered | miss_reason | repair_run |
+| --- | --- | --- | --- | --- | --- | --- |
+| seed-001 | TODO | foundation / close anchor / expert seed | | no | TODO | TODO |
+
+## Search-channel decisions
+
+| channel | status | rationale | rounds | unique_candidates | included_yield | last_round_yield |
+| --- | --- | --- | ---: | ---: | ---: | ---: |
+| backward-citation | required | TODO | 0 | 0 | 0 | 0 |
+| forward-citation | required | TODO | 0 | 0 | 0 | 0 |
+| venue-census | required | TODO | 0 | 0 | 0 | 0 |
+| author-lab-expansion | required | TODO | 0 | 0 | 0 | 0 |
+| benchmark-dataset-tracing | required | TODO | 0 | 0 | 0 | 0 |
+| prior-review-harvesting | required | TODO | 0 | 0 | 0 | 0 |
+| grey-literature | required | TODO | 0 | 0 | 0 | 0 |
+| zotero-cross-check | required | TODO | 0 | 0 | 0 | 0 |
 
 ## Deduplication ledger
 
@@ -181,33 +213,95 @@ def _search_log_md(inputs: ReviewInputs) -> str:
 
 ## Zotero library sync
 
-Use this section when Zotero is acting as a curated discovery source or citation-validation source.
-
 | sync_id | date | access_mode | library_type | library_id | collection_key | tags | query | items_retrieved | notes |
 | --- | --- | --- | --- | --- | --- | --- | --- | ---: | --- |
-| zot-001 | {inputs.today} | api-key / oauth-key / mcp | user / group | | | | | 0 | |
+| zot-001 | {i.today} | api-key / oauth-key / mcp | user / group | | | | | 0 | |
 
-## Version resolution ledger (preprint -> published)
-
-Use this ledger to resolve preprints (e.g., arXiv/bioRxiv/SSRN) to their peer-reviewed published versions when available. The `resolved_publication_url` must point to the canonical published or accepted venue record unless no such version exists.
+## Version resolution ledger
 
 | mapping_id | preprint_citation | preprint_id | preprint_url | resolved_published_citation | resolved_publication_url | doi | status | notes |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | map-001 | | | | | | | resolved/unresolved | |
 
+## Search repairs and late omissions
+
+| event_id | publication_or_gap | severity | why_missed | repair | conclusions_changed |
+| --- | --- | --- | --- | --- | --- |
+| repair-001 | | | | | no |
+
 ## Coverage notes
 
-- TODO: Document coverage limitations, source outages, or inaccessible corpora.
+- TODO document coverage topology, high-priority empty cells, unavailable sources, and mitigations.
 """
 
 
-def _screening_log_md(inputs: ReviewInputs) -> str:
-    return f"""# Screening Log: {inputs.topic}
+def recall_audit(i: Inputs) -> str:
+    return f"""# Recall Audit: {i.topic}
+
+## Declared review profile
+
+- Profile: {i.profile}
+- Intended decision: {i.intended_decision}
+
+## Visible seed recovery
+
+- Seeds defined: TODO
+- Seeds recovered through ordinary discovery: TODO
+- Recovery failures and repairs: TODO
+
+## Withheld challenge evaluation
+
+- Challenge set available: TODO yes / no
+- Separation from query design: TODO
+- Recovery result or reason unavailable: TODO
+
+## Search-channel assurance
+
+- Backward citation searching: TODO
+- Forward citation searching: TODO
+- Venue, author, benchmark, prior-review, grey-literature, and Zotero decisions: TODO
+- Marginal yield by expansion round: TODO
+
+## Search-strategy review
+
+- Performed: TODO yes / no
+- Reviewer and material separation: TODO
+- Defects found and repairs: TODO
+
+## Coverage gaps and source constraints
+
+- TODO
+
+## Corpus freeze
+
+- Manifest: `{slugify(i.topic)}.corpus-manifest.json`
+- Corpus version: 1
+- Freeze identifier/date: TODO
+- Post-freeze amendments: TODO
+
+## Late major omissions
+
+- TODO none, or list every material omission, why it was missed, and the repaired strategy.
+
+## Stopping rationale
+
+- TODO justify stopping from seed/challenge recovery, coverage, marginal yield, constraints, and residual omission risk.
+
+## Bounded assurance verdict
+
+- Verdict: insufficient
+- Supported claim scope: TODO
+- Unsupported completeness or priority claims: TODO
+"""
+
+
+def screening(i: Inputs) -> str:
+    return f"""# Screening Log: {i.topic}
 
 ## Stage definitions
 
-- title_abstract: initial relevance screen.
-- full_text: eligibility after full document review.
+- `title_abstract`: initial relevance screen.
+- `full_text`: eligibility after full-document inspection.
 
 ## PRISMA Counts
 
@@ -223,183 +317,177 @@ def _screening_log_md(inputs: ReviewInputs) -> str:
 | reports_excluded | 0 |
 | studies_included | 0 |
 
-## Exclusion reasons (title/abstract)
+## Exclusion reasons
 
-| reason | count |
-| --- | ---: |
-| off-topic | 0 |
-| wrong-study-type | 0 |
-| insufficient-detail | 0 |
-
-## Exclusion reasons (full-text)
-
-| reason | count |
-| --- | ---: |
-| wrong-endpoint | 0 |
-| unresolved-method-issues | 0 |
-| duplicate-publication | 0 |
+| stage | reason | count |
+| --- | --- | ---: |
+| title_abstract | off-topic | 0 |
+| full_text | duplicate-publication | 0 |
 
 ## Decision ledger
 
 | study_id | record_type | canonical_citation | publication_url | doi | venue | preprint_id | stage | decision | reason | reviewer | date | notes |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| | published/preprint | | | | | | title_abstract | include/exclude | | | {inputs.today} | |
+| | published/preprint/book/report/software | | | | | | title_abstract | include/exclude | | | {i.today} | |
 """
 
 
-def _evidence_md(inputs: ReviewInputs) -> str:
-    return f"""# Evidence Table: {inputs.topic}
+def evidence(i: Inputs) -> str:
+    return f"""# Evidence Table: {i.topic}
 
 ## Extraction matrix
 
-| study_id | canonical_citation | publication_url | year | venue | doi | publication_status | preprint_id | population_or_context | study_design | sample_size | intervention_or_exposure | comparator | outcomes | key_result | effect_size | risk_of_bias | notes |
-| --- | --- | --- | ---: | --- | --- | --- | --- | --- | --- | ---: | --- | --- | --- | --- | --- | --- | --- |
-| | | | 0 | | | published/preprint | | {inputs.population_context} | | 0 | | | {inputs.outcomes} | | | low/moderate/high | |
+| study_id | canonical_citation | publication_url | year | venue | doi | publication_status | preprint_id | work_type | context_or_formal_setting | method_or_argument | result_or_proposition | limitations | quality_or_risk | relevance_to_question | notes |
+| --- | --- | --- | ---: | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| | | | 0 | | | published/preprint | | empirical/theoretical/method/benchmark/review | {i.population_context} | | | | low/moderate/high | | |
 
 ## Extraction notes
 
-- Use one row per included study.
+- Use one row per included work.
+- Use adapter-appropriate fields; do not fabricate sample-size, intervention, or effect-size values for theoretical or conceptual work.
 - Fill `publication_url` with the canonical published or accepted venue record whenever it exists.
-- Prefer published versions over preprints; use preprint links only as supplemental access or when no published/accepted version exists.
-- Keep outcome naming consistent across rows.
-- Keep claims traceable to the corresponding study row.
+- Keep claims traceable to the corresponding row and record negative or contradictory evidence explicitly.
 """
 
 
-def _report_md(inputs: ReviewInputs, flow_relative_path: str) -> str:
-    return f"""# Systematic Literature Review: {inputs.topic}
+def report(i: Inputs, flow_name: str) -> str:
+    title = "Systematic Literature Review" if i.profile in {"comprehensive-systematic", "bounded-systematic"} else "Literature Evidence Review"
+    return f"""# {title}: {i.topic}
 
 ## Protocol
 
-- Domain: {inputs.domain}
-- Research question: {inputs.question}
-- Inclusion criteria: {inputs.inclusion_criteria}
-- Exclusion criteria: {inputs.exclusion_criteria}
-- Date range: {inputs.date_range}
-- Study types: {inputs.study_types}
-- Language: {inputs.language}
-- Population/context: {inputs.population_context}
-- Outcomes: {inputs.outcomes}
-- Quality threshold: {inputs.quality_threshold}
+- Domain: {i.domain}
+- Review profile: {i.profile}
+- Research question: {i.question}
+- Intended decision: {i.intended_decision}
+- Domain adapter: {i.domain_adapter}
+- Inclusion criteria: {i.inclusion_criteria}
+- Exclusion criteria: {i.exclusion_criteria}
+- Date range: {i.date_range}
+- Study or work types: {i.study_types}
+- Language: {i.language}
+- Population/context: {i.population_context}
+- Outcomes or conceptual targets: {i.outcomes}
+- Quality threshold: {i.quality_threshold}
+
+## Discovery Assurance
+
+- Seed and challenge recovery: TODO
+- Citation and expansion channels: TODO
+- Search repairs: TODO
+- Corpus freeze and amendments: TODO
+- Assurance verdict: insufficient
 
 ## Search Strategy
 
-- Sources searched: TODO
-- Query logic: TODO
-- Deduplication approach: TODO
-- Publication status policy: prefer peer-reviewed published or accepted venue records; treat preprints as supplemental unless no published/accepted version exists.
-- Publication URL policy: every included study must include a canonical `publication_url` in the evidence table.
+- Sources, queries, filters, search repairs, and version-resolution policy: TODO
 
 ## Screening Decisions
 
-- Title/abstract stage summary: TODO
-- Full-text stage summary: TODO
-- Exclusion reasons summary: TODO
+- TODO
 
 ## Evidence Table
 
-- Included-study profile: TODO
-- Risk-of-bias profile: TODO
-- Link audit: TODO confirm each study has a canonical publication URL.
+- TODO
 
 ## Synthesis
 
 - High-confidence findings: TODO
-- Mixed or contradictory findings: TODO
-- Open questions: TODO
+- Mixed, negative, or contradictory findings: TODO
+- Coverage-dependent conclusions: TODO
+- Unresolved questions: TODO
 
 ## Adversarial Stress Test
 
-- Vulnerable claims and caveats: TODO
-- Potential overreach and framing risks: TODO
+- Claim-killing work, alternative terminology, correlated evidence, and late-omission challenge: TODO
 
 ## Limitations
 
-- Search limitations: TODO
-- Data/method limitations: TODO
-- Inference limitations: TODO
+- Search, source-access, screening, evidence, and inference limitations: TODO
 
 ## Confidence Assessment
 
-- Claim-level confidence: TODO
-- Confidence rationale: TODO
+- Claim-level confidence and residual omission risk: TODO
 
 ## PRISMA flow accounting
 
-Generate and paste flow content from `{flow_relative_path}` produced by `scripts/prisma_flow_md.py`.
+Generate and paste flow content from `{flow_name}`. PRISMA consistency does not establish retrieval completeness.
 """
 
 
-def _build_paths(out_dir: Path, topic_slug: str) -> Dict[str, Path]:
-    return {
-        "protocol": out_dir / f"{topic_slug}.protocol.md",
-        "search": out_dir / f"{topic_slug}.search-log.md",
-        "screening": out_dir / f"{topic_slug}.screening-log.md",
-        "evidence": out_dir / f"{topic_slug}.evidence-table.md",
-        "report": out_dir / f"{topic_slug}.review.md",
-        "flow": out_dir / f"{topic_slug}.prisma-flow.md",
-    }
-
-
-def _ensure_writable(paths: Dict[str, Path], force: bool) -> None:
-    existing = [str(path) for name, path in paths.items() if name != "flow" and path.exists()]
-    if existing and not force:
-        joined = "\n  - ".join(existing)
-        raise ValueError(
-            "Refusing to overwrite existing review artifacts. Use --force to overwrite:\n"
-            f"  - {joined}"
-        )
-
-
-def _write_file(path: Path, content: str) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(content, encoding="utf-8")
-
-
-def _build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(
-        description="Create a deterministic Markdown review pack for systematic literature review workflows.",
-    )
-    parser.add_argument("--topic", required=True, help="Review topic title.")
-    parser.add_argument("--domain", required=True, help="Domain label (required gate).")
-    parser.add_argument("--out-dir", required=True, help="Output directory for review artifacts.")
-    parser.add_argument("--question", help="Research question.")
-    parser.add_argument("--inclusion-criteria", help="Inclusion criteria text.")
-    parser.add_argument("--exclusion-criteria", help="Exclusion criteria text.")
-    parser.add_argument("--date-range", help="Date range text (e.g., 2016-01-01 to 2026-02-23).")
-    parser.add_argument("--study-types", help="Allowed study types.")
-    parser.add_argument("--language", help="Language scope.")
-    parser.add_argument("--population-context", help="Population/context scope.")
-    parser.add_argument("--outcomes", help="Outcome scope.")
-    parser.add_argument("--quality-threshold", help="Minimum study quality threshold.")
-    parser.add_argument("--force", action="store_true", help="Overwrite existing artifacts if present.")
-    return parser
+def parser() -> argparse.ArgumentParser:
+    p = argparse.ArgumentParser(description=__doc__)
+    p.add_argument("--topic", required=True)
+    p.add_argument("--domain", required=True)
+    p.add_argument("--review-profile", choices=sorted(PROFILES))
+    p.add_argument("--out-dir", required=True)
+    p.add_argument("--question")
+    p.add_argument("--inclusion-criteria")
+    p.add_argument("--exclusion-criteria")
+    p.add_argument("--date-range")
+    p.add_argument("--study-types")
+    p.add_argument("--language")
+    p.add_argument("--population-context")
+    p.add_argument("--outcomes")
+    p.add_argument("--quality-threshold")
+    p.add_argument("--domain-adapter")
+    p.add_argument("--intended-decision")
+    p.add_argument("--force", action="store_true")
+    return p
 
 
 def main() -> int:
-    parser = _build_parser()
-    args = parser.parse_args()
-
     try:
-        inputs = _resolve_inputs(args)
-        topic_slug = _normalize_topic_to_slug(inputs.topic)
-        paths = _build_paths(inputs.out_dir, topic_slug)
-        _ensure_writable(paths, force=args.force)
+        args = parser().parse_args()
+        i = resolve(args)
+        slug = slugify(i.topic)
+        i.out_dir.mkdir(parents=True, exist_ok=True)
+        paths = {
+            "protocol": i.out_dir / f"{slug}.protocol.md",
+            "search": i.out_dir / f"{slug}.search-log.md",
+            "recall": i.out_dir / f"{slug}.recall-audit.md",
+            "manifest": i.out_dir / f"{slug}.corpus-manifest.json",
+            "screening": i.out_dir / f"{slug}.screening-log.md",
+            "evidence": i.out_dir / f"{slug}.evidence-table.md",
+            "report": i.out_dir / f"{slug}.review.md",
+            "flow": i.out_dir / f"{slug}.prisma-flow.md",
+        }
+        existing = [str(path) for key, path in paths.items() if key != "flow" and path.exists()]
+        if existing and not args.force:
+            raise ValueError("refusing to overwrite existing artifacts: " + ", ".join(existing))
 
-        flow_relative_path = paths["flow"].name
-        _write_file(paths["protocol"], _protocol_md(inputs))
-        _write_file(paths["search"], _search_log_md(inputs))
-        _write_file(paths["screening"], _screening_log_md(inputs))
-        _write_file(paths["evidence"], _evidence_md(inputs))
-        _write_file(paths["report"], _report_md(inputs, flow_relative_path=flow_relative_path))
+        contents = {
+            "protocol": protocol(i),
+            "search": search_log(i),
+            "recall": recall_audit(i),
+            "screening": screening(i),
+            "evidence": evidence(i),
+            "report": report(i, paths["flow"].name),
+        }
+        for key, text in contents.items():
+            paths[key].write_text(text, encoding="utf-8")
 
-        print("Created review artifact pack:")
-        print(f"  - {paths['report']}")
-        print(f"  - {paths['protocol']}")
-        print(f"  - {paths['search']}")
-        print(f"  - {paths['screening']}")
-        print(f"  - {paths['evidence']}")
-        print(f"Next step: run prisma_flow_md.py to produce {paths['flow'].name}")
+        manifest = {
+            "schema_version": "1.0",
+            "topic": i.topic,
+            "review_profile": i.profile,
+            "freeze_date": None,
+            "corpus_version": 1,
+            "records": [],
+            "seed_ids": [],
+            "challenge_ids": [],
+            "post_freeze_amendments": [],
+            "search_strategy_review": {
+                "performed": False,
+                "independence": "self-review",
+                "notes": "",
+            },
+            "assurance_verdict": "insufficient",
+        }
+        paths["manifest"].write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        for key in ("report", "protocol", "search", "recall", "manifest", "screening", "evidence"):
+            print(f"created {paths[key]}")
+        print(f"next step: generate {paths['flow'].name} after screening counts are populated")
         return 0
     except Exception as exc:  # pylint: disable=broad-except
         print(f"ERROR: {exc}", file=sys.stderr)

@@ -9,6 +9,7 @@ from pathlib import Path
 
 import harness_runtime
 from harness_common import SCHEMA_VERSION, canonical_json, path_digest, resolve_inside_root, sha256_bytes
+from validate_research_commitment import load_commitment, validate_commitment
 
 BASE_FILES = {
     "research-brief.md": "# Research Brief",
@@ -16,6 +17,7 @@ BASE_FILES = {
     "decision-log.md": "# Decision Log",
     "artifact-index.md": "# Artifact Index",
 }
+COMMITMENT_FILE = "research-commitment.json"
 STAGE_DIRS = [
     "zotero", "literature-review", "ideation", "novelty-review", "experiment-plan",
     "results-audit", "paper-review", "paper-plan", "review-loop", "rebuttal",
@@ -27,15 +29,19 @@ INDEX_ROWS = [
     "./literature-review/", "./ideation/", "./novelty-review/", "./experiment-plan/",
     "./results-audit/", "./paper-review/", "./paper-plan/", "./review-loop/", "./rebuttal/",
 ]
-HARNESS_INDEX_ROWS = ["./harness-events.jsonl", "./HARNESS_STATE.json", "./work-items.json", "./episodes/", "./checkpoints/"]
+COMMITMENT_INDEX_ROW = "./research-commitment.json"
+HARNESS_INDEX_ROWS = [
+    "./harness-events.jsonl", "./HARNESS_STATE.json", "./work-items.json",
+    "./episodes/", "./checkpoints/",
+]
 WORK_STATES = {"queued", "ready", "running", "awaiting_verification", "completed", "blocked"}
 
 
 def parse_args() -> argparse.Namespace:
-    p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("target_dir", type=Path)
-    p.add_argument("--profile", choices=("auto", "legacy", "harness"), default="auto")
-    return p.parse_args()
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("target_dir", type=Path)
+    parser.add_argument("--profile", choices=("auto", "legacy", "harness"), default="auto")
+    return parser.parse_args()
 
 
 def read_json(path: Path, errors: list[str]):
@@ -48,7 +54,22 @@ def read_json(path: Path, errors: list[str]):
     return None
 
 
-def validate_base(root: Path, errors: list[str]) -> None:
+def validate_commitment_file(root: Path, required: bool, errors: list[str]) -> None:
+    path = root / COMMITMENT_FILE
+    if not path.exists():
+        if required:
+            errors.append(f"missing commitment file: {path}")
+        return
+    data, load_errors = load_commitment(path)
+    errors.extend(f"commitment: {error}" for error in load_errors)
+    if not load_errors:
+        errors.extend(f"commitment: {error}" for error in validate_commitment(data))
+    index = root / "artifact-index.md"
+    if index.is_file() and COMMITMENT_INDEX_ROW not in index.read_text(encoding="utf-8"):
+        errors.append(f"{index}: missing canonical path '{COMMITMENT_INDEX_ROW}'")
+
+
+def validate_base(root: Path, errors: list[str], *, require_commitment: bool) -> None:
     for name, heading in BASE_FILES.items():
         path = root / name
         if not path.is_file():
@@ -64,6 +85,7 @@ def validate_base(root: Path, errors: list[str]) -> None:
         for row in INDEX_ROWS:
             if row not in content:
                 errors.append(f"{index}: missing canonical path '{row}'")
+    validate_commitment_file(root, require_commitment, errors)
 
 
 def validate_work_items(data, errors: list[str]) -> None:
@@ -95,7 +117,10 @@ def validate_work_items(data, errors: list[str]) -> None:
         for field in ("stage", "owner_skill", "objective", "evidence_class", "enforcement_scope"):
             if not isinstance(item.get(field), str) or not item[field].strip():
                 errors.append(f"{label}.{field} must be a non-empty string")
-        for field in ("context_manifest", "expected_artifacts", "acceptance_checks", "dependencies", "write_scope", "predecessor_failures", "episodes", "verifications"):
+        for field in (
+            "context_manifest", "expected_artifacts", "acceptance_checks", "dependencies",
+            "write_scope", "predecessor_failures", "episodes", "verifications",
+        ):
             if not isinstance(item.get(field), list):
                 errors.append(f"{label}.{field} must be a list")
         if not isinstance(item.get("attempt"), int) or item["attempt"] < 0:
@@ -108,10 +133,15 @@ def validate_work_items(data, errors: list[str]) -> None:
         for dep in item.get("dependencies", []):
             if dep not in ids:
                 errors.append(f"work-items.json.items[{index}] references unknown dependency: {dep}")
-    graph = {item.get("work_item_id"): item.get("dependencies", []) for item in items if isinstance(item, dict) and isinstance(item.get("work_item_id"), str)}
+    graph = {
+        item.get("work_item_id"): item.get("dependencies", [])
+        for item in items
+        if isinstance(item, dict) and isinstance(item.get("work_item_id"), str)
+    }
     visiting: set[str] = set()
     visited: set[str] = set()
-    def visit(node: str):
+
+    def visit(node: str) -> None:
         if node in visiting:
             errors.append(f"work-item dependency cycle includes {node}")
             return
@@ -123,6 +153,7 @@ def validate_work_items(data, errors: list[str]) -> None:
                 visit(dep)
         visiting.remove(node)
         visited.add(node)
+
     for node in graph:
         visit(node)
 
@@ -151,11 +182,11 @@ def validate_evidence(root: Path, work_items: dict, errors: list[str]) -> None:
                 errors.append(f"submitted episode digest mismatch: {relative}")
             for artifact, expected in record.get("artifact_digests", {}).items():
                 try:
-                    apath = resolve_inside_root(root, artifact, "artifact")
+                    artifact_path = resolve_inside_root(root, artifact, "artifact")
                 except SystemExit as exc:
                     errors.append(str(exc))
                     continue
-                if not apath.exists() or path_digest(apath) != expected:
+                if not artifact_path.exists() or path_digest(artifact_path) != expected:
                     errors.append(f"submitted artifact digest mismatch: {artifact}")
     episodes_dir = root / "episodes"
     if episodes_dir.is_dir():
@@ -233,7 +264,11 @@ def validate_harness(root: Path, errors: list[str]) -> None:
         errors.append("HARNESS_STATE.json does not match replayed event state; run harness_runtime.py replay")
     if work_items != replayed_items:
         errors.append("work-items.json does not match replayed event state; run harness_runtime.py replay")
-    active = [i["work_item_id"] for i in work_items.get("items", []) if i.get("state") in {"running", "awaiting_verification"}]
+    active = [
+        item["work_item_id"]
+        for item in work_items.get("items", [])
+        if item.get("state") in {"running", "awaiting_verification"}
+    ]
     if state.get("active_work_item_id") is None and active:
         errors.append("HARNESS_STATE.json omits an active work item")
     elif state.get("active_work_item_id") is not None and active != [state.get("active_work_item_id")]:
@@ -248,7 +283,7 @@ def main() -> int:
     profile = args.profile
     if profile == "auto":
         profile = "harness" if any((root / name).exists() for name in HARNESS_FILES) else "legacy"
-    validate_base(root, errors)
+    validate_base(root, errors, require_commitment=profile == "harness")
     if profile == "harness":
         validate_harness(root, errors)
     if errors:
@@ -257,9 +292,18 @@ def main() -> int:
             print(f"- {error}")
         return 1
     if profile == "harness":
-        print("Validation passed: harness layout, event chain, projections, dependency graph, and digest-anchored evidence are internally consistent. This is repository validation only; it does not establish external immutability, executor isolation, scientific validity, or independent verification.")
+        print(
+            "Validation passed: commitment structure, harness layout, event chain, projections, "
+            "dependency graph, and digest-anchored evidence are internally consistent. This is "
+            "repository validation only; it does not establish authenticated approval, external "
+            "immutability, executor isolation, scientific validity, or independent verification."
+        )
     else:
-        print("Validation passed: legacy research-suite layout is structurally consistent. This profile does not provide durable execution, replay, or verifier-backed transitions.")
+        print(
+            "Validation passed: legacy research-suite layout is structurally consistent. "
+            "A commitment file was validated when present, but this profile does not provide "
+            "durable execution, replay, or verifier-backed transitions."
+        )
     return 0
 
 
