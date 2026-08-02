@@ -50,6 +50,7 @@ FILE_TEMPLATES = {
 ### Block 1
 
 - Block ID:
+- Decision gate ID:
 - Claim tested:
 - Anti-claim ruled out:
 - Why this block exists:
@@ -77,12 +78,17 @@ FILE_TEMPLATES = {
 - Independence requirements:
 - Independence evidence:
 - Predecessor failures:
+- Execution mode: command / notebook / manual / external_job
+- Declared input snapshots:
+- Declared evaluator snapshots:
+- Required outputs:
+- Allowed lineage relations:
 
 ## Run Order
 
 | Order | Block | Purpose | Dependency | Gate ID | Stop / go gate | Est. cost |
 | --- | --- | --- | --- | --- | --- | --- |
-| 1 | | | | G1 | | |
+| 1 | B1 | initial decisive block | | G1 | complete and inspect B1 | |
 
 ## Decision Gates
 
@@ -133,6 +139,7 @@ FILE_TEMPLATES = {
     "claim_ids": [
       "C1"
     ],
+    "decision_gate_id": "G1",
     "anti_claims_ruled_out": [],
     "why_this_block_exists": "",
     "dataset_split_task": "",
@@ -159,7 +166,26 @@ FILE_TEMPLATES = {
     "independence_evidence": "",
     "operational_threat_model": "",
     "operational_harms": "",
-    "predecessor_failures": []
+    "predecessor_failures": [],
+    "execution": {
+      "mode": "manual",
+      "entrypoint": null,
+      "declared_inputs": [],
+      "declared_evaluator_artifacts": [],
+      "required_outputs": []
+    },
+    "lineage_policy": {
+      "allowed_relations": [
+        "baseline",
+        "replication",
+        "ablation",
+        "parameter_variation",
+        "negative_control",
+        "sensitivity",
+        "alternative_hypothesis",
+        "technical_retry"
+      ]
+    }
   }
 ]
 """,
@@ -176,13 +202,18 @@ FILE_TEMPLATES = {
 ### B1
 
 - Claim IDs:
+- Decision gate ID: G1
 - Current evidence class: exploratory
 - Requested evidence class: exploratory
 - Inputs required:
+- Declared input snapshot paths:
+- Declared evaluator snapshot paths:
 - Expected implementation entrypoint:
 - Expected command or notebook:
 - Output artifacts to produce:
 - Auditor-facing checks:
+- Intended lineage relation: baseline / replication / ablation / parameter_variation / negative_control / sensitivity / alternative_hypothesis / technical_retry
+- Parent run ID or rationale:
 - Hidden information unavailable to the evaluated system:
 - Failure, skip, null, timeout, and retry states to retain:
 - Idempotency and restart requirements:
