@@ -59,7 +59,7 @@ Write `claim-evidence-bindings.json` as the authority for what the manuscript ma
 - claim type and evidence mode;
 - support status and manuscript action;
 - required assurance class;
-- source experiment claim IDs and result-audit IDs;
+- source experiment claim IDs, linked result-audit IDs, and explicit audit exclusions;
 - audited evidence artifacts;
 - planned sections, exhibit IDs, and citation-need IDs;
 - limitations, missing evidence, scope, and rationale.
@@ -103,11 +103,13 @@ Manuscript action:
 Rules:
 
 - `assert` requires `supported` status.
-- Empirical or mixed assertion requires at least one positive audit at or above the required assurance class and no unresolved linked negative audit.
+- Empirical or mixed assertion requires at least one positive **same-scope** audit at or above the required assurance class and no unresolved linked negative audit.
 - `qualify` requires explicit limitations.
 - `partial` requires qualification or limitation treatment plus explicit limitations and missing evidence.
 - `blocked`, `contradicted`, and `withdrawn` claims cannot be asserted.
-- `contradicted` requires negative audit evidence and cannot coexist with an adequate positive audit under the same scope without reclassification.
+- Every audit targeting a listed source claim must be linked or explicitly excluded with a scope difference and rationale; same-scope audits cannot be excluded.
+- `contradicted` requires negative audit evidence and cannot coexist with adequate same-scope positive evidence without reclassification.
+- Active empirical claims require audited evidence paths; mixed claims additionally require nonempirical evidence or citation needs.
 
 ## Hard stops
 
@@ -117,7 +119,8 @@ Rules:
 - Do not let Markdown status differ from the canonical JSON binding.
 - Do not use a result audit for a different source claim or paper identity.
 - Do not assert a confirmatory claim from exploratory-only audit assurance.
-- Do not hide negative audits by linking only the preferred run.
+- Do not hide negative audits by linking only the preferred audit; every relevant audit must be linked or explicitly excluded.
+- Do not broaden a paper claim beyond the scope of the adequate audit used to support it.
 - Do not treat citations as substitutes for empirical evidence or empirical results as novelty citations.
 - If venue constraints materially affect the plan and remain unknown, preserve the gap rather than inventing requirements.
 
@@ -134,11 +137,16 @@ Rules:
 
 For empirical and mixed claims:
 
+- revalidate the exact result-audit JSON, narrative, and work-item bindings;
 - link exact result-audit IDs;
+- account for every audit targeting a listed source claim by linking it or explicitly excluding it with a scope difference and rationale;
 - confirm each audit targets a listed source claim ID;
+- require exact scope compatibility for assertion;
 - compare attained assurance with required assurance;
 - preserve negative and inconclusive audit records;
 - link only evidence artifacts declared by those audits.
+
+For mixed claims, add at least one concrete nonempirical artifact or citation need in addition to the audited empirical evidence.
 
 For theoretical claims, link concrete proof or argument artifacts. For citation claims, link stable citation-need IDs and verified sources.
 
@@ -197,7 +205,9 @@ python scripts/validate_paper_pack.py \
   --assurance-profile linked \
   --commitment research-commitment.json \
   --claim-map experiment-plan/claim-map.json \
-  --results-audit results-audit/results-audit.json
+  --results-audit results-audit/results-audit.json \
+  --results-audit-narrative results-audit/results-audit.md \
+  --work-items work-items.json
 ```
 
 A passing validator establishes declared linkage and consistency, not scientific validity, citation correctness, or independent verification beyond the linked audit record.
