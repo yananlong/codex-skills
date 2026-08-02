@@ -321,10 +321,23 @@ def apply_event(state: dict[str, Any], work_items: dict[str, Any], event: dict[s
         for dependency in item.get("dependencies", []):
             find_item(work_items, dependency)
         for condition in item.get("activation_conditions", []):
-            predecessor = condition.get("predecessor_work_item_id")
-            find_item(work_items, predecessor)
-            if predecessor not in item.get("dependencies", []):
+            predecessor_id = condition.get("predecessor_work_item_id")
+            predecessor = find_item(work_items, predecessor_id)
+            if predecessor_id not in item.get("dependencies", []):
                 raise SystemExit("activation-condition predecessor must also be a dependency")
+            predecessor_binding = predecessor.get("experiment_binding")
+            if not isinstance(predecessor_binding, dict):
+                raise SystemExit("activation-condition predecessor must be experiment-bound")
+            if condition.get("gate_id") != predecessor_binding.get("decision_gate_id"):
+                raise SystemExit("activation-condition gate must match the predecessor's bound decision gate")
+            item_binding = item.get("experiment_binding")
+            if not isinstance(item_binding, dict):
+                raise SystemExit("activation conditions require an experiment-bound work item")
+            if (
+                item_binding.get("paper_id") != predecessor_binding.get("paper_id")
+                or item_binding.get("identity_version") != predecessor_binding.get("identity_version")
+            ):
+                raise SystemExit("activation-condition predecessor belongs to a different paper identity")
         item["state"] = "ready" if _item_ready(work_items, item) else "queued"
         item["attempt"] = 0
         item["episodes"] = []
@@ -566,15 +579,25 @@ def validate_work_item(
     dependencies = args.depends_on or []
     for dependency in dependencies:
         find_item(work_items, dependency)
-    activation_conditions = [_parse_activation_condition(raw) for raw in (args.activation_condition or [])]
-    for condition in activation_conditions:
-        predecessor = condition["predecessor_work_item_id"]
-        find_item(work_items, predecessor)
-        if predecessor not in dependencies:
-            raise SystemExit("activation-condition predecessor must also be supplied with --depends-on")
     binding = _build_experiment_binding(root, args, args.expected_artifact, args.write_scope)
+    activation_conditions = [_parse_activation_condition(raw) for raw in (args.activation_condition or [])]
     if activation_conditions and binding is None:
         raise SystemExit("activation conditions are supported only for experiment-bound work items")
+    for condition in activation_conditions:
+        predecessor_id = condition["predecessor_work_item_id"]
+        predecessor = find_item(work_items, predecessor_id)
+        if predecessor_id not in dependencies:
+            raise SystemExit("activation-condition predecessor must also be supplied with --depends-on")
+        predecessor_binding = predecessor.get("experiment_binding")
+        if not isinstance(predecessor_binding, dict):
+            raise SystemExit("activation-condition predecessor must be experiment-bound")
+        if condition["gate_id"] != predecessor_binding.get("decision_gate_id"):
+            raise SystemExit("activation-condition gate must match the predecessor's bound decision gate")
+        if (
+            binding.get("paper_id") != predecessor_binding.get("paper_id")
+            or binding.get("identity_version") != predecessor_binding.get("identity_version")
+        ):
+            raise SystemExit("activation-condition predecessor belongs to a different paper identity")
     item = {
         "work_item_id": args.work_item_id,
         "stage": args.stage,
@@ -793,14 +816,29 @@ def _validate_experiment_run(
     if disposition == "falsifies_claim" and not any(effect["effect"] == "kill" for effect in normalized_effects):
         raise SystemExit("falsifies_claim requires at least one kill claim effect")
 
+    outcome = episode.get("outcome")
+    if outcome != "completed":
+        if run.get("gate_result") not in {"inconclusive", "not_applicable"}:
+            raise SystemExit("failed or partial experiment runs require gate_result inconclusive or not_applicable")
+        if disposition not in {"inconclusive", "diagnostic_only"}:
+            raise SystemExit("failed or partial experiment runs require an inconclusive or diagnostic_only disposition")
+        advancing_effects = [
+            effect["effect"]
+            for effect in normalized_effects
+            if effect["effect"] not in {"unchanged", "inconclusive"}
+        ]
+        if advancing_effects:
+            raise SystemExit("failed or partial experiment runs cannot strengthen, weaken, or kill claims")
+
     required_outputs = {
         entry["path"]
         for entry in binding.get("execution", {}).get("required_outputs", [])
         if isinstance(entry, dict) and _meaningful(entry.get("path"))
     }
-    missing_outputs = sorted(required_outputs - set(episode.get("artifacts", [])))
-    if missing_outputs:
-        raise SystemExit("experiment episode missing required outputs: " + ", ".join(missing_outputs))
+    if outcome == "completed":
+        missing_outputs = sorted(required_outputs - set(episode.get("artifacts", [])))
+        if missing_outputs:
+            raise SystemExit("experiment episode missing required outputs: " + ", ".join(missing_outputs))
     normalized = copy.deepcopy(run)
     normalized["run_id"] = str(run_id)
     normalized["claim_effects"] = normalized_effects

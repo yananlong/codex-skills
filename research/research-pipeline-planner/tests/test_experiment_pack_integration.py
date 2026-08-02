@@ -10,9 +10,13 @@ import unittest
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-INIT = ROOT / "scripts" / "init_research_pack.py"
-RUNTIME = ROOT / "scripts" / "harness_runtime.py"
-VALIDATE = ROOT / "scripts" / "validate_research_pack.py"
+SCRIPTS = ROOT / "scripts"
+sys.path.insert(0, str(SCRIPTS))
+import validate_research_pack as pack_validator
+
+INIT = SCRIPTS / "init_research_pack.py"
+RUNTIME = SCRIPTS / "harness_runtime.py"
+VALIDATE = SCRIPTS / "validate_research_pack.py"
 
 
 class ExperimentPackIntegrationTests(unittest.TestCase):
@@ -134,6 +138,84 @@ class ExperimentPackIntegrationTests(unittest.TestCase):
         items = json.loads((self.suite / "work-items.json").read_text())["items"]
         states = {item["work_item_id"]: item["state"] for item in items}
         self.assertEqual(states["WI-B2"], "queued")
+
+    def test_pack_integrity_rejects_activation_gate_not_owned_by_predecessor(self):
+        self.add("WI-B1", "B1")
+        self.add("WI-B2", "B2", depends="WI-B1", activation="WI-B1:G1:pass")
+        projected = json.loads((self.suite / "work-items.json").read_text())
+        projected["items"][1]["activation_conditions"][0]["gate_id"] = "G9"
+        errors: list[str] = []
+        pack_validator.validate_experiment_integrity(self.suite, projected, errors)
+        self.assertTrue(
+            any("does not match the predecessor's bound decision gate" in error for error in errors),
+            errors,
+        )
+
+    def test_failed_attempt_retry_lineage_validates_end_to_end(self):
+        self.add("WI-B1", "B1")
+        self.cli("start", "WI-B1", "--actor", "research-experiment-runner")
+        failed_episode = {
+            "schema_version": "1.0", "episode_id": "EP-WI-B1-A1", "work_item_id": "WI-B1",
+            "attempt": 1, "owner_skill": "research-experiment-runner", "objective": "Run B1",
+            "artifacts": [], "verification": [],
+            "failures": [{"category": "execution", "reason": "process crashed before output"}],
+            "tool_calls": [], "observed_usage": {"max_tool_calls": 0},
+            "outcome": "failed", "transition_request": "revise", "summary": "execution failed",
+            "experiment_run": {
+                "run_id": "RUN-B1-FAIL", "block_id": "B1", "relation": "baseline",
+                "parent_run_id": None, "gate_id": "G1", "gate_result": "not_applicable",
+                "scientific_disposition": "diagnostic_only",
+                "claim_effects": [{"claim_id": "C1", "effect": "unchanged", "scope": "no result produced"}],
+                "interpretation": "The execution failed before scientific output was produced.",
+            },
+        }
+        failed_path = self.suite / "episodes/EP-WI-B1-A1.json"
+        failed_path.write_text(json.dumps(failed_episode), encoding="utf-8")
+        self.cli(
+            "submit", "WI-B1", "--episode", str(failed_path),
+            "--actor", "research-experiment-runner",
+        )
+        self.cli(
+            "verify", "WI-B1", "--decision", "revise", "--evidence", "failure inspected",
+            "--actor", "research-pipeline-planner",
+        )
+
+        self.cli("start", "WI-B1", "--actor", "research-experiment-runner")
+        output = "results/B1.json"
+        (self.suite / output).write_text('{"metric":1}\n', encoding="utf-8")
+        retry_episode = {
+            "schema_version": "1.0", "episode_id": "EP-WI-B1-A2", "work_item_id": "WI-B1",
+            "attempt": 2, "owner_skill": "research-experiment-runner", "objective": "Run B1",
+            "artifacts": [output],
+            "verification": [{"check_id": "AC1", "result": "pass", "evidence": output}],
+            "failures": [], "tool_calls": [], "observed_usage": {"max_tool_calls": 0},
+            "outcome": "completed", "transition_request": "approve", "summary": "retry completed",
+            "experiment_run": {
+                "run_id": "RUN-B1-RETRY", "block_id": "B1", "relation": "technical_retry",
+                "parent_run_id": "RUN-B1-FAIL", "gate_id": "G1", "gate_result": "pass",
+                "scientific_disposition": "supports_claim",
+                "claim_effects": [{"claim_id": "C1", "effect": "strengthen", "scope": "fixture"}],
+                "interpretation": "The corrected execution produced the planned result.",
+            },
+        }
+        retry_path = self.suite / "episodes/EP-WI-B1-A2.json"
+        retry_path.write_text(json.dumps(retry_episode), encoding="utf-8")
+        self.cli(
+            "submit", "WI-B1", "--episode", str(retry_path),
+            "--actor", "research-experiment-runner",
+        )
+        self.cli(
+            "verify", "WI-B1", "--decision", "approve", "--evidence", "retry inspected",
+            "--gate-result", "G1=pass", "--scientific-disposition", "supports_claim",
+            "--actor", "research-pipeline-planner",
+        )
+        cp = self.validate()
+        self.assertIn("experiment bindings", cp.stdout)
+        lineage = json.loads(self.cli("experiment-lineage", "--block-id", "B1").stdout)
+        self.assertIn(
+            {"parent_run_id": "RUN-B1-FAIL", "child_run_id": "RUN-B1-RETRY"},
+            lineage["edges"],
+        )
 
 
 if __name__ == "__main__":

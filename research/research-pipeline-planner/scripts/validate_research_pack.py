@@ -233,7 +233,8 @@ def validate_experiment_integrity(root: Path, work_items: dict, errors: list[str
                 predecessor = condition.get("predecessor_work_item_id")
                 gate_id = condition.get("gate_id")
                 allowed = condition.get("allowed_results")
-                if predecessor not in by_id:
+                predecessor_item = by_id.get(predecessor)
+                if predecessor_item is None:
                     errors.append(f"{label} references unknown predecessor {predecessor}")
                 if predecessor not in item.get("dependencies", []):
                     errors.append(f"{label} predecessor must also be a dependency")
@@ -243,6 +244,17 @@ def validate_experiment_integrity(root: Path, work_items: dict, errors: list[str
                     errors.append(f"{label}.allowed_results must be a non-empty list")
                 elif set(allowed) - GATE_RESULTS:
                     errors.append(f"{label}.allowed_results contains unsupported values")
+                if predecessor_item is not None:
+                    predecessor_binding = predecessor_item.get("experiment_binding")
+                    if not isinstance(predecessor_binding, dict):
+                        errors.append(f"{label} predecessor must be experiment-bound")
+                    elif gate_id != predecessor_binding.get("decision_gate_id"):
+                        errors.append(f"{label}.gate_id does not match the predecessor's bound decision gate")
+                    elif isinstance(binding, dict) and (
+                        binding.get("paper_id") != predecessor_binding.get("paper_id")
+                        or binding.get("identity_version") != predecessor_binding.get("identity_version")
+                    ):
+                        errors.append(f"{label} predecessor belongs to a different paper identity")
 
         if binding is None:
             for record in item.get("episodes", []):
@@ -348,8 +360,19 @@ def validate_experiment_integrity(root: Path, work_items: dict, errors: list[str
                 errors.append(f"{wid}: experiment run gate does not match binding")
             if run.get("gate_result") not in GATE_RESULTS:
                 errors.append(f"{wid}: invalid experiment gate result")
-            if run.get("scientific_disposition") not in SCIENTIFIC_DISPOSITIONS:
+            disposition = run.get("scientific_disposition")
+            if disposition not in SCIENTIFIC_DISPOSITIONS:
                 errors.append(f"{wid}: invalid scientific disposition")
+            outcome = record.get("outcome")
+            if outcome != "completed":
+                if run.get("gate_result") not in {"inconclusive", "not_applicable"}:
+                    errors.append(f"{wid}: failed or partial experiment run has an advancing gate result")
+                if disposition not in {"inconclusive", "diagnostic_only"}:
+                    errors.append(f"{wid}: failed or partial experiment run has an advancing disposition")
+                for effect in run.get("claim_effects", []):
+                    if isinstance(effect, dict) and effect.get("effect") not in {"unchanged", "inconclusive"}:
+                        errors.append(f"{wid}: failed or partial experiment run has an advancing claim effect")
+                        break
             if run.get("relation") not in LINEAGE_RELATIONS:
                 errors.append(f"{wid}: invalid experiment lineage relation")
             if run.get("relation") not in binding.get("allowed_lineage_relations", []):

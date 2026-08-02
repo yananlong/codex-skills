@@ -116,9 +116,20 @@ class ExperimentRuntimeTests(unittest.TestCase):
         gate_result: str = "pass",
         disposition: str = "supports_claim",
         effect: str = "strengthen",
+        attempt: int = 1,
+        outcome: str = "completed",
+        transition_request: str = "approve",
+        write_output: bool = True,
+        failures: list[dict[str, str]] | None = None,
     ) -> Path:
         output = f"results/{block}.json"
-        (self.root / output).write_text(json.dumps({"metric": 1}), encoding="utf-8")
+        artifacts: list[str] = []
+        verification: list[dict[str, str]] = []
+        if write_output:
+            (self.root / output).write_text(json.dumps({"metric": 1}), encoding="utf-8")
+            artifacts = [output]
+            if outcome == "completed":
+                verification = [{"check_id": "AC1", "result": "pass", "evidence": output}]
         run = {
             "run_id": run_id,
             "block_id": block,
@@ -132,24 +143,25 @@ class ExperimentRuntimeTests(unittest.TestCase):
         }
         if parent_rationale is not None:
             run["parent_rationale"] = parent_rationale
+        episode_id = f"EP-{item}-A{attempt}"
         data = {
             "schema_version": "1.0",
-            "episode_id": f"EP-{item}-A1",
+            "episode_id": episode_id,
             "work_item_id": item,
-            "attempt": 1,
+            "attempt": attempt,
             "owner_skill": "research-experiment-runner",
             "objective": f"Run {block}",
-            "artifacts": [output],
-            "verification": [{"check_id": "AC1", "result": "pass", "evidence": output}],
-            "failures": [],
+            "artifacts": artifacts,
+            "verification": verification,
+            "failures": failures or [],
             "tool_calls": [],
             "observed_usage": {"max_tool_calls": 0},
-            "outcome": "completed",
-            "transition_request": "approve",
-            "summary": "completed",
+            "outcome": outcome,
+            "transition_request": transition_request,
+            "summary": outcome,
             "experiment_run": run,
         }
-        path = self.root / "episodes" / f"EP-{item}-A1.json"
+        path = self.root / "episodes" / f"{episode_id}.json"
         path.write_text(json.dumps(data), encoding="utf-8")
         return path
 
@@ -262,6 +274,80 @@ class ExperimentRuntimeTests(unittest.TestCase):
             expect=1,
         )
         self.assertIn("must also be supplied with --depends-on", cp.stderr)
+
+    def test_activation_gate_must_match_predecessor_binding(self):
+        self.add_experiment("WI-B1", "B1")
+        cp = self.run_cli(
+            "add", "--work-item-id", "WI-B2", "--stage", "experiment-plan",
+            "--owner-skill", "research-experiment-runner", "--objective", "Run B2",
+            "--acceptance-check", "Required output exists", "--expected-artifact", "results/B2.json",
+            "--write-scope", "results/", "--depends-on", "WI-B1",
+            "--experiment-run-blocks", "experiment-plan/run-blocks.json",
+            "--experiment-claim-map", "experiment-plan/claim-map.json", "--experiment-block-id", "B2",
+            "--commitment", "research-commitment.json", "--activation-condition", "WI-B1:G9:pass",
+            expect=1,
+        )
+        self.assertIn("must match the predecessor's bound decision gate", cp.stderr)
+
+    def test_activation_predecessor_must_be_experiment_bound(self):
+        self.run_cli(
+            "add", "--work-item-id", "WI-GENERAL", "--stage", "analysis",
+            "--owner-skill", "research-experiment-runner", "--objective", "Prepare inputs",
+            "--acceptance-check", "Prepared", "--expected-artifact", "results/general.json",
+            "--write-scope", "results/",
+        )
+        cp = self.run_cli(
+            "add", "--work-item-id", "WI-B2", "--stage", "experiment-plan",
+            "--owner-skill", "research-experiment-runner", "--objective", "Run B2",
+            "--acceptance-check", "Required output exists", "--expected-artifact", "results/B2.json",
+            "--write-scope", "results/", "--depends-on", "WI-GENERAL",
+            "--experiment-run-blocks", "experiment-plan/run-blocks.json",
+            "--experiment-claim-map", "experiment-plan/claim-map.json", "--experiment-block-id", "B2",
+            "--commitment", "research-commitment.json", "--activation-condition", "WI-GENERAL:G1:pass",
+            expect=1,
+        )
+        self.assertIn("predecessor must be experiment-bound", cp.stderr)
+
+    def test_failed_attempt_cannot_report_advancing_gate_or_claim_effect(self):
+        self.add_experiment("WI-B1", "B1")
+        self.start("WI-B1")
+        episode = self.episode(
+            "WI-B1", "B1", "RUN-B1-BAD-FAIL", gate_result="pass",
+            disposition="diagnostic_only", effect="strengthen", outcome="failed",
+            transition_request="revise", write_output=False,
+            failures=[{"category": "execution", "reason": "process crashed"}],
+        )
+        cp = self.submit("WI-B1", episode, expect=1)
+        self.assertIn("failed or partial experiment runs require gate_result", cp.stderr)
+
+    def test_failed_attempt_can_parent_technical_retry(self):
+        self.add_experiment("WI-B1", "B1")
+        self.start("WI-B1")
+        failed = self.episode(
+            "WI-B1", "B1", "RUN-B1-FAIL", gate_result="not_applicable",
+            disposition="diagnostic_only", effect="unchanged", outcome="failed",
+            transition_request="revise", write_output=False,
+            failures=[{"category": "execution", "reason": "process crashed before producing results"}],
+        )
+        self.submit("WI-B1", failed)
+        self.run_cli(
+            "verify", "WI-B1", "--decision", "revise", "--evidence", "failure inspected",
+            "--actor", "research-pipeline-planner",
+        )
+        self.start("WI-B1")
+        retry = self.episode(
+            "WI-B1", "B1", "RUN-B1-RETRY", relation="technical_retry",
+            parent_run_id="RUN-B1-FAIL", gate_result="pass", disposition="supports_claim",
+            effect="strengthen", attempt=2,
+        )
+        self.submit("WI-B1", retry)
+        self.verify("WI-B1", "G1", "pass", "supports_claim")
+        lineage = json.loads(self.run_cli("experiment-lineage", "--block-id", "B1").stdout)
+        self.assertIn(
+            {"parent_run_id": "RUN-B1-FAIL", "child_run_id": "RUN-B1-RETRY"},
+            lineage["edges"],
+        )
+        self.assertEqual(self.states()["WI-B1"], "completed")
 
     def test_verifier_gate_result_must_match_submitted_run(self):
         self.add_experiment("WI-B1", "B1")
