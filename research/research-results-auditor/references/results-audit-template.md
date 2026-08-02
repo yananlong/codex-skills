@@ -13,16 +13,21 @@
 
 - Claim ID:
 - Claim under audit:
+- Scope:
 - Source mode: standalone / orchestrated
 - Requested assurance class:
 - Attained assurance class:
 - Bounded verdict:
 - Audited claim effect:
+- Run-selection rule:
+- Included run IDs:
+- Excluded run IDs and rationales:
 - Work item ID:
 - Episode ID and digest:
 - Experiment run ID:
 - Block ID and gate ID:
 - Parent run ID and lineage relation:
+- Submitted claim effect and scope:
 - Submitted gate result and disposition:
 - Verifier decision:
 - Verified gate result and disposition:
