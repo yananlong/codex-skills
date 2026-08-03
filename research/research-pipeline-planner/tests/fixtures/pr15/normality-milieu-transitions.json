@@ -1,0 +1,133 @@
+{
+  "history": {
+    "schema_version": "1.0",
+    "source_basis": "2026-07-27 review state and migration matrix",
+    "snapshots": [
+      {
+        "snapshot_id": "NM-S1",
+        "commitment": {
+          "schema_version": "1.0",
+          "paper_id": "normality-milieu",
+          "identity_version": 1,
+          "status": "committed",
+          "main_question": "Can a CIMM reporting schema track context-indexed evaluation claims?",
+          "central_object_or_phenomenon": "CIMM reporting artifact",
+          "contribution_class": "protocol",
+          "minimum_publishable_claim": "A CIMM schema organizes transport and non-transport decisions.",
+          "primary_evidence_obligation": "Illustrative leaderboard and finite-sample audit examples",
+          "intended_audience": "ML researchers",
+          "permitted_refinements": ["Narrow the benchmark scope"],
+          "pivot_triggers": ["Primary experiment falsifies the route"],
+          "kill_conditions": ["No measurable signal"],
+          "successor_idea_policy": "park",
+          "next_mandatory_evidence_artifact": "results/B1.json",
+          "reconsideration_gate": "G1",
+          "selection_history": [],
+          "predecessor_failures": [],
+          "last_change_class": "D0",
+          "last_change_rationale": "Recorded transition"
+        }
+      },
+      {
+        "snapshot_id": "NM-S2",
+        "commitment": {
+          "schema_version": "1.0",
+          "paper_id": "normality-milieu",
+          "identity_version": 2,
+          "status": "committed",
+          "main_question": "When is an evaluation report sufficient for reuse after an environment change?",
+          "central_object_or_phenomenon": "report maps and their quotient or exactness structure",
+          "contribution_class": "theory",
+          "minimum_publishable_claim": "A report supports exact reuse precisely under the declared factorisation conditions.",
+          "primary_evidence_obligation": "Proved factorisation results and a reproducible diagnostic study",
+          "intended_audience": "ML researchers",
+          "permitted_refinements": ["Narrow the benchmark scope"],
+          "pivot_triggers": ["Primary experiment falsifies the route"],
+          "kill_conditions": ["No measurable signal"],
+          "successor_idea_policy": "park",
+          "next_mandatory_evidence_artifact": "results/B1.json",
+          "reconsideration_gate": "G1",
+          "selection_history": [],
+          "predecessor_failures": [],
+          "last_change_class": "D3",
+          "last_change_rationale": "Recorded transition"
+        }
+      },
+      {
+        "snapshot_id": "NM-S3",
+        "commitment": {
+          "schema_version": "1.0",
+          "paper_id": "normality-milieu",
+          "identity_version": 2,
+          "status": "committed",
+          "main_question": "When is an evaluation report sufficient for reuse after an environment change?",
+          "central_object_or_phenomenon": "report maps and their quotient or exactness structure",
+          "contribution_class": "theory",
+          "minimum_publishable_claim": "For a finite explicit-claim setting, the coarsest stable report partition characterizes exact reuse.",
+          "primary_evidence_obligation": "Proved factorisation results and a reproducible diagnostic study",
+          "intended_audience": "ML researchers",
+          "permitted_refinements": ["Narrow the benchmark scope"],
+          "pivot_triggers": ["Primary experiment falsifies the route"],
+          "kill_conditions": ["No measurable signal"],
+          "successor_idea_policy": "park",
+          "next_mandatory_evidence_artifact": "results/B1.json",
+          "reconsideration_gate": "G1",
+          "selection_history": [],
+          "predecessor_failures": [],
+          "last_change_class": "D2",
+          "last_change_rationale": "Narrowed to a finite explicit-claim theorem."
+        }
+      }
+    ]
+  },
+  "ledger": {
+    "schema_version": "1.0",
+    "transitions": [
+      {
+        "transition_id": "CT-NM-S1-NM-S2",
+        "from_snapshot_id": "NM-S1",
+        "to_snapshot_id": "NM-S2",
+        "before_digest": "9d4b9cd347d9b27789468896fb6fbf9fa20cac9729efa037b3b23c1655786d3e",
+        "after_digest": "7e82f8ee5dd92ed9379e3c3be7689976dd42b14c6c870664858d273e3100998f",
+        "declared_change_class": "D3",
+        "computed_change_class": "D3",
+        "computed_field_changes": {
+          "central_object_or_phenomenon": ["CIMM reporting artifact", "report maps and their quotient or exactness structure"],
+          "contribution_class": ["protocol", "theory"],
+          "main_question": ["Can a CIMM reporting schema track context-indexed evaluation claims?", "When is an evaluation report sufficient for reuse after an environment change?"],
+          "minimum_publishable_claim": ["A CIMM schema organizes transport and non-transport decisions.", "A report supports exact reuse precisely under the declared factorisation conditions."],
+          "primary_evidence_obligation": ["Illustrative leaderboard and finite-sample audit examples", "Proved factorisation results and a reproducible diagnostic study"]
+        },
+        "trigger_id": "PT-1",
+        "authorization": {
+          "authorization_id": "AUTH-NM-S1-NM-S2",
+          "decision": "authorize-D3",
+          "before_digest": "9d4b9cd347d9b27789468896fb6fbf9fa20cac9729efa037b3b23c1655786d3e",
+          "after_digest": "7e82f8ee5dd92ed9379e3c3be7689976dd42b14c6c870664858d273e3100998f",
+          "rationale": "The deterministic drift floor requires explicit authorization.",
+          "self_review": true
+        },
+        "switching_cost": "Prior artifacts require reassessment.",
+        "discarded_evidence": [],
+        "successor_project_assessment": "A separate project was considered."
+      },
+      {
+        "transition_id": "CT-NM-S2-NM-S3",
+        "from_snapshot_id": "NM-S2",
+        "to_snapshot_id": "NM-S3",
+        "before_digest": "7e82f8ee5dd92ed9379e3c3be7689976dd42b14c6c870664858d273e3100998f",
+        "after_digest": "9875988699ed05629ecf36dbe7ee04acc3f56f1b83abff7a72513cf299c6873a",
+        "declared_change_class": "D2",
+        "computed_change_class": "D2",
+        "computed_field_changes": {
+          "minimum_publishable_claim": ["A report supports exact reuse precisely under the declared factorisation conditions.", "For a finite explicit-claim setting, the coarsest stable report partition characterizes exact reuse."]
+        },
+        "trigger_id": null,
+        "authorization": null,
+        "switching_cost": "",
+        "discarded_evidence": [],
+        "successor_project_assessment": ""
+      }
+    ]
+  }
+}
