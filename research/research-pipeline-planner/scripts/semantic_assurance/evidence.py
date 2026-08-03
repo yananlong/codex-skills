@@ -4,10 +4,36 @@ from typing import Any
 
 from .common import ADVERSE_OUTCOMES, ALLOWED_EXCLUSION_CLASSES, ASSURANCE_RANK, SCOPE_DIMENSIONS, canonical_digest, meaningful, validate_id
 
+def _dimension_identity(value: Any, label: str, errors: list[str]) -> str:
+    if not isinstance(value, dict):
+        errors.append(f"{label} must be an object with id and description")
+        return ""
+    dimension_id = validate_id(value.get("id"), f"{label}.id", errors)
+    if not meaningful(value.get("description")):
+        errors.append(f"{label}.description must be substantive")
+    return dimension_id
+
+
+def scope_identity(scope: dict[str, Any], label: str = "scope", errors: list[str] | None = None) -> dict[str, Any]:
+    errors = errors if errors is not None else []
+    identity: dict[str, Any] = {}
+    for field in SCOPE_DIMENSIONS - {"outcomes", "exclusions"}:
+        identity[field] = _dimension_identity(scope.get(field), f"{label}.{field}", errors)
+    for field in ("outcomes", "exclusions"):
+        values = scope.get(field)
+        if not isinstance(values, list):
+            errors.append(f"{label}.{field} must be a list of id/description objects")
+            identity[field] = []
+            continue
+        ids = [_dimension_identity(value, f"{label}.{field}[{index}]", errors) for index, value in enumerate(values, 1)]
+        if len(ids) != len(set(ids)):
+            errors.append(f"{label}.{field} contains duplicate semantic IDs")
+        identity[field] = sorted(ids)
+    return identity
+
 
 def scope_signature(scope: dict[str, Any]) -> str:
-    normalized = {field: scope.get(field) for field in sorted(SCOPE_DIMENSIONS)}
-    return canonical_digest(normalized)
+    return canonical_digest(scope_identity(scope))
 
 
 def validate_scope_registry(value: Any, label: str, errors: list[str]) -> dict[str, dict[str, Any]]:
@@ -22,13 +48,8 @@ def validate_scope_registry(value: Any, label: str, errors: list[str]) -> dict[s
             errors.append(f"{item_label} must be an object")
             continue
         scope_id = validate_id(scope.get("scope_id"), f"{item_label}.scope_id", errors)
-        for field in SCOPE_DIMENSIONS - {"outcomes", "exclusions"}:
-            if not meaningful(scope.get(field)):
-                errors.append(f"{item_label}.{field} must be substantive")
-        for field in ("outcomes", "exclusions"):
-            if not isinstance(scope.get(field), list) or any(not meaningful(value) for value in scope.get(field, [])):
-                errors.append(f"{item_label}.{field} must be a list of substantive strings")
-        signature = scope_signature(scope)
+        identity = scope_identity(scope, item_label, errors)
+        signature = canonical_digest(identity)
         if scope_id in registry:
             errors.append(f"duplicate scope_id {scope_id}")
         registry[scope_id] = scope
@@ -36,7 +57,6 @@ def validate_scope_registry(value: Any, label: str, errors: list[str]) -> dict[s
             errors.append(f"semantically identical scopes use different IDs: {signatures[signature]} and {scope_id}")
         signatures[signature] = scope_id
     return registry
-
 
 def work_item_runs(work_items: Any) -> dict[str, tuple[dict[str, Any], dict[str, Any], dict[str, Any]]]:
     result: dict[str, tuple[dict[str, Any], dict[str, Any], dict[str, Any]]] = {}
@@ -53,17 +73,25 @@ def work_item_runs(work_items: Any) -> dict[str, tuple[dict[str, Any], dict[str,
                 result[str(run["run_id"])] = (item, episode, run)
     return result
 
-
-def derived_run_assurance(item: dict[str, Any], run: dict[str, Any]) -> str:
+def derived_run_assurance(item: dict[str, Any], run: dict[str, Any], block: dict[str, Any]) -> str:
     binding_semantic = item.get("semantic_assurance") if isinstance(item.get("semantic_assurance"), dict) else {}
     run_semantic = run.get("semantic_assurance") if isinstance(run.get("semantic_assurance"), dict) else {}
-    evidence_class = str(binding_semantic.get("evidence_class", "exploratory"))
-    rank = ASSURANCE_RANK.get(evidence_class, ASSURANCE_RANK["exploratory"])
+    item_class = str(item.get("evidence_class", "exploratory"))
+    block_class = str(block.get("evidence_class", "exploratory"))
+    rank = min(
+        ASSURANCE_RANK.get(item_class, ASSURANCE_RANK["exploratory"]),
+        ASSURANCE_RANK.get(block_class, ASSURANCE_RANK["exploratory"]),
+    )
     confirmatory_conditions = (
         binding_semantic.get("claim_frozen_before_outcome") is True
         and binding_semantic.get("decision_rule_frozen_before_outcome") is True
         and binding_semantic.get("selection_rule_frozen_before_outcome") is True
         and binding_semantic.get("outcome_inspected_before_freeze") is False
+        and binding_semantic.get("commitment_status_at_start") in {"committed", "executing"}
+        and binding_semantic.get("gate_frozen_at_start") is True
+        and meaningful(block.get("selection_rule"))
+        and meaningful(block.get("complete_outcome_accounting"))
+        and meaningful(block.get("hidden_information_controls"))
         and run_semantic.get("complete_outcome_accounting") is True
         and run_semantic.get("hidden_truth_access") in {"none", "blinded"}
         and not run_semantic.get("material_deviations")
@@ -87,13 +115,23 @@ def derived_run_assurance(item: dict[str, Any], run: dict[str, Any]) -> str:
             return name
     return "exploratory"
 
-
-def validate_evidence_semantics(audit_data: Any, paper_data: Any, work_items: Any) -> list[str]:
+def validate_evidence_semantics(audit_data: Any, paper_data: Any, work_items: Any, run_blocks: Any) -> list[str]:
     errors: list[str] = []
     if not isinstance(audit_data, dict):
         return ["results audit must be an object"]
     if not isinstance(paper_data, dict):
         return ["paper bindings must be an object"]
+    if not isinstance(run_blocks, list):
+        return ["run-blocks must be a list"]
+    blocks_by_id: dict[str, dict[str, Any]] = {}
+    for index, block in enumerate(run_blocks, 1):
+        if not isinstance(block, dict):
+            errors.append(f"run-blocks[{index}] must be an object")
+            continue
+        block_id = validate_id(block.get("block_id"), f"run-blocks[{index}].block_id", errors)
+        if block_id in blocks_by_id:
+            errors.append(f"duplicate run block {block_id}")
+        blocks_by_id[block_id] = block
     runs = work_item_runs(work_items)
     seen_run_ids: set[str] = set()
     if isinstance(work_items, dict):
@@ -129,6 +167,9 @@ def validate_evidence_semantics(audit_data: Any, paper_data: Any, work_items: An
             errors.append(f"{label}.frozen_before_outcome must be true")
         if not meaningful(rule.get("description")):
             errors.append(f"{label}.description must be substantive")
+        rule_payload = {key: value for key, value in rule.items() if key != "rule_digest"}
+        if rule.get("rule_digest") != canonical_digest(rule_payload):
+            errors.append(f"{label}.rule_digest does not bind the exact eligibility rule")
         if rule_id in rules_by_id:
             errors.append(f"duplicate eligibility rule {rule_id}")
         rules_by_id[rule_id] = rule
@@ -179,6 +220,9 @@ def validate_evidence_semantics(audit_data: Any, paper_data: Any, work_items: An
             semantic = run.get("semantic_assurance") if isinstance(run.get("semantic_assurance"), dict) else {}
             if semantic.get("eligibility_rule_id") != rule_id:
                 errors.append(f"{ex_label} eligibility rule disagrees with source run")
+            rule_digest = rules_by_id.get(rule_id, {}).get("rule_digest")
+            if semantic.get("eligibility_rule_digest") != rule_digest:
+                errors.append(f"{ex_label} eligibility rule digest disagrees with source run")
             if semantic.get("exclusion_class") != exclusion_class:
                 errors.append(f"{ex_label} exclusion class disagrees with source run")
             if semantic.get("technical_validity") == "valid" or semantic.get("outcome_class") in ADVERSE_OUTCOMES | {"positive"}:
@@ -193,6 +237,14 @@ def validate_evidence_semantics(audit_data: Any, paper_data: Any, work_items: An
                 continue
             item, _, run = found
             semantic = run.get("semantic_assurance") if isinstance(run.get("semantic_assurance"), dict) else {}
+            block_id = str(run.get("block_id", ""))
+            block = blocks_by_id.get(block_id)
+            if block is None:
+                errors.append(f"{label} source run {run_id} references unknown block_id {block_id}")
+                block = {}
+            binding = item.get("experiment_binding") if isinstance(item.get("experiment_binding"), dict) else {}
+            if binding.get("block_id") != block_id:
+                errors.append(f"{label} source run {run_id} block_id disagrees with frozen work-item binding")
             for field in ("claim_id", "scope_id", "eligibility_rule_id", "technical_validity", "outcome_class"):
                 if source.get(field) != semantic.get(field):
                     errors.append(f"{label} source run {run_id} field {field} disagrees with work-items projection")
@@ -202,9 +254,17 @@ def validate_evidence_semantics(audit_data: Any, paper_data: Any, work_items: An
                 errors.append(f"{label} source run {run_id} is technically invalid and cannot support an audited scientific verdict")
             if semantic.get("outcome_class") not in {"positive", "negative", "null", "contradictory"}:
                 errors.append(f"{label} source run {run_id} lacks a scientific outcome class")
-            if source.get("eligibility_rule_id") not in rules_by_id:
+            rule_id = source.get("eligibility_rule_id")
+            if rule_id not in rules_by_id:
                 errors.append(f"{label} source run {run_id} uses unknown eligibility rule")
-            cap = derived_run_assurance(item, run)
+            else:
+                expected_rule_digest = rules_by_id[rule_id].get("rule_digest")
+                if semantic.get("eligibility_rule_digest") != expected_rule_digest:
+                    errors.append(f"{label} source run {run_id} eligibility rule digest mismatch")
+                item_rule_digests = item.get("semantic_assurance", {}).get("eligibility_rule_digests", {}) if isinstance(item.get("semantic_assurance"), dict) else {}
+                if item_rule_digests.get(rule_id) != expected_rule_digest:
+                    errors.append(f"{label} source run {run_id} eligibility rule was not frozen into the work item")
+            cap = derived_run_assurance(item, run, block)
             derived_caps.append(cap)
             if semantic.get("technical_validity") == "valid" and semantic.get("outcome_class") in ADVERSE_OUTCOMES:
                 adverse_ids.add(run_id)
@@ -292,11 +352,9 @@ def validate_evidence_semantics(audit_data: Any, paper_data: Any, work_items: An
             audit_scope = audit_scopes.get(audit_scope_id)
             if claim_scope is None or audit_scope is None:
                 continue
-            changed = {
-                field
-                for field in SCOPE_DIMENSIONS
-                if claim_scope.get(field) != audit_scope.get(field)
-            }
+            claim_identity = scope_identity(claim_scope)
+            audit_identity = scope_identity(audit_scope)
+            changed = {field for field in SCOPE_DIMENSIONS if claim_identity.get(field) != audit_identity.get(field)}
             declared_changed = set(map(str, exclusion.get("differing_dimensions", [])))
             if not changed:
                 errors.append(f"{ex_label}: cannot exclude semantically identical scope audit {audit_id}")
