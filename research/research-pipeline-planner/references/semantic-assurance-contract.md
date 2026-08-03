@@ -59,24 +59,26 @@ Canonical additional artifact:
 commitment-transitions.json
 ```
 
-The transition validator also consumes a canonical sequence of commitment snapshots. Every adjacent snapshot pair has exactly one transition record.
+The artifact contains the canonical sequence of commitment snapshots and transition records in one authority. Every adjacent snapshot pair has exactly one transition record, and the latest snapshot must match the current `research-commitment.json`.
 
 A transition records:
 
 - stable transition and snapshot IDs;
 - exact canonical before and after SHA-256 digests;
+- digest-bound identity anchors for the question, central object, and evidence obligation;
 - the exact deterministic field diff;
 - declared and computed D0-D4 classes;
 - from and to identity versions;
-- fired trigger or kill condition for D3-D4;
-- one-use authorization bound to both digests;
+- the exact predecessor pivot trigger or kill condition, by kind, index, and text;
+- one-use authorization bound to the transition ID and both digests;
 - switching cost, discarded evidence, and successor assessment;
-- old-lineage closure for D4.
+- old-lineage closure bound to the exact predecessor digest and identity version for D4.
 
 Deterministic drift floors:
 
 - paper ID replacement is D4;
-- main-question, central-object, contribution-class, or primary-evidence-obligation replacement is at least D3;
+- contribution-class replacement, or replacement of a digest-bound question, central-object, or evidence-obligation anchor, is at least D3;
+- wording changes to an identity field remain D0 only when its stable anchor ID and canonical definition digest remain unchanged;
 - minimum-claim or mandatory-evidence narrowing that preserves the identity is at least D2;
 - other substantive control changes are at least D1;
 - no substantive change is D0.
@@ -107,9 +109,9 @@ Systematic or strong-novelty routes declare decisions for:
 - reproducibility or implementation;
 - venue and author/lab clusters.
 
-Strong novelty normally requires foundational, closest-recent, and competing-or-critical seed classes, at least three seeds and corpus records, and either a withheld challenge set or materially independent search review. A narrow-topic exception must state its rationale, exact scope limit, and independent review basis.
+Strong novelty normally requires foundational, closest-recent, and competing-or-critical seed classes, at least three seeds and corpus records, and either a withheld challenge set or materially independent search review. A withheld challenge is frozen before search, held by a named custodian, digest-bound, disjoint from visible seeds, and represented in the frozen corpus after recovery. A narrow-topic exception must state its rationale, exact scope limit, and materially independent review basis.
 
-A saturated question requires at least two reciprocal search rounds with non-increasing marginal yield, or a hard source boundary plus a disproportionality rationale.
+A saturated question requires at least two distinct reciprocal search rounds with non-increasing yield and at least one strict decline, or a hard source boundary plus a disproportionality rationale.
 
 Ratings 4-5 additionally require:
 
@@ -126,7 +128,7 @@ Ratings 4-5 additionally require:
 `results-audit.json` remains the result authority. The semantic extension adds:
 
 - a structured scope registry;
-- frozen eligibility rules;
+- frozen eligibility rules whose exact digests are bound into source runs and work items;
 - source-run scope, eligibility, technical-validity, and outcome classes;
 - controlled technical exclusion classes;
 - adverse-evidence dispositions;
@@ -142,21 +144,13 @@ Allowed exclusion classes are limited to:
 
 A valid positive, negative, null, or contradictory outcome is not an exclusion. Same-scope adverse outcomes remain in the audit and receive an explicit manuscript consequence.
 
-The maximum confirmatory assurance class is derived from the work item and source run. Confirmatory support requires the claim, decision rule, and selection rule to have been frozen before outcome inspection, complete outcome accounting, no material deviation, and no disallowed hidden-truth access. An exploratory source cannot be promoted by filling confirmatory audit fields.
+The maximum assurance class is derived from the exact experiment block, frozen work item, and source run. Confirmatory support requires both block and work item to be confirmatory or stronger, substantive block selection and outcome-accounting contracts, a committed or executing paper at start, a frozen gate, the claim and decision rule frozen before outcome inspection, complete outcome accounting, no material deviation, and no disallowed hidden-truth access. An exploratory source cannot be promoted by filling confirmatory audit fields.
 
 ## Structured scopes
 
-Both result audits and paper bindings reference structured scope objects containing:
+Both result audits and paper bindings reference structured scope objects. Every dimension carries a stable semantic ID plus a human-readable description for population, environment or evaluator, intervention, comparator, outcomes, time or version, and exclusions. Scope identity is computed from those stable dimension IDs rather than free-text descriptions.
 
-- population;
-- environment or evaluator;
-- intervention;
-- comparator;
-- outcomes;
-- time or version;
-- exclusions.
-
-Semantically identical objects cannot use different IDs to manufacture a scope distinction. An asserted empirical claim uses the same scope ID as its positive audit. An explicit audit exclusion identifies the exact changed dimensions, not a free-text claim that the scope differs.
+Rephrasing a description therefore cannot manufacture a new scope. Semantically identical objects cannot use different scope IDs, an asserted empirical claim uses the exact same scope identity as its positive audit, and an audit exclusion identifies the exact changed dimensions rather than asserting a difference in prose.
 
 ## Real-project fixtures
 
