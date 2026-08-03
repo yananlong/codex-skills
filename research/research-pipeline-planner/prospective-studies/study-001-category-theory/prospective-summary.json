@@ -1,0 +1,31 @@
+{
+  "comparisons": [],
+  "conclusion": "The category-theory cases and public source environments are predeclared; no case has enrolled and no prospective observations have been collected.",
+  "conclusion_authority": "instrumentation_only",
+  "condition_metrics": {},
+  "excluded_project_ids": [],
+  "included_project_ids": [],
+  "limitations": [
+    "Artifact validation does not create prospective evidence or establish research-suite effectiveness.",
+    "All named repositories are visible inputs and cannot contribute hidden-challenge recall evidence.",
+    "This domain-concentrated pilot cannot support generalization to unrelated research domains."
+  ],
+  "metrics": {
+    "adverse_evidence_retention_rate": null,
+    "critical_paper_recall_initial": null,
+    "critical_paper_recall_post_repair": null,
+    "drift_false_positive_rate": null,
+    "drift_sensitivity": null,
+    "importance_weighted_recall_post_repair": null,
+    "late_omission_rate": null,
+    "median_days_to_terminal": null,
+    "median_identity_transitions_to_terminal": null,
+    "search_repair_gain": null,
+    "terminal_route_rate": null
+  },
+  "pending_project_ids": [],
+  "protocol_digest": "",
+  "schema_version": "1.0",
+  "status": "draft",
+  "study_id": "prospective-study-001-category-theory"
+}

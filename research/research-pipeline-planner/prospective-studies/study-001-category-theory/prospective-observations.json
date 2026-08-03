@@ -1,0 +1,16 @@
+{
+  "challenge_set_digest": "",
+  "enrolled_project_ids": [],
+  "predeclared_project_ids": [
+    "CT-ML",
+    "CT-NLP",
+    "CT-FOUNDATIONS"
+  ],
+  "projects": [],
+  "protocol_digest": "",
+  "protocol_version": 1,
+  "schema_version": "1.0",
+  "status": "draft",
+  "study_id": "prospective-study-001-category-theory",
+  "visible_source_registry_path": "visible-source-registry.json"
+}
