@@ -1,0 +1,88 @@
+{
+  "amendments": [],
+  "assurance_class": "exploratory",
+  "comparison": {
+    "allocation_frozen_before_outcome": false,
+    "comparator": "",
+    "effect_thresholds": [],
+    "equal_information_access": false,
+    "mode": "none",
+    "sample_size_rule": "",
+    "uncertainty_method": ""
+  },
+  "conclusion_policy": {
+    "downgrade_rules": [
+      "Outcome-informed protocol changes cap conclusions at descriptive exploratory authority.",
+      "Any repository-source leakage removes affected records from hidden-recall calculations but not case accounting.",
+      "Domain concentration prohibits claims of general effectiveness outside the category-theory ecosystem."
+    ],
+    "max_authority": "descriptive",
+    "no_promotion_from_pilot": true
+  },
+  "custody": {
+    "challenge_custodian": "",
+    "challenge_freeze_digest": "",
+    "challenge_frozen_before_search": false,
+    "evaluator_independence": {
+      "dimensions": [],
+      "evidence": "Unassigned in the draft protocol; no independence claim is made.",
+      "self_review": true
+    }
+  },
+  "design_class": "descriptive",
+  "enrollment_target": 3,
+  "frozen_at": "",
+  "missing_data_policy": "Preserve missing and inaccessible records explicitly. Do not impute recovery, completeness, or favorable source classification. A missing hidden-challenge endpoint remains unavailable rather than perfect.",
+  "predeclared_case_ids": [
+    "CT-ML",
+    "CT-NLP",
+    "CT-FOUNDATIONS"
+  ],
+  "primary_endpoints": [
+    "drift_sensitivity",
+    "critical_paper_recall_post_repair",
+    "adverse_evidence_retention_rate",
+    "terminal_route_rate"
+  ],
+  "project_eligibility": "Only the three predeclared category-theory cases may enroll. Each case must begin after protocol freeze, must not have been used to design or debug PR 16 or PR 18, must retain all valid adverse outcomes, and must use hidden challenges that are disjoint from every named public repository snapshot and visible seed.",
+  "project_exclusion_rules": [
+    {
+      "description": "Exclude only when substantive case research output existed before the protocol freeze timestamp.",
+      "frozen_before_outcome": true,
+      "rule_id": "EX-PREFREEZE-CASE-OUTPUT"
+    },
+    {
+      "description": "Exclude only when the case or its expected result was used to design, debug, or tune PR 16 or PR 18.",
+      "frozen_before_outcome": true,
+      "rule_id": "EX-IMPLEMENTATION-TUNING"
+    },
+    {
+      "description": "Exclude only when complete project, evidence, or outcome accounting is known to be impossible before research outcomes are inspected.",
+      "frozen_before_outcome": true,
+      "rule_id": "EX-COMPLETE-ACCOUNTING-IMPOSSIBLE"
+    }
+  ],
+  "protocol_digest": "",
+  "protocol_version": 1,
+  "schema_version": "1.0",
+  "secondary_endpoints": [
+    "drift_false_positive_rate",
+    "critical_paper_recall_initial",
+    "importance_weighted_recall_post_repair",
+    "search_repair_gain",
+    "late_omission_rate",
+    "median_days_to_terminal",
+    "median_identity_transitions_to_terminal"
+  ],
+  "status": "draft",
+  "stopping_rule": "Close observation when all three predeclared cases reach execute, submit, split, park, or kill, or 90 calendar days after the third case enrolls. Cases still active at the boundary remain unresolved and included.",
+  "study_domain": "category theory, applied category theory, categorical machine learning, and categorical NLP",
+  "study_id": "prospective-study-001-category-theory",
+  "supplementary_endpoints": [
+    "repository_source_duplication_and_canonicalization_error_rate",
+    "source_type_classification_accuracy"
+  ],
+  "technical_failure_policy": "Retain repository, link, parser, API, and execution failures. Distinguish technical failures from scientific or literature outcomes, and never exclude a case because failures or stale sources make results unfavorable.",
+  "visible_source_policy": "Every named repository and every record exposed through its frozen snapshot is visible evidence and cannot count as a hidden challenge. Forks and mirrors deduplicate to their upstream content identity.",
+  "visible_source_registry_path": "visible-source-registry.json"
+}

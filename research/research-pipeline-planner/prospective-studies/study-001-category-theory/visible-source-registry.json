@@ -1,0 +1,120 @@
+{
+  "freeze_requirements_remaining": [
+    "Resolve exact relevant file set for each repository.",
+    "Record every relevant file blob SHA.",
+    "Record fork and mirror equivalence classes.",
+    "Adopt the registry digest inside the frozen protocol before any case search begins."
+  ],
+  "public_input_policy": "Repositories were selected and inspected openly. Their files, linked records, and obvious mirrors are visible inputs and are ineligible for hidden-challenge recall.",
+  "recorded_on": "2026-08-03",
+  "repositories": [
+    {
+      "candidate_commit": "78180832afd6870211b5ca05702879ab98e0ab2f",
+      "case_ids": [
+        "CT-ML",
+        "CT-NLP"
+      ],
+      "default_branch": "master",
+      "relevant_paths": [
+        "README.md"
+      ],
+      "repository": "bgavran/Category_Theory_Machine_Learning",
+      "role": "Current specialist categorical-machine-learning paper map and overlap source."
+    },
+    {
+      "candidate_commit": "57af40ed428c84df0e2d37e16d76ee17dbb61824",
+      "case_ids": [
+        "CT-ML",
+        "CT-NLP",
+        "CT-FOUNDATIONS"
+      ],
+      "default_branch": "main",
+      "relevant_paths": [
+        "README.md"
+      ],
+      "repository": "madnight/awesome-category-theory",
+      "role": "Broad category-theory resource and terminology channel."
+    },
+    {
+      "candidate_commit": "a5afc837d0eff94bf607bd01f9c295288866f32f",
+      "case_ids": [
+        "CT-ML",
+        "CT-FOUNDATIONS"
+      ],
+      "default_branch": "master",
+      "relevant_paths": [
+        "README.md"
+      ],
+      "repository": "jules-hedges/awesome-applied-category-theory",
+      "role": "Historical applied-category-theory curation baseline."
+    },
+    {
+      "candidate_commit": "ef463c01e0cc665428d35ee9aeedbf288da7a09b",
+      "case_ids": [
+        "CT-NLP"
+      ],
+      "default_branch": "master",
+      "relevant_paths": [
+        "README.md"
+      ],
+      "repository": "jbrkr/Category_Theory_Natural_Language_Processing_NLP",
+      "role": "Specialist categorical-NLP list and staleness/boundary case."
+    },
+    {
+      "candidate_commit": "c09e0d7c37261622be5e3fec591a66240291970c",
+      "case_ids": [
+        "CT-FOUNDATIONS"
+      ],
+      "default_branch": "main",
+      "relevant_paths": [
+        "README.md",
+        "build/references.bib",
+        "resources/"
+      ],
+      "repository": "CategoryTheoryArchive/archive",
+      "role": "Historical primary-source and bibliographic ancestry archive."
+    },
+    {
+      "candidate_commit": "49e642ab75f27ca5af8aec8471e994e3ca36bd22",
+      "case_ids": [
+        "CT-FOUNDATIONS"
+      ],
+      "default_branch": "main",
+      "relevant_paths": [
+        "README.md"
+      ],
+      "repository": "bgavran/Category_Theory_Resources",
+      "role": "Concise beginner-oriented resource list."
+    },
+    {
+      "candidate_commit": "eac38107ae9b8a82ef87f9e4da23053808dc7e20",
+      "case_ids": [
+        "CT-FOUNDATIONS"
+      ],
+      "default_branch": "master",
+      "relevant_paths": [
+        "readme.org"
+      ],
+      "repository": "prathyvsh/category-theory-resources",
+      "role": "Narrative learner curation spanning history, mathematics, programming, and visualization."
+    },
+    {
+      "candidate_commit": "0ba6d2e89b6c87593db0a5b8d2678385aa5a20fd",
+      "case_ids": [
+        "CT-FOUNDATIONS"
+      ],
+      "default_branch": "main",
+      "relevant_paths": [
+        "README.md",
+        "resources/",
+        "katas/",
+        "demos/"
+      ],
+      "repository": "ATALLC/AppliedCategoryTheory",
+      "role": "Practitioner course and claim-classification environment."
+    }
+  ],
+  "schema_version": "1.0",
+  "status": "candidate",
+  "study_id": "prospective-study-001-category-theory"
+}
