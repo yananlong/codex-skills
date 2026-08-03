@@ -25,7 +25,7 @@ def validate_summary(ctx:dict[str,Any],obs:dict[str,Any],s:Any,profile:str,e:lis
         suite=expected.get("suite",{});base=expected.get("comparator",{});want={}
         for t in ctx["comparison"].get("effect_thresholds",[]):
             k=t.get("endpoint_id");a=suite.get(k);b=base.get(k);effect=None if a is None or b is None else (a-b if t.get("direction")=="higher" else b-a)
-            want[str(k)]={"endpoint_id":k,"suite_value":a,"comparator_value":b,"effect":efffect,"threshold_met":effect is not None and effect>=t.get("minimum_effect",0)}
+            want[str(k)]={"endpoint_id":k,"suite_value":a,"comparator_value":b,"effect":effect,"threshold_met":effect is not None and effect>=t.get("minimum_effect",0)}
         got={str(x.get("endpoint_id")):x for x in s.get("comparisons",[]) if isinstance(x,dict)};req(set(got)==set(want),"comparisons do not cover frozen thresholds",e)
         for k,w in want.items():
             g=got.get(k,{})
