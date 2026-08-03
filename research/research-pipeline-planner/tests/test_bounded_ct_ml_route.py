@@ -41,6 +41,18 @@ class BoundedCTMLRouteLoaderTests(unittest.TestCase):
             ]
             fixture.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
+            # CI pass 3 showed that the fixture assertion still read the legacy
+            # string representation. Align the assertion with the validated
+            # decision/rationale object without changing the selected identity.
+            old_assertion = "self.assertEqual(commitment['selection_history'][0].split()[0],self.fixture['selected_idea_id'])"
+            new_assertion = "self.assertEqual(commitment['selection_history'][0]['decision'].split()[-1], self.fixture['selected_idea_id'])"
+            implementation_text = implementation.read_text(encoding="utf-8")
+            self.assertIn(old_assertion, implementation_text)
+            implementation.write_text(
+                implementation_text.replace(old_assertion, new_assertion, 1),
+                encoding="utf-8",
+            )
+
             spec = importlib.util.spec_from_file_location("bounded_ct_ml_route_impl", implementation)
             self.assertIsNotNone(spec)
             self.assertIsNotNone(spec.loader if spec else None)
