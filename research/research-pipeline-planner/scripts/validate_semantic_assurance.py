@@ -16,8 +16,8 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     subparsers = parser.add_subparsers(dest="command", required=True)
     transitions = subparsers.add_parser("transitions")
-    transitions.add_argument("--history", type=Path, required=True)
-    transitions.add_argument("--ledger", type=Path, required=True)
+    transitions.add_argument("--transitions", type=Path, required=True)
+    transitions.add_argument("--current-commitment", type=Path, required=True)
     transitions.add_argument("--work-items", type=Path)
     literature = subparsers.add_parser("literature")
     literature.add_argument("--manifest", type=Path, required=True)
@@ -29,15 +29,16 @@ def parse_args() -> argparse.Namespace:
     evidence.add_argument("--results-audit", type=Path, required=True)
     evidence.add_argument("--paper-bindings", type=Path, required=True)
     evidence.add_argument("--work-items", type=Path, required=True)
+    evidence.add_argument("--run-blocks", type=Path, required=True)
     fixtures = subparsers.add_parser("fixtures")
     fixtures.add_argument("--fixture-index", type=Path, required=True)
     route = subparsers.add_parser("route")
     for action in (
-        ("--history", Path), ("--ledger", Path), ("--manifest", Path),
+        ("--transitions", Path), ("--current-commitment", Path), ("--manifest", Path),
         ("--novelty-decision", Path), ("--prior-art-matrix", Path),
         ("--novelty-search-log", Path), ("--challenge-evaluation", Path),
         ("--results-audit", Path), ("--paper-bindings", Path),
-        ("--work-items", Path), ("--fixture-index", Path),
+        ("--work-items", Path), ("--run-blocks", Path), ("--fixture-index", Path),
     ):
         route.add_argument(action[0], type=action[1], required=True)
     return parser.parse_args()
@@ -47,11 +48,11 @@ def main() -> int:
     args = parse_args()
     errors: list[str] = []
     if args.command in {"transitions", "route"}:
-        history = load_json(args.history, "commitment history", errors)
-        ledger = load_json(args.ledger, "commitment transition ledger", errors)
+        transition_authority = load_json(args.transitions, "commitment transition authority", errors)
+        current_commitment = load_json(args.current_commitment, "current commitment", errors)
         work_items = load_json(args.work_items, "work-items", errors) if getattr(args, "work_items", None) else None
-        if history is not None and ledger is not None:
-            errors.extend(validate_commitment_transitions(history, ledger, work_items))
+        if transition_authority is not None and current_commitment is not None:
+            errors.extend(validate_commitment_transitions(transition_authority, work_items, current_commitment))
     if args.command in {"literature", "route"}:
         manifest = load_json(args.manifest, "literature manifest", errors)
         novelty = load_json(args.novelty_decision, "novelty decision", errors)
@@ -64,8 +65,9 @@ def main() -> int:
         audit = load_json(args.results_audit, "results audit", errors)
         paper = load_json(args.paper_bindings, "paper bindings", errors)
         work_items = load_json(args.work_items, "work-items", errors)
-        if audit is not None and paper is not None and work_items is not None:
-            errors.extend(validate_evidence_semantics(audit, paper, work_items))
+        run_blocks = load_json(args.run_blocks, "run-blocks", errors)
+        if audit is not None and paper is not None and work_items is not None and run_blocks is not None:
+            errors.extend(validate_evidence_semantics(audit, paper, work_items, run_blocks))
     if args.command in {"fixtures", "route"}:
         fixtures = load_json(args.fixture_index, "fixture index", errors)
         if fixtures is not None:
