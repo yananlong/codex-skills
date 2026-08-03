@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any
@@ -142,6 +143,46 @@ def split_ids(value: str) -> set[str]:
     return {part.strip() for part in re.split(r"[,;]", value) if part.strip()}
 
 
+
+def normalize_scope(value: Any) -> str:
+    if not isinstance(value, str):
+        return ""
+    return " ".join(value.lower().split()).rstrip(".")
+
+
+def validate_audit_exclusions(value: Any, label: str, errors: list[str]) -> list[dict[str, str]]:
+    if not isinstance(value, list):
+        errors.append(f"{label} must be a list")
+        return []
+    normalized: list[dict[str, str]] = []
+    seen: set[str] = set()
+    for index, item in enumerate(value, start=1):
+        item_label = f"{label}[{index}]"
+        if not isinstance(item, dict):
+            errors.append(f"{item_label} must be an object")
+            continue
+        audit_id = validate_identifier(item.get("audit_id"), f"{item_label}.audit_id", errors)
+        if audit_id in seen:
+            errors.append(f"{label} contains duplicate audit_id {audit_id}")
+        seen.add(audit_id)
+        for field in ("scope_difference", "rationale"):
+            if not meaningful(item.get(field)):
+                errors.append(f"{item_label}.{field} must be substantive")
+        normalized.append(
+            {
+                "audit_id": audit_id,
+                "scope_difference": str(item.get("scope_difference", "")),
+                "rationale": str(item.get("rationale", "")),
+            }
+        )
+    return normalized
+
+
+def split_text_items(value: str) -> set[str]:
+    if not value.strip():
+        return set()
+    return {part.strip() for part in value.split(";") if part.strip()}
+
 def validate_claims(data: dict[str, Any], complete: bool, errors: list[str]) -> list[dict[str, Any]]:
     claims = data.get("claims")
     if not isinstance(claims, list):
@@ -179,24 +220,24 @@ def validate_claims(data: dict[str, Any], complete: bool, errors: list[str]) -> 
             for field in ("claim", "scope", "rationale"):
                 if not meaningful(claim.get(field)):
                     errors.append(f"{label}.{field} must be substantive")
-        source_claim_ids = substantive_string_list(
-            claim.get("source_claim_ids"), f"{label}.source_claim_ids", errors
-        )
+        source_claim_ids = substantive_string_list(claim.get("source_claim_ids"), f"{label}.source_claim_ids", errors)
         audit_ids = substantive_string_list(claim.get("audit_ids"), f"{label}.audit_ids", errors)
-        evidence_artifacts = substantive_string_list(
-            claim.get("evidence_artifacts"), f"{label}.evidence_artifacts", errors
+        audit_exclusions = validate_audit_exclusions(claim.get("audit_exclusions", []), f"{label}.audit_exclusions", errors)
+        evidence_artifacts = substantive_string_list(claim.get("evidence_artifacts"), f"{label}.evidence_artifacts", errors)
+        nonempirical = substantive_string_list(
+            claim.get("nonempirical_evidence_artifacts", []),
+            f"{label}.nonempirical_evidence_artifacts",
+            errors,
         )
-        planned_sections = substantive_string_list(
-            claim.get("planned_sections"), f"{label}.planned_sections", errors
-        )
+        planned_sections = substantive_string_list(claim.get("planned_sections"), f"{label}.planned_sections", errors)
         exhibit_ids = substantive_string_list(claim.get("exhibit_ids"), f"{label}.exhibit_ids", errors)
-        citation_ids = substantive_string_list(
-            claim.get("citation_need_ids"), f"{label}.citation_need_ids", errors
-        )
+        citation_ids = substantive_string_list(claim.get("citation_need_ids"), f"{label}.citation_need_ids", errors)
         limitations = substantive_string_list(claim.get("limitations"), f"{label}.limitations", errors)
-        missing = substantive_string_list(
-            claim.get("missing_evidence"), f"{label}.missing_evidence", errors
-        )
+        missing = substantive_string_list(claim.get("missing_evidence"), f"{label}.missing_evidence", errors)
+        excluded_ids = {item["audit_id"] for item in audit_exclusions if item.get("audit_id")}
+        overlap = set(audit_ids) & excluded_ids
+        if overlap:
+            errors.append(f"{label}: audit IDs cannot be both linked and excluded: {', '.join(sorted(overlap))}")
         if action == "qualify" and not limitations:
             errors.append(f"{label}: manuscript_action=qualify requires explicit limitations")
         if complete and support != "withdrawn" and not planned_sections:
@@ -221,6 +262,9 @@ def validate_claims(data: dict[str, Any], complete: bool, errors: list[str]) -> 
                 errors.append(f"{label}: empirical or mixed claim requires source_claim_ids")
             if not audit_ids:
                 errors.append(f"{label}: empirical or mixed claim requires audit_ids")
+        if complete and evidence_mode == "mixed" and support in {"supported", "partial"}:
+            if not nonempirical and not citation_ids:
+                errors.append(f"{label}: mixed claim requires a nonempirical evidence component")
         if complete and evidence_mode == "theoretical" and support == "supported" and not evidence_artifacts:
             errors.append(f"{label}: supported theoretical claim requires evidence_artifacts")
         if complete and evidence_mode == "citation" and support == "supported" and not citation_ids:
@@ -245,6 +289,7 @@ def validate_markdown_views(
         "Required assurance",
         "Source claim IDs",
         "Audit IDs",
+        "Excluded audit IDs",
         "Planned sections",
         "Exhibit IDs",
         "Citation need IDs",
@@ -295,6 +340,7 @@ def validate_markdown_views(
                 f"citation-plan.md citation need {citation_id} references unknown claims: {', '.join(sorted(unknown))}"
             )
 
+    claim_index = {str(claim.get("paper_claim_id")): claim for claim in claims}
     for claim in claims:
         claim_id = str(claim.get("paper_claim_id"))
         if complete:
@@ -316,6 +362,11 @@ def validate_markdown_views(
                 list_fields = {
                     "Source claim IDs": set(map(str, claim.get("source_claim_ids", []))),
                     "Audit IDs": set(map(str, claim.get("audit_ids", []))),
+                    "Excluded audit IDs": {
+                        str(item.get("audit_id"))
+                        for item in claim.get("audit_exclusions", [])
+                        if isinstance(item, dict) and meaningful(item.get("audit_id"))
+                    },
                     "Planned sections": set(map(str, claim.get("planned_sections", []))),
                     "Exhibit IDs": set(map(str, claim.get("exhibit_ids", []))),
                     "Citation need IDs": set(map(str, claim.get("citation_need_ids", []))),
@@ -323,18 +374,67 @@ def validate_markdown_views(
                 for field, values in list_fields.items():
                     if split_ids(row.get(field, "")) != values:
                         errors.append(f"claims-evidence-matrix.md {claim_id} field {field} disagrees with JSON")
-                if claim.get("limitations") and not row.get("Limitation", "").strip():
-                    errors.append(f"claims-evidence-matrix.md {claim_id} omits the JSON limitation")
+                expected_limitations = set(map(str, claim.get("limitations", [])))
+                if split_text_items(row.get("Limitation", "")) != expected_limitations:
+                    errors.append(f"claims-evidence-matrix.md {claim_id} field Limitation disagrees with JSON")
+
         for exhibit_id in claim.get("exhibit_ids", []):
             if exhibit_id not in exhibit_map:
-                errors.append(f"claim {claim_id} references unknown exhibit ID {exhibit_id}")
+                errors.append(f"paper claim {claim_id} references unknown exhibit ID {exhibit_id}")
             elif claim_id not in exhibit_map[exhibit_id]:
                 errors.append(f"figure-plan.md exhibit {exhibit_id} does not reciprocally reference {claim_id}")
         for citation_id in claim.get("citation_need_ids", []):
             if citation_id not in citation_map:
-                errors.append(f"claim {claim_id} references unknown citation need ID {citation_id}")
+                errors.append(f"paper claim {claim_id} references unknown citation need ID {citation_id}")
             elif claim_id not in citation_map[citation_id]:
                 errors.append(f"citation-plan.md citation need {citation_id} does not reciprocally reference {claim_id}")
+
+    # Enforce the reverse direction too: Markdown views may not invent links absent from canonical JSON.
+    for exhibit_id, linked_claim_ids in exhibit_map.items():
+        for claim_id in linked_claim_ids:
+            claim = claim_index.get(claim_id)
+            if claim is not None and exhibit_id not in set(map(str, claim.get("exhibit_ids", []))):
+                errors.append(
+                    f"figure-plan.md exhibit {exhibit_id} references {claim_id}, but canonical JSON does not list that exhibit"
+                )
+    for citation_id, linked_claim_ids in citation_map.items():
+        for claim_id in linked_claim_ids:
+            claim = claim_index.get(claim_id)
+            if claim is not None and citation_id not in set(map(str, claim.get("citation_need_ids", []))):
+                errors.append(
+                    f"citation-plan.md citation need {citation_id} references {claim_id}, but canonical JSON does not list that citation need"
+                )
+
+def rerun_results_audit_validator(
+    *,
+    validator: Path,
+    audit: Path,
+    narrative: Path,
+    commitment: Path,
+    claim_map: Path,
+    work_items: Path,
+    errors: list[str],
+) -> None:
+    command = [
+        sys.executable,
+        str(validator),
+        "--audit",
+        str(audit),
+        "--narrative",
+        str(narrative),
+        "--assurance-profile",
+        "linked",
+        "--commitment",
+        str(commitment),
+        "--claim-map",
+        str(claim_map),
+        "--work-items",
+        str(work_items),
+    ]
+    completed = subprocess.run(command, text=True, capture_output=True)
+    if completed.returncode != 0:
+        detail = (completed.stdout + "\n" + completed.stderr).strip()
+        errors.append("upstream results-audit validation failed" + (f":\n{detail}" if detail else ""))
 
 
 def validate_linked(
@@ -371,6 +471,7 @@ def validate_linked(
     if results_audit.get("identity_version") != data.get("identity_version"):
         errors.append("results-audit identity_version does not match paper binding")
     audit_index: dict[str, dict[str, Any]] = {}
+    audits_by_source_claim: dict[str, list[dict[str, Any]]] = {}
     for audit in results_audit.get("audits", []):
         if not isinstance(audit, dict) or not meaningful(audit.get("audit_id")):
             continue
@@ -378,30 +479,80 @@ def validate_linked(
         if audit_id in audit_index:
             errors.append(f"results-audit contains duplicate audit_id {audit_id}")
         audit_index[audit_id] = audit
+        if meaningful(audit.get("claim_id")):
+            audits_by_source_claim.setdefault(str(audit["claim_id"]), []).append(audit)
 
     for claim in claims:
-        claim_id = claim.get("paper_claim_id", "<unknown>")
-        unknown_sources = set(map(str, claim.get("source_claim_ids", []))) - source_claim_ids
+        claim_id = str(claim.get("paper_claim_id", "<unknown>"))
+        claim_sources = set(map(str, claim.get("source_claim_ids", [])))
+        unknown_sources = claim_sources - source_claim_ids
         if unknown_sources:
             errors.append(f"paper claim {claim_id} references unknown source claims: {', '.join(sorted(unknown_sources))}")
+
+        linked_ids = set(map(str, claim.get("audit_ids", [])))
+        exclusion_entries = {
+            str(item.get("audit_id")): item
+            for item in claim.get("audit_exclusions", [])
+            if isinstance(item, dict) and meaningful(item.get("audit_id"))
+        }
+        excluded_ids = set(exclusion_entries)
+        relevant_audits = {
+            str(audit.get("audit_id")): audit
+            for source_id in claim_sources
+            for audit in audits_by_source_claim.get(source_id, [])
+            if meaningful(audit.get("audit_id"))
+        }
+        omitted = set(relevant_audits) - linked_ids - excluded_ids
+        if omitted:
+            errors.append(
+                f"paper claim {claim_id} omits relevant result audits without an explicit exclusion: "
+                + ", ".join(sorted(omitted))
+            )
+
         linked: list[dict[str, Any]] = []
-        for audit_id in claim.get("audit_ids", []):
-            audit = audit_index.get(str(audit_id))
+        for audit_id in sorted(linked_ids):
+            audit = audit_index.get(audit_id)
             if audit is None:
                 errors.append(f"paper claim {claim_id} references unknown audit_id {audit_id}")
                 continue
             linked.append(audit)
-            if audit.get("claim_id") not in claim.get("source_claim_ids", []):
+            if audit.get("claim_id") not in claim_sources:
                 errors.append(
                     f"paper claim {claim_id} audit {audit_id} targets claim {audit.get('claim_id')} outside source_claim_ids"
                 )
+
+        for audit_id, exclusion in exclusion_entries.items():
+            audit = audit_index.get(audit_id)
+            if audit is None:
+                errors.append(f"paper claim {claim_id} excludes unknown audit_id {audit_id}")
+                continue
+            if audit.get("claim_id") not in claim_sources:
+                errors.append(
+                    f"paper claim {claim_id} exclusion {audit_id} targets claim {audit.get('claim_id')} outside source_claim_ids"
+                )
+            audit_scope = normalize_scope(audit.get("scope"))
+            claim_scope = normalize_scope(claim.get("scope"))
+            if not audit_scope or not claim_scope or audit_scope == claim_scope:
+                errors.append(
+                    f"paper claim {claim_id} cannot exclude same-scope audit {audit_id}; link it and account for its verdict"
+                )
+            if normalize_scope(exclusion.get("scope_difference")) in {"", audit_scope, claim_scope}:
+                errors.append(
+                    f"paper claim {claim_id} exclusion {audit_id} must state the concrete scope difference"
+                )
+
         mode = claim.get("evidence_mode")
         support = claim.get("support_status")
         action = claim.get("manuscript_action")
         required = claim.get("required_assurance_class")
-        positive = [
+        same_scope = [
             audit
             for audit in linked
+            if normalize_scope(audit.get("scope")) == normalize_scope(claim.get("scope"))
+        ]
+        positive = [
+            audit
+            for audit in same_scope
             if audit.get("verdict") in POSITIVE_VERDICTS
             and audit.get("audited_claim_effect") == "strengthen"
         ]
@@ -414,47 +565,47 @@ def validate_linked(
         ]
         negative = [
             audit
-            for audit in linked
+            for audit in same_scope
             if audit.get("verdict") in NEGATIVE_VERDICTS
             or audit.get("audited_claim_effect") in {"weaken", "kill"}
         ]
         inconclusive = [
             audit
-            for audit in linked
+            for audit in same_scope
             if audit.get("verdict") == "inconclusive"
             or audit.get("audited_claim_effect") in {"inconclusive", "unchanged"}
         ]
         if mode in {"empirical", "mixed"}:
             if support == "supported" and not adequate:
                 errors.append(
-                    f"paper claim {claim_id} lacks a positive audit at required assurance class {required}"
+                    f"paper claim {claim_id} lacks a positive same-scope audit at required assurance class {required}"
                 )
             if support == "partial" and not positive and not inconclusive:
-                errors.append(f"paper claim {claim_id} partial status lacks positive or inconclusive audit evidence")
+                errors.append(f"paper claim {claim_id} partial status lacks same-scope positive or inconclusive audit evidence")
             if support == "contradicted" and not negative:
-                errors.append(f"paper claim {claim_id} contradicted status lacks negative audit evidence")
+                errors.append(f"paper claim {claim_id} contradicted status lacks same-scope negative audit evidence")
             if support == "contradicted" and adequate:
                 errors.append(
-                    f"paper claim {claim_id} cannot be marked contradicted while adequate positive audit evidence remains"
+                    f"paper claim {claim_id} cannot be marked contradicted while adequate positive same-scope audit evidence remains"
                 )
             if action == "assert" and negative:
-                errors.append(f"paper claim {claim_id} cannot be asserted while linked negative audits remain")
+                errors.append(f"paper claim {claim_id} cannot be asserted while linked same-scope negative audits remain")
             if action == "assert" and not adequate:
-                errors.append(f"paper claim {claim_id} cannot be asserted without adequate positive audit evidence")
+                errors.append(f"paper claim {claim_id} cannot be asserted without adequate positive same-scope audit evidence")
             audited_paths = {
                 artifact.get("path")
-                for audit in linked
+                for audit in same_scope
                 for artifact in audit.get("evidence_artifacts", [])
                 if isinstance(artifact, dict) and meaningful(artifact.get("path"))
             }
             missing_paths = set(map(str, claim.get("evidence_artifacts", []))) - audited_paths
             if missing_paths:
                 errors.append(
-                    f"paper claim {claim_id} evidence_artifacts are absent from linked audits: {', '.join(sorted(missing_paths))}"
+                    f"paper claim {claim_id} evidence_artifacts are absent from linked same-scope audits: "
+                    + ", ".join(sorted(missing_paths))
                 )
         if support == "blocked" and adequate:
-            errors.append(f"paper claim {claim_id} is marked blocked despite adequate positive audit evidence")
-
+            errors.append(f"paper claim {claim_id} is marked blocked despite adequate positive same-scope audit evidence")
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
@@ -467,6 +618,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--commitment", type=Path)
     parser.add_argument("--claim-map", type=Path)
     parser.add_argument("--results-audit", type=Path)
+    parser.add_argument("--results-audit-narrative", type=Path)
+    parser.add_argument("--work-items", type=Path)
+    parser.add_argument("--results-audit-validator", type=Path)
     return parser.parse_args()
 
 
@@ -501,9 +655,34 @@ def main() -> int:
         if args.assurance_profile == "linked":
             if status != "complete":
                 errors.append("linked assurance profile requires claim-evidence-bindings.status=complete")
-            if not all((args.commitment, args.claim_map, args.results_audit)):
-                errors.append("linked profile requires --commitment, --claim-map, and --results-audit")
+            required_paths = (
+                args.commitment,
+                args.claim_map,
+                args.results_audit,
+                args.results_audit_narrative,
+                args.work_items,
+            )
+            if not all(required_paths):
+                errors.append(
+                    "linked profile requires --commitment, --claim-map, --results-audit, "
+                    "--results-audit-narrative, and --work-items"
+                )
             else:
+                validator = args.results_audit_validator or (
+                    Path(__file__).resolve().parents[2]
+                    / "research-results-auditor"
+                    / "scripts"
+                    / "validate_results_audit.py"
+                )
+                rerun_results_audit_validator(
+                    validator=validator,
+                    audit=args.results_audit,
+                    narrative=args.results_audit_narrative,
+                    commitment=args.commitment,
+                    claim_map=args.claim_map,
+                    work_items=args.work_items,
+                    errors=errors,
+                )
                 commitment = read_json(args.commitment, "commitment", errors)
                 claim_map = read_json(args.claim_map, "claim-map", errors)
                 results_audit = read_json(args.results_audit, "results-audit", errors)
@@ -515,10 +694,10 @@ def main() -> int:
         return 1
     if args.assurance_profile == "linked":
         print(
-            "Validation passed: paper claims, manuscript actions, source claim IDs, result-audit verdicts, "
-            "assurance thresholds, evidence artifacts, exhibits, citations, and Markdown views are internally linked. "
-            "This does not establish that the underlying evidence is scientifically valid or independently verified "
-            "beyond the recorded audit properties."
+            "Validation passed: the exact upstream result-audit pack was revalidated and paper claims, "
+            "audit accounting, assurance thresholds, evidence artifacts, exclusions, exhibits, citations, "
+            "limitations, and Markdown views are internally linked. This does not establish that the underlying "
+            "evidence is scientifically valid or independently verified beyond the recorded audit properties."
         )
     else:
         print(

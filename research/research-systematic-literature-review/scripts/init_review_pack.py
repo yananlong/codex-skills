@@ -182,9 +182,9 @@ def search_log(i: Inputs) -> str:
 
 ## Source queries
 
-| run_id | date | channel | source | coverage_target | query_or_seed | filters | records_returned | unique_candidates | included_yield | new_vocabulary | next_repair_action |
-| --- | --- | --- | --- | --- | --- | --- | ---: | ---: | ---: | --- | --- |
-| run-001 | {i.today} | database | TODO | TODO | TODO | TODO | 0 | 0 | 0 | | |
+| run_id | date | channel | source | coverage_target | question_ids | query_or_seed | filters | records_returned | unique_candidates | included_yield | new_vocabulary | next_repair_action |
+| --- | --- | --- | --- | --- | --- | --- | --- | ---: | ---: | ---: | --- | --- |
+| run-001 | {i.today} | database | TODO | primary question | CQ-001 | TODO | TODO | 0 | 0 | 0 | | |
 
 ## Seed recovery ledger
 
@@ -271,6 +271,12 @@ def recall_audit(i: Inputs) -> str:
 ## Coverage gaps and source constraints
 
 - TODO
+
+## Coverage question closure
+
+- CQ-001 status: open
+- Decision consequence: TODO
+- Residual gap: TODO
 
 ## Corpus freeze
 
@@ -376,6 +382,7 @@ def report(i: Inputs, flow_name: str) -> str:
 - Citation and expansion channels: TODO
 - Search repairs: TODO
 - Corpus freeze and amendments: TODO
+- Coverage-question closure and residual gaps: TODO
 - Assurance verdict: insufficient
 
 ## Search Strategy
@@ -468,7 +475,7 @@ def main() -> int:
             paths[key].write_text(text, encoding="utf-8")
 
         manifest = {
-            "schema_version": "1.0",
+            "schema_version": "1.1",
             "topic": i.topic,
             "review_profile": i.profile,
             "freeze_date": None,
@@ -477,6 +484,27 @@ def main() -> int:
             "seed_ids": [],
             "challenge_ids": [],
             "post_freeze_amendments": [],
+            "coverage_questions": [
+                {
+                    "question_id": "CQ-001",
+                    "question": i.question,
+                    "perspective": "primary review question",
+                    "decision_role": i.intended_decision,
+                    "priority": "high",
+                    "status": "open",
+                    "critical_for_novelty": i.profile == "novelty-prior-art",
+                    "search_run_ids": ["run-001"],
+                    "record_ids": [],
+                    "answer_summary": "",
+                    "residual_gap": "Initial scaffold; discovery is not complete.",
+                    "closure_reason": "",
+                    "blocked_mitigation": "",
+                    "scope_consequence": "",
+                    "protocol_boundary": "",
+                    "created_after_freeze": False,
+                    "amendment_id": None,
+                }
+            ],
             "search_strategy_review": {
                 "performed": False,
                 "independence": "self-review",
