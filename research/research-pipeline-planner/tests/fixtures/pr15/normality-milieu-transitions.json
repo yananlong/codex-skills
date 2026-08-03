@@ -1,0 +1,154 @@
+{
+  "schema_version": "1.0",
+  "source_basis": "2026-07-27 review state and migration matrix",
+  "snapshots": [
+    {
+      "snapshot_id": "NM-S1",
+      "commitment": {
+        "schema_version": "1.0",
+        "paper_id": "normality-milieu",
+        "identity_version": 1,
+        "status": "committed",
+        "main_question": "Can a CIMM reporting schema track context-indexed evaluation claims?",
+        "central_object_or_phenomenon": "CIMM reporting artifact",
+        "contribution_class": "protocol",
+        "minimum_publishable_claim": "A CIMM schema organizes transport and non-transport decisions.",
+        "primary_evidence_obligation": "Illustrative leaderboard and finite-sample audit examples",
+        "intended_audience": "ML researchers",
+        "permitted_refinements": ["Narrow the benchmark scope"],
+        "pivot_triggers": ["Primary experiment falsifies the route"],
+        "kill_conditions": ["No measurable signal"],
+        "successor_idea_policy": "park",
+        "next_mandatory_evidence_artifact": "results/B1.json",
+        "reconsideration_gate": "G1",
+        "selection_history": [],
+        "predecessor_failures": [],
+        "last_change_class": "D0",
+        "last_change_rationale": "Recorded transition",
+        "identity_anchors": {
+          "question": {"id": "Q-CIMM-TRACK", "definition": "Can a CIMM reporting schema track context-indexed evaluation claims?", "definition_digest": "373e50468f2f519a00235db93c5c607eee75a7a11d9156f91c3c56339eebb10d"},
+          "central_object": {"id": "OBJ-CIMM-REPORT", "definition": "CIMM reporting artifact", "definition_digest": "ee323b8f5a70a48f8827fab0b16036f51145f116c23b63727dc101e06fb4587a"},
+          "evidence_obligation": {"id": "EVID-ILLUSTRATIVE-AUDIT", "definition": "Illustrative leaderboard and finite-sample audit examples", "definition_digest": "3133211e8bda770c527ed36b35a308d2dec848b0c5734deb246b41160444eba2"}
+        }
+      }
+    },
+    {
+      "snapshot_id": "NM-S2",
+      "commitment": {
+        "schema_version": "1.0",
+        "paper_id": "normality-milieu",
+        "identity_version": 2,
+        "status": "committed",
+        "main_question": "When is an evaluation report sufficient for reuse after an environment change?",
+        "central_object_or_phenomenon": "report maps and their quotient or exactness structure",
+        "contribution_class": "theory",
+        "minimum_publishable_claim": "A report supports exact reuse precisely under the declared factorisation conditions.",
+        "primary_evidence_obligation": "Proved factorisation results and a reproducible diagnostic study",
+        "intended_audience": "ML researchers",
+        "permitted_refinements": ["Narrow the benchmark scope"],
+        "pivot_triggers": ["Primary experiment falsifies the route"],
+        "kill_conditions": ["No measurable signal"],
+        "successor_idea_policy": "park",
+        "next_mandatory_evidence_artifact": "results/B1.json",
+        "reconsideration_gate": "G1",
+        "selection_history": [],
+        "predecessor_failures": [],
+        "last_change_class": "D3",
+        "last_change_rationale": "Recorded transition",
+        "identity_anchors": {
+          "question": {"id": "Q-REPORT-SUFFICIENCY", "definition": "When is an evaluation report sufficient for reuse after an environment change?", "definition_digest": "ae1fefc9d92781da02d9c5fcb746fd5b143f8811566f772f766b58f796b3fd65"},
+          "central_object": {"id": "OBJ-REPORT-MAPS", "definition": "report maps and their quotient or exactness structure", "definition_digest": "25b6e12dda86ca165419dbd3d2f8e2fc6385dd115d9d0dc679017a793051d3ce"},
+          "evidence_obligation": {"id": "EVID-THEOREM-DIAGNOSTIC", "definition": "Proved factorisation results and a reproducible diagnostic study", "definition_digest": "62edc9504a2bc58f436295bc1aeccc2489358557d81d63e6b0fe9a1f3f6d5e96"}
+        }
+      }
+    },
+    {
+      "snapshot_id": "NM-S3",
+      "commitment": {
+        "schema_version": "1.0",
+        "paper_id": "normality-milieu",
+        "identity_version": 2,
+        "status": "committed",
+        "main_question": "When is an evaluation report sufficient for reuse after an environment change?",
+        "central_object_or_phenomenon": "report maps and their quotient or exactness structure",
+        "contribution_class": "theory",
+        "minimum_publishable_claim": "For a finite explicit-claim setting, the coarsest stable report partition characterizes exact reuse.",
+        "primary_evidence_obligation": "Proved factorisation results and a reproducible diagnostic study",
+        "intended_audience": "ML researchers",
+        "permitted_refinements": ["Narrow the benchmark scope"],
+        "pivot_triggers": ["Primary experiment falsifies the route"],
+        "kill_conditions": ["No measurable signal"],
+        "successor_idea_policy": "park",
+        "next_mandatory_evidence_artifact": "results/B1.json",
+        "reconsideration_gate": "G1",
+        "selection_history": [],
+        "predecessor_failures": [],
+        "last_change_class": "D2",
+        "last_change_rationale": "Narrowed to a finite explicit-claim theorem.",
+        "identity_anchors": {
+          "question": {"id": "Q-REPORT-SUFFICIENCY", "definition": "When is an evaluation report sufficient for reuse after an environment change?", "definition_digest": "ae1fefc9d92781da02d9c5fcb746fd5b143f8811566f772f766b58f796b3fd65"},
+          "central_object": {"id": "OBJ-REPORT-MAPS", "definition": "report maps and their quotient or exactness structure", "definition_digest": "25b6e12dda86ca165419dbd3d2f8e2fc6385dd115d9d0dc679017a793051d3ce"},
+          "evidence_obligation": {"id": "EVID-THEOREM-DIAGNOSTIC", "definition": "Proved factorisation results and a reproducible diagnostic study", "definition_digest": "62edc9504a2bc58f436295bc1aeccc2489358557d81d63e6b0fe9a1f3f6d5e96"}
+        }
+      }
+    }
+  ],
+  "transitions": [
+    {
+      "transition_id": "CT-NM-S1-NM-S2",
+      "from_snapshot_id": "NM-S1",
+      "to_snapshot_id": "NM-S2",
+      "before_digest": "819d48f06c07a41fdfe3ae1ca8a957d8ed91802be59385743fc5992dd6df8c61",
+      "after_digest": "ccbab9d19ec9beb13e1a7e3dd538fbf046d2e7dc1572b28557c99eed39bec672",
+      "declared_change_class": "D3",
+      "computed_change_class": "D3",
+      "computed_field_changes": {
+        "central_object_or_phenomenon": ["CIMM reporting artifact", "report maps and their quotient or exactness structure"],
+        "contribution_class": ["protocol", "theory"],
+        "identity_anchors": [
+          {
+            "question": {"id": "Q-CIMM-TRACK", "definition": "Can a CIMM reporting schema track context-indexed evaluation claims?", "definition_digest": "373e50468f2f519a00235db93c5c607eee75a7a11d9156f91c3c56339eebb10d"},
+            "central_object": {"id": "OBJ-CIMM-REPORT", "definition": "CIMM reporting artifact", "definition_digest": "ee323b8f5a70a48f8827fab0b16036f51145f116c23b63727dc101e06fb4587a"},
+            "evidence_obligation": {"id": "EVID-ILLUSTRATIVE-AUDIT", "definition": "Illustrative leaderboard and finite-sample audit examples", "definition_digest": "3133211e8bda770c527ed36b35a308d2dec848b0c5734deb246b41160444eba2"}
+          },
+          {
+            "question": {"id": "Q-REPORT-SUFFICIENCY", "definition": "When is an evaluation report sufficient for reuse after an environment change?", "definition_digest": "ae1fefc9d92781da02d9c5fcb746fd5b143f8811566f772f766b58f796b3fd65"},
+            "central_object": {"id": "OBJ-REPORT-MAPS", "definition": "report maps and their quotient or exactness structure", "definition_digest": "25b6e12dda86ca165419dbd3d2f8e2fc6385dd115d9d0dc679017a793051d3ce"},
+            "evidence_obligation": {"id": "EVID-THEOREM-DIAGNOSTIC", "definition": "Proved factorisation results and a reproducible diagnostic study", "definition_digest": "62edc9504a2bc58f436295bc1aeccc2489358557d81d63e6b0fe9a1f3f6d5e96"}
+          }
+        ],
+        "main_question": ["Can a CIMM reporting schema track context-indexed evaluation claims?", "When is an evaluation report sufficient for reuse after an environment change?"],
+        "minimum_publishable_claim": ["A CIMM schema organizes transport and non-transport decisions.", "A report supports exact reuse precisely under the declared factorisation conditions."],
+        "primary_evidence_obligation": ["Illustrative leaderboard and finite-sample audit examples", "Proved factorisation results and a reproducible diagnostic study"]
+      },
+      "authorization": {
+        "authorization_id": "AUTH-NM-S1-NM-S2",
+        "decision": "authorize-D3",
+        "before_digest": "819d48f06c07a41fdfe3ae1ca8a957d8ed91802be59385743fc5992dd6df8c61",
+        "after_digest": "ccbab9d19ec9beb13e1a7e3dd538fbf046d2e7dc1572b28557c99eed39bec672",
+        "rationale": "The deterministic drift floor requires explicit authorization.",
+        "self_review": true,
+        "transition_id": "CT-NM-S1-NM-S2"
+      },
+      "switching_cost": "Prior artifacts require reassessment.",
+      "discarded_evidence": [],
+      "successor_project_assessment": "A separate project was considered.",
+      "trigger": {"kind": "pivot-trigger", "index": 0, "text": "Primary experiment falsifies the route"}
+    },
+    {
+      "transition_id": "CT-NM-S2-NM-S3",
+      "from_snapshot_id": "NM-S2",
+      "to_snapshot_id": "NM-S3",
+      "before_digest": "ccbab9d19ec9beb13e1a7e3dd538fbf046d2e7dc1572b28557c99eed39bec672",
+      "after_digest": "2db775f79b19cc49255d94a6cd56218a8f0c438e415d1836a2ff63202c63e5d2",
+      "declared_change_class": "D2",
+      "computed_change_class": "D2",
+      "computed_field_changes": {"minimum_publishable_claim": ["A report supports exact reuse precisely under the declared factorisation conditions.", "For a finite explicit-claim setting, the coarsest stable report partition characterizes exact reuse."]},
+      "authorization": null,
+      "switching_cost": "",
+      "discarded_evidence": [],
+      "successor_project_assessment": "",
+      "trigger": null
+    }
+  ]
+}
