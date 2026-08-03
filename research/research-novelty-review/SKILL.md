@@ -11,7 +11,7 @@ description: Run a stringent, adversarial novelty review over a concrete researc
 2. Decompose the claim into searchable units before looking at any literature.
 3. Search strongest overlaps first, not flattering long-tail analogies.
 4. Write down novelty-killing objections explicitly before giving any green light.
-5. When reviewing a paper, consume `research-paper-review` and `research-systematic-literature-review` artifacts before deciding.
+5. When reviewing a paper, consume `research-paper-review` and the exact validated `research-systematic-literature-review` pack before deciding.
 6. Keep novelty positioning separate from empirical validity: a strong novelty rating does not show that the method works or authorize evidence promotion.
 7. End with a 1-5 novelty decision rating, not a coarse ternary label, plus the narrowest defensible positioning.
 
@@ -85,7 +85,7 @@ description: Run a stringent, adversarial novelty review over a concrete researc
   - `novelty-decision.json`
 - In orchestrated mode, these live under `./novelty-review/`.
 - In standalone mode, any target directory is valid.
-- `novelty-decision.json` should capture the final 1-5 novelty rating, confidence rating, the exact narrow positioning that survives the review, selection-history caveats, and whether the review was self-review or materially independent.
+- `novelty-decision.json` should capture the final 1-5 novelty rating, confidence rating, the exact narrow positioning that survives the review, selection-history caveats, and whether the review was self-review or materially independent. In linked mode it also binds the exact seven-file literature pack with per-file SHA-256 digests, corpus identity, assurance verdict, and unresolved high-priority novelty-critical question IDs.
 - In paper-review integrated mode, `novelty-decision.json` should also capture:
   - `impact_positioning_rating` (1-5)
   - `literature_context_used`
@@ -149,6 +149,8 @@ description: Run a stringent, adversarial novelty review over a concrete researc
   - `3`: narrow proceed only; some novelty survives but only under a sharply reduced claim
   - `4`: proceed with careful positioning; novelty looks real but vulnerable
   - `5`: strong novelty position; closest overlaps do not materially undercut the core claim
+- Do not issue rating 4 or 5 from linked evidence unless the exact literature pack validates with an adequate verdict and has no unresolved high-priority novelty-critical question.
+- Rating 3 under material literature uncertainty requires explicit narrow positioning, a change condition, and claims to qualify.
 - State explicitly that the rating governs positioning only. It does not certify empirical correctness, confirmatory status, implementation validity, or route readiness.
 - If deeper retrieval would materially improve confidence, collaborate with `research-systematic-literature-review`.
 - If a second adversarial pass would help and delegation is explicitly available and permitted, an independent review pass is allowed. Record the actual independence dimensions; otherwise call it self-review.
@@ -179,8 +181,10 @@ description: Run a stringent, adversarial novelty review over a concrete researc
 - `references/reviewer-objection-rubric.md`
 - `references/tabmol-ddi-ood-adapter.md`
 - `references/paper-review-integration.md`
+- `references/literature-assurance-contract.md`
 - `../research-pipeline-planner/references/epistemic-assurance-contract.md`
 
-## Script
+## Scripts
 
-- `scripts/init_novelty_pack.py`: create `novelty-report.md`, `prior-art-matrix.md`, `search-log.md`, and `novelty-decision.json` in a standalone directory or the suite's `novelty-review/` directory.
+- `scripts/init_novelty_pack.py`: create `novelty-report.md`, `prior-art-matrix.md`, `search-log.md`, and schema-versioned `novelty-decision.json` in a standalone directory or the suite's `novelty-review/` directory.
+- `scripts/validate_novelty_pack.py`: validate report/JSON reciprocity and, in linked mode, rerun the exact literature pack before enforcing rating gates.

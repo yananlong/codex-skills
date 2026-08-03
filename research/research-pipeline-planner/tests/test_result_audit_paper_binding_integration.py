@@ -138,6 +138,7 @@ class ResultAuditPaperBindingIntegrationTests(unittest.TestCase):
             "minimum_corrective_action": "Preserve scope and report all outcomes.",
             "narrative_anchor": "results-audit.md#A1",
         }
+        self.audit_records = [self.audit_record]
         self.paper_claim = {
             "paper_claim_id": "PC1",
             "claim": "The method improves accuracy on the frozen held-out task.",
@@ -174,13 +175,17 @@ class ResultAuditPaperBindingIntegrationTests(unittest.TestCase):
                     "paper_id": "P1",
                     "identity_version": 1,
                     "status": "complete",
-                    "audits": [self.audit_record],
+                    "audits": self.audit_records,
                 }
             ),
             encoding="utf-8",
         )
+        audit_sections = [
+            f"## Audit {audit['audit_id']}\n\n- Bounded verdict: {audit['verdict']}"
+            for audit in self.audit_records
+        ]
         self.paths["audit_md"].write_text(
-            f"# Results Audit\n\n## Audit A1\n\n- Bounded verdict: {self.audit_record['verdict']}\n",
+            "# Results Audit\n\n" + "\n\n".join(audit_sections) + "\n",
             encoding="utf-8",
         )
         self.paths["paper_plan"].write_text(
@@ -188,11 +193,12 @@ class ResultAuditPaperBindingIntegrationTests(unittest.TestCase):
             encoding="utf-8",
         )
         c = self.paper_claim
+        excluded_ids = ", ".join(item["audit_id"] for item in c.get("audit_exclusions", []))
         self.paths["matrix"].write_text(
             "# Claims-Evidence Matrix\n"
             "| Paper claim ID | Claim | Type | Evidence mode | Support status | Manuscript action | Required assurance | Source claim IDs | Audit IDs | Excluded audit IDs | Planned sections | Exhibit IDs | Citation need IDs | Limitation |\n"
             "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |\n"
-            f"| PC1 | {c['claim']} | {c['claim_type']} | {c['evidence_mode']} | {c['support_status']} | {c['manuscript_action']} | {c['required_assurance_class']} | C1 | A1 | | Results | F1 | | {'; '.join(c['limitations'])} |\n",
+            f"| PC1 | {c['claim']} | {c['claim_type']} | {c['evidence_mode']} | {c['support_status']} | {c['manuscript_action']} | {c['required_assurance_class']} | C1 | {', '.join(c['audit_ids'])} | {excluded_ids} | Results | F1 | | {'; '.join(c['limitations'])} |\n",
             encoding="utf-8",
         )
         self.paths["bindings"].write_text(
@@ -298,6 +304,52 @@ class ResultAuditPaperBindingIntegrationTests(unittest.TestCase):
         self.run_audit_validator()
         cp = self.run_paper_validator(expect=1)
         self.assertIn("cannot be asserted", cp.stdout)
+
+    def add_audit(self, audit_id: str, scope: str) -> dict:
+        audit = json.loads(json.dumps(self.audit_record))
+        audit["audit_id"] = audit_id
+        audit["scope"] = scope
+        audit["narrative_anchor"] = f"results-audit.md#{audit_id}"
+        self.audit_records.append(audit)
+        return audit
+
+    def test_omitted_relevant_audit_is_rejected(self) -> None:
+        self.add_audit("A2", "Frozen held-out task only.")
+        self.write_all()
+        cp = self.run_paper_validator(expect=1)
+        self.assertIn("omits relevant result audits without an explicit exclusion: A2", cp.stdout)
+
+    def test_different_scope_audit_can_be_explicitly_excluded(self) -> None:
+        self.add_audit("A2", "External deployment cohort.")
+        self.paper_claim["audit_exclusions"] = [
+            {
+                "audit_id": "A2",
+                "scope_difference": "A2 evaluates an external deployment cohort rather than the frozen held-out task.",
+                "rationale": "The paper claim is intentionally bounded to the frozen held-out task.",
+            }
+        ]
+        self.write_all()
+        self.run_paper_validator()
+
+    def test_same_scope_audit_cannot_be_excluded(self) -> None:
+        self.add_audit("A2", "Frozen held-out task only.")
+        self.paper_claim["audit_exclusions"] = [
+            {
+                "audit_id": "A2",
+                "scope_difference": "Second run of the same frozen held-out task.",
+                "rationale": "Attempted selective omission.",
+            }
+        ]
+        self.write_all()
+        cp = self.run_paper_validator(expect=1)
+        self.assertIn("cannot exclude same-scope audit A2", cp.stdout)
+
+    def test_paper_validator_reruns_upstream_result_audit_validation(self) -> None:
+        self.work_items["items"][0]["episodes"][0]["experiment_run"]["gate_result"] = "fail"
+        self.write_all()
+        cp = self.run_paper_validator(expect=1)
+        self.assertIn("upstream results-audit validation failed", cp.stdout)
+        self.assertIn("disagrees with work-items projection", cp.stdout)
 
 
 if __name__ == "__main__":

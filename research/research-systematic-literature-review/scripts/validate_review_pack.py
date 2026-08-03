@@ -9,6 +9,8 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
+from review_pack_coverage import validate_coverage_questions
+
 PROFILES = {
     "comprehensive-systematic",
     "bounded-systematic",
@@ -76,6 +78,7 @@ REQUIRED_HEADINGS = {
         "## Search-channel assurance",
         "## Search-strategy review",
         "## Coverage gaps and source constraints",
+        "## Coverage question closure",
         "## Corpus freeze",
         "## Late major omissions",
         "## Stopping rationale",
@@ -205,10 +208,12 @@ def parse_prisma(text: str, errors: list[str]) -> dict[str, int]:
     return result
 
 
-def validate_manifest(manifest: Any, profile: str | None, errors: list[str]) -> tuple[str | None, set[str], set[str]]:
+def validate_manifest(
+    manifest: Any, profile: str | None, errors: list[str]
+) -> tuple[str | None, set[str], set[str], set[str]]:
     if not isinstance(manifest, dict):
         errors.append("corpus manifest must be a JSON object")
-        return None, set(), set()
+        return None, set(), set(), set()
     required = {
         "schema_version", "topic", "review_profile", "freeze_date", "corpus_version",
         "records", "seed_ids", "challenge_ids", "post_freeze_amendments",
@@ -217,8 +222,11 @@ def validate_manifest(manifest: Any, profile: str | None, errors: list[str]) -> 
     missing = sorted(required - set(manifest))
     if missing:
         errors.append("corpus manifest missing fields: " + ", ".join(missing))
-    if manifest.get("schema_version") != "1.0":
-        errors.append("corpus manifest schema_version must be 1.0")
+    schema_version = manifest.get("schema_version")
+    if schema_version not in {"1.0", "1.1"}:
+        errors.append("corpus manifest schema_version must be 1.0 or 1.1")
+    if schema_version == "1.1" and "coverage_questions" not in manifest:
+        errors.append("corpus manifest schema_version 1.1 requires coverage_questions")
     if not substantive(manifest.get("topic")):
         errors.append("corpus manifest topic must be substantive")
     if manifest.get("review_profile") != profile:
@@ -246,10 +254,10 @@ def validate_manifest(manifest: Any, profile: str | None, errors: list[str]) -> 
         record_id = record.get("record_id")
         if not substantive(record_id):
             errors.append(f"{label}.record_id must be substantive")
-        elif record_id in record_ids:
+        elif str(record_id) in record_ids:
             errors.append(f"duplicate corpus record_id: {record_id}")
         else:
-            record_ids.add(record_id)
+            record_ids.add(str(record_id))
         for field in ("canonical_citation", "publication_status"):
             if not substantive(record.get(field)):
                 errors.append(f"{label}.{field} must be substantive")
@@ -267,13 +275,27 @@ def validate_manifest(manifest: Any, profile: str | None, errors: list[str]) -> 
 
     amendments = manifest.get("post_freeze_amendments")
     if isinstance(amendments, list):
+        seen_amendments: set[str] = set()
         for index, amendment in enumerate(amendments, 1):
+            label = f"post_freeze_amendments[{index}]"
             if not isinstance(amendment, dict):
-                errors.append(f"post_freeze_amendments[{index}] must be an object")
+                errors.append(f"{label} must be an object")
                 continue
-            for field in ("record_id", "reason", "effect_on_conclusions"):
+            amendment_id = amendment.get("amendment_id")
+            if schema_version == "1.1":
+                if not substantive(amendment_id):
+                    errors.append(f"{label}.amendment_id must be substantive")
+                elif str(amendment_id) in seen_amendments:
+                    errors.append(f"duplicate post-freeze amendment_id: {amendment_id}")
+                else:
+                    seen_amendments.add(str(amendment_id))
+            kind = amendment.get("kind", "record")
+            if kind not in {"record", "coverage-question"}:
+                errors.append(f"{label}.kind must be record or coverage-question")
+            target_field = "question_id" if kind == "coverage-question" else "record_id"
+            for field in (target_field, "reason", "effect_on_conclusions"):
                 if not substantive(amendment.get(field)):
-                    errors.append(f"post_freeze_amendments[{index}].{field} must be substantive")
+                    errors.append(f"{label}.{field} must be substantive")
 
     review = manifest.get("search_strategy_review")
     if not isinstance(review, dict):
@@ -297,14 +319,23 @@ def validate_manifest(manifest: Any, profile: str | None, errors: list[str]) -> 
         if not records:
             errors.append("adequate verdict requires a non-empty candidate corpus")
 
-    return verdict, seed_set, challenge_set
+    return verdict, seed_set, challenge_set, record_ids
 
 
-def validate_search(text: str, profile: str | None, verdict: str | None, manifest_seeds: set[str], errors: list[str]) -> None:
+def validate_search(
+    text: str,
+    profile: str | None,
+    verdict: str | None,
+    manifest_seeds: set[str],
+    coverage_enabled: bool,
+    errors: list[str],
+) -> list[dict[str, str]]:
     query_header, query_rows = parse_table(text, "## Source queries", errors, "search log")
     require_columns(
         query_header,
-        {"run_id", "channel", "source", "coverage_target", "query_or_seed", "records_returned", "unique_candidates", "included_yield"},
+        ({"run_id", "channel", "source", "coverage_target", "query_or_seed", "records_returned", "unique_candidates", "included_yield", "question_ids"}
+         if coverage_enabled else
+         {"run_id", "channel", "source", "coverage_target", "query_or_seed", "records_returned", "unique_candidates", "included_yield"}),
         "search log source queries",
         errors,
     )
@@ -398,6 +429,8 @@ def validate_search(text: str, profile: str | None, verdict: str | None, manifes
             if channels.get(name, {}).get("status", "").strip().lower() != "performed":
                 errors.append(f"comprehensive assurance requires performed {name} searching")
 
+    return query_rows
+
 
 def validate_recall(text: str, profile: str | None, verdict: str | None, challenge_ids: set[str], errors: list[str]) -> None:
     declared = re.search(r"(?mi)^-\s*Profile:\s*(\S+)\s*$", section(text, "## Declared review profile"))
@@ -414,6 +447,7 @@ def validate_recall(text: str, profile: str | None, verdict: str | None, challen
             "## Search-channel assurance",
             "## Search-strategy review",
             "## Coverage gaps and source constraints",
+            "## Coverage question closure",
             "## Corpus freeze",
             "## Late major omissions",
             "## Stopping rationale",
@@ -518,9 +552,13 @@ def main() -> int:
             if not substantive(table_value(texts.get("protocol", ""), field)):
                 errors.append(f"systematic protocol {field} must be substantive")
 
-    verdict, manifest_seeds, challenge_ids = validate_manifest(manifest, profile, errors)
+    verdict, manifest_seeds, challenge_ids, record_ids = validate_manifest(manifest, profile, errors)
     counts = parse_prisma(texts.get("screening_log", ""), errors)
-    validate_search(texts.get("search_log", ""), profile, verdict, manifest_seeds, errors)
+    coverage_enabled = isinstance(manifest, dict) and manifest.get("schema_version") == "1.1"
+    query_rows = validate_search(
+        texts.get("search_log", ""), profile, verdict, manifest_seeds, coverage_enabled, errors
+    )
+    validate_coverage_questions(manifest, query_rows, profile, verdict, record_ids, errors)
     validate_recall(texts.get("recall_audit", ""), profile, verdict, challenge_ids, errors)
     validate_screening(texts.get("screening_log", ""), errors)
     validate_evidence(texts.get("evidence", ""), counts.get("studies_included"), errors)

@@ -142,7 +142,7 @@ Record decisions and yields for:
 - grey literature and repository search
 - Zotero or user-corpus cross-check
 
-For each query or expansion, log the coverage target, exact query or seed, filters, retrieval date, records returned, unique candidates, included yield, new vocabulary, and next repair action.
+For each query or expansion, log the coverage target, linked coverage-question IDs, exact query or seed, filters, retrieval date, records returned, unique candidates, included yield, new vocabulary, and next repair action.
 
 For major ML conferences hosted on OpenReview, use accepted venue records when venue status is clear; do not treat rejected, withdrawn, or merely submitted records as canonical publications.
 
@@ -155,9 +155,13 @@ For major ML conferences hosted on OpenReview, use accepted venue records when v
 - Reconsider the original strategy when citation searching or late challenge work yields material additions.
 - Obtain a materially separate PRESS-style search-strategy review for commitment, high-stakes novelty, or expensive execution when feasible; otherwise disclose self-review.
 
-### 5) Freeze the candidate corpus
+### 5) Close coverage questions and freeze the candidate corpus
 
-- Create `<topic>.corpus-manifest.json` with versioned records, seed and challenge IDs, search-strategy review, amendments, and assurance verdict.
+- Keep coverage questions inside `<topic>.corpus-manifest.json`; do not create a competing frontier authority.
+- Give each question a stable ID, decision role, priority, status, reciprocal search-run IDs, record IDs, residual gap, and closure evidence.
+- For blocked questions, record mitigation and the exact consequence for supported scope. For out-of-scope questions, cite the protocol boundary.
+- Record every material post-freeze question through a reciprocal corpus amendment.
+- Create `<topic>.corpus-manifest.json` with versioned records, seed and challenge IDs, coverage questions, search-strategy review, amendments, and assurance verdict.
 - Complete `<topic>.recall-audit.md` using `references/recall-assurance-contract.md`.
 - State a stopping rationale based on seed/challenge recovery, coverage, marginal yield, constraints, and residual omission risk.
 - Freeze before detailed extraction. Record every post-freeze addition and whether it changes conclusions.
@@ -216,4 +220,5 @@ For major ML conferences hosted on OpenReview, use accepted venue records when v
 - `scripts/init_review_pack.py`: initialize a profile-aware review pack, recall audit, and corpus manifest while preserving the previous protocol-scope CLI inputs.
 - `scripts/paper_context_artifacts.py`: initialize and validate the four-file paper-context evidence-map exchange bundle.
 - `scripts/prisma_flow_md.py`: generate PRISMA flow accounting.
-- `scripts/validate_review_pack.py`: validate headings, table fields, PRISMA consistency, canonical URLs, seed recovery, channel completion, corpus freeze, and verdict consistency without claiming actual completeness.
+- `scripts/review_pack_coverage.py`: validate coverage-question states and reciprocal question/search/record/amendment links; shared with novelty assurance.
+- `scripts/validate_review_pack.py`: validate headings, table fields, PRISMA consistency, canonical URLs, seed recovery, channel completion, coverage-question closure, corpus freeze, and verdict consistency without claiming actual completeness.
