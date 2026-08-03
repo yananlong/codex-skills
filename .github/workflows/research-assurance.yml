@@ -47,6 +47,13 @@ jobs:
             research/research-pipeline-planner/scripts/validate_research_pack.py \
             research/research-pipeline-planner/scripts/init_research_commitment.py \
             research/research-pipeline-planner/scripts/validate_research_commitment.py \
+            research/research-pipeline-planner/scripts/validate_semantic_assurance.py \
+            research/research-pipeline-planner/scripts/semantic_assurance/__init__.py \
+            research/research-pipeline-planner/scripts/semantic_assurance/common.py \
+            research/research-pipeline-planner/scripts/semantic_assurance/transitions.py \
+            research/research-pipeline-planner/scripts/semantic_assurance/literature.py \
+            research/research-pipeline-planner/scripts/semantic_assurance/evidence.py \
+            research/research-pipeline-planner/scripts/semantic_assurance/fixtures.py \
             research/research-systematic-literature-review/scripts/init_review_pack.py \
             research/research-systematic-literature-review/scripts/review_pack_coverage.py \
             research/research-systematic-literature-review/scripts/validate_review_pack.py \
@@ -68,6 +75,8 @@ jobs:
         run: python -m unittest discover -s research/research-pipeline-planner/tests -p 'test_result_audit_paper_binding_integration.py' -v
       - name: Run literature-to-novelty integration tests
         run: python -m unittest discover -s research/research-pipeline-planner/tests -p 'test_literature_novelty_integration.py' -v
+      - name: Run PR15 semantic assurance and real-project regressions
+        run: python -m unittest discover -s research/research-pipeline-planner/tests -p 'test_semantic_assurance.py' -v
       - name: Run research-pack tests
         run: python -m unittest discover -s research/research-pipeline-planner/tests -p 'test_research_pack.py' -v
       - name: Run research-commitment tests
