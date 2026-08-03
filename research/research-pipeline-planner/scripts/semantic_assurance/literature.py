@@ -5,8 +5,13 @@ from typing import Any
 
 from .common import DEFAULT_CRITICAL_PERSPECTIVES, REQUIRED_PERSPECTIVES, REQUIRED_SEED_CLASSES, canonical_digest, meaningful, parse_markdown_table, split_ids
 
-
-def validate_literature_semantics(manifest: Any, novelty: Any, prior_art: str, novelty_search: str, challenge: Any) -> list[str]:
+def validate_literature_semantics(
+    manifest: Any,
+    novelty: Any,
+    prior_art: str,
+    novelty_search: str,
+    challenge: Any,
+) -> list[str]:
     errors: list[str] = []
     if not isinstance(manifest, dict):
         return ["literature manifest must be an object"]
@@ -22,10 +27,18 @@ def validate_literature_semantics(manifest: Any, novelty: Any, prior_art: str, n
         rating = 1
 
     records = manifest.get("records") if isinstance(manifest.get("records"), list) else []
-    record_ids = {str(record.get("record_id")) for record in records if isinstance(record, dict) and meaningful(record.get("record_id"))}
+    record_ids = {
+        str(record.get("record_id"))
+        for record in records
+        if isinstance(record, dict) and meaningful(record.get("record_id"))
+    }
     seed_ids = {str(value) for value in manifest.get("seed_ids", []) if meaningful(value)}
     questions = manifest.get("coverage_questions") if isinstance(manifest.get("coverage_questions"), list) else []
-    questions_by_id = {str(question.get("question_id")): question for question in questions if isinstance(question, dict) and meaningful(question.get("question_id"))}
+    questions_by_id = {
+        str(question.get("question_id")): question
+        for question in questions
+        if isinstance(question, dict) and meaningful(question.get("question_id"))
+    }
 
     basis = semantic.get("coverage_basis")
     if not isinstance(basis, list):
@@ -112,6 +125,7 @@ def validate_literature_semantics(manifest: Any, novelty: Any, prior_art: str, n
         errors.append("semantic_assurance.criticality_decisions must be a list")
         criticality_decisions = []
     decision_ids: set[str] = set()
+    authorization_ids: set[str] = set()
     for index, entry in enumerate(criticality_decisions, 1):
         label = f"semantic_assurance.criticality_decisions[{index}]"
         if not isinstance(entry, dict):
@@ -125,6 +139,10 @@ def validate_literature_semantics(manifest: Any, novelty: Any, prior_art: str, n
         if not meaningful(entry.get("rationale")) or not meaningful(entry.get("authorization_id")):
             errors.append(f"{label} requires rationale and authorization_id")
         else:
+            authorization_id = str(entry["authorization_id"])
+            if authorization_id in authorization_ids:
+                errors.append(f"criticality authorization {authorization_id} is reused")
+            authorization_ids.add(authorization_id)
             decision_ids.add(question_id)
     for perspective in DEFAULT_CRITICAL_PERSPECTIVES:
         entry = basis_by_perspective.get(perspective)
@@ -140,7 +158,11 @@ def validate_literature_semantics(manifest: Any, novelty: Any, prior_art: str, n
     if not isinstance(saturation_entries, list):
         errors.append("semantic_assurance.saturation_evidence must be a list")
         saturation_entries = []
-    saturation_by_question = {str(entry.get("question_id")): entry for entry in saturation_entries if isinstance(entry, dict) and meaningful(entry.get("question_id"))}
+    saturation_by_question = {
+        str(entry.get("question_id")): entry
+        for entry in saturation_entries
+        if isinstance(entry, dict) and meaningful(entry.get("question_id"))
+    }
     for question_id, question in questions_by_id.items():
         if question.get("status") != "saturated":
             continue
@@ -159,7 +181,12 @@ def validate_literature_semantics(manifest: Any, novelty: Any, prior_art: str, n
                     errors.append(f"saturated question {question_id} rounds require non-negative included_yield values")
                 elif any(b > a for a, b in zip(yields, yields[1:])):
                     errors.append(f"saturated question {question_id} must show non-increasing marginal yield")
-                run_ids = {str(entry.get("run_id")) for entry in rounds if isinstance(entry, dict)}
+                ordered_run_ids = [str(entry.get("run_id")) for entry in rounds if isinstance(entry, dict)]
+                run_ids = set(ordered_run_ids)
+                if len(run_ids) != len(ordered_run_ids):
+                    errors.append(f"saturated question {question_id} requires distinct search rounds")
+                if len(yields) >= 2 and not any(b < a for a, b in zip(yields, yields[1:])):
+                    errors.append(f"saturated question {question_id} must show at least one strict marginal-yield decline")
                 declared_runs = {str(value) for value in question.get("search_run_ids", [])}
                 if not run_ids.issubset(declared_runs):
                     errors.append(f"saturated question {question_id} saturation runs must be reciprocal search_run_ids")
@@ -176,22 +203,43 @@ def validate_literature_semantics(manifest: Any, novelty: Any, prior_art: str, n
         if not isinstance(declared_challenge, dict):
             errors.append("semantic_assurance.challenge_evaluation must be an object")
         else:
-            if declared_challenge.get("challenge_digest") != canonical_digest(challenge):
+            challenge_digest = canonical_digest(challenge)
+            if declared_challenge.get("challenge_digest") != challenge_digest:
                 errors.append("semantic_assurance.challenge_evaluation.challenge_digest mismatch")
             mode = challenge.get("mode")
             if mode not in {"withheld", "independent-review", "unavailable"}:
                 errors.append("challenge mode must be withheld, independent-review, or unavailable")
+            if declared_challenge.get("mode") != mode:
+                errors.append("semantic_assurance.challenge_evaluation.mode must match the challenge file")
             records_challenge = challenge.get("challenge_records")
             if not isinstance(records_challenge, list):
                 errors.append("challenge_records must be a list")
                 records_challenge = []
-            challenge_ids = {str(entry.get("record_id")) for entry in records_challenge if isinstance(entry, dict) and meaningful(entry.get("record_id"))}
+            challenge_ids = {
+                str(entry.get("record_id"))
+                for entry in records_challenge
+                if isinstance(entry, dict) and meaningful(entry.get("record_id"))
+            }
+            if mode == "withheld":
+                if challenge.get("frozen_before_search") is not True or not meaningful(challenge.get("custodian")):
+                    errors.append("withheld challenge evaluation requires pre-search freeze and a substantive custodian")
+                if challenge.get("challenge_set_digest") != canonical_digest(records_challenge):
+                    errors.append("withheld challenge_set_digest does not bind the exact challenge records")
+                overlap = challenge_ids & seed_ids
+                if overlap:
+                    errors.append("withheld challenge records cannot also be visible seeds: " + ", ".join(sorted(overlap)))
             recovered = {str(value) for value in challenge.get("recovered_record_ids", []) if meaningful(value)}
             missed = {str(value) for value in challenge.get("initially_missed_record_ids", []) if meaningful(value)}
             if not recovered.issubset(challenge_ids) or not missed.issubset(challenge_ids):
                 errors.append("challenge recovered/missed IDs must belong to challenge_records")
+            if not recovered.issubset(record_ids):
+                errors.append("recovered challenge records must be present in the frozen corpus")
             recall = 1.0 if not challenge_ids else len(recovered) / len(challenge_ids)
-            weights = {str(entry.get("record_id")): float(entry.get("importance", 1.0)) for entry in records_challenge if isinstance(entry, dict) and meaningful(entry.get("record_id"))}
+            weights = {
+                str(entry.get("record_id")): float(entry.get("importance", 1.0))
+                for entry in records_challenge
+                if isinstance(entry, dict) and meaningful(entry.get("record_id"))
+            }
             total_weight = sum(weights.values())
             weighted = 1.0 if not total_weight else sum(weights.get(record_id, 0.0) for record_id in recovered) / total_weight
             if not math.isclose(float(challenge.get("critical_paper_recall", -1)), recall, rel_tol=0, abs_tol=1e-12):
@@ -202,8 +250,15 @@ def validate_literature_semantics(manifest: Any, novelty: Any, prior_art: str, n
                 repairs = challenge.get("search_repairs")
                 if not isinstance(repairs, list) or not repairs:
                     errors.append("missed challenge records require search repair records")
-                elif not all(isinstance(entry, dict) and meaningful(entry.get("repair_id")) and set(map(str, entry.get("recovered_record_ids", []))).intersection(missed) for entry in repairs):
-                    errors.append("each challenge search repair must identify recovered missed records")
+                else:
+                    repaired_ids: set[str] = set()
+                    for repair in repairs:
+                        if not isinstance(repair, dict) or not meaningful(repair.get("repair_id")):
+                            errors.append("each challenge search repair requires a stable repair_id")
+                            continue
+                        repaired_ids.update(map(str, repair.get("recovered_record_ids", [])))
+                    if not missed.issubset(repaired_ids):
+                        errors.append("challenge search repairs must account for every initially missed record")
             if rating >= 4:
                 if mode == "unavailable":
                     errors.append("rating 4-5 requires a withheld challenge set or materially independent search review")
@@ -215,11 +270,22 @@ def validate_literature_semantics(manifest: Any, novelty: Any, prior_art: str, n
                     review = challenge.get("independence")
                     if not isinstance(review, dict) or review.get("self_review") is not False:
                         errors.append("independent search review cannot be self-review")
-                    elif not {"context", "evaluation", "advancement_authority"}.issubset(set(map(str, review.get("dimensions", [])))):
-                        errors.append("independent search review requires context, evaluation, and advancement_authority separation")
+                    else:
+                        dimensions = set(map(str, review.get("dimensions", [])))
+                        if not {"context", "evaluation", "advancement_authority"}.issubset(dimensions):
+                            errors.append("independent search review requires context, evaluation, and advancement_authority separation")
+                    if not meaningful(challenge.get("review_artifact")) or not isinstance(challenge.get("findings"), list) or not challenge.get("findings"):
+                        errors.append("independent search review requires a review artifact and substantive findings")
 
     prior_headers, prior_rows = parse_markdown_table(prior_art, {"# Prior-Art Matrix", "## Prior-Art Matrix"})
-    required_prior_headers = {"Record ID", "Work", "Overlap", "Threat", "Surviving distinction", "Coverage question IDs"}
+    required_prior_headers = {
+        "Record ID",
+        "Work",
+        "Overlap",
+        "Threat",
+        "Surviving distinction",
+        "Coverage question IDs",
+    }
     if not required_prior_headers.issubset(set(prior_headers)):
         errors.append("prior-art matrix lacks substantive nearest-work columns")
     if not prior_rows:
@@ -239,14 +305,27 @@ def validate_literature_semantics(manifest: Any, novelty: Any, prior_art: str, n
         if unknown_row_questions:
             errors.append("prior-art row references unknown coverage questions: " + ", ".join(sorted(unknown_row_questions)))
         represented_critical.update(row_questions)
-    critical_question_ids = {question_id for question_id, question in questions_by_id.items() if question.get("priority") == "high" and question.get("critical_for_novelty") is True}
+    critical_question_ids = {
+        question_id
+        for question_id, question in questions_by_id.items()
+        if question.get("priority") == "high" and question.get("critical_for_novelty") is True
+    }
     if rating >= 4 and not high_threat:
         errors.append("rating 4-5 requires at least one high, critical, or kill-shot nearest-work comparison")
     if rating >= 4 and not critical_question_ids.issubset(represented_critical):
         errors.append("prior-art matrix omits high-priority novelty-critical coverage questions")
 
-    search_headers, search_rows = parse_markdown_table(novelty_search, {"# Novelty Search Log", "## Novelty Search Evidence"})
-    required_search_headers = {"Run ID", "Round", "Query or delegation", "Source", "Corpus record IDs", "Coverage question IDs"}
+    search_headers, search_rows = parse_markdown_table(
+        novelty_search, {"# Novelty Search Log", "## Novelty Search Evidence"}
+    )
+    required_search_headers = {
+        "Run ID",
+        "Round",
+        "Query or delegation",
+        "Source",
+        "Corpus record IDs",
+        "Coverage question IDs",
+    }
     if not required_search_headers.issubset(set(search_headers)) or not search_rows:
         errors.append("novelty search log requires substantive query or reciprocal delegation rows")
     search_run_ids: set[str] = set()
@@ -267,8 +346,12 @@ def validate_literature_semantics(manifest: Any, novelty: Any, prior_art: str, n
             errors.append("novelty search row references unknown corpus records: " + ", ".join(sorted(unknown_records)))
         if unknown_questions:
             errors.append("novelty search row references unknown coverage questions: " + ", ".join(sorted(unknown_questions)))
-    if rating >= 4 and not exception_valid and (len(search_run_ids) < 3 or len(search_rounds) < 2 or len(search_sources) < 2):
-        errors.append("rating 4-5 requires at least three search runs across two rounds and two sources unless a narrow-topic exception is recorded")
+    declared_question_runs = {str(run_id) for question in questions_by_id.values() for run_id in question.get("search_run_ids", [])}
+    if not search_run_ids.issubset(declared_question_runs):
+        errors.append("novelty search rows must delegate to reciprocal literature search_run_ids")
+    if rating >= 4 and not exception_valid:
+        if len(search_run_ids) < 3 or len(search_rounds) < 2 or len(search_sources) < 2:
+            errors.append("rating 4-5 requires at least three search runs across two rounds and two sources unless a narrow-topic exception is recorded")
 
     if rating >= 4:
         objections = novelty.get("top_kill_shot_objections")
@@ -277,6 +360,6 @@ def validate_literature_semantics(manifest: Any, novelty: Any, prior_art: str, n
         if not meaningful(novelty.get("what_would_change_the_decision")):
             errors.append("rating 4-5 requires a substantive statement of what would lower or change the decision")
         missing_prior = novelty.get("missing_prior_work")
-        if isinstance(missing_prior, list) and any(meaningful(value) for value in missing_prior):
+        if isinstance(missing_prior, list) and missing_prior:
             errors.append("rating 4-5 cannot retain unresolved material missing-prior-work entries")
     return errors
