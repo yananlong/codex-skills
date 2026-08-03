@@ -21,3 +21,5 @@ Linked validation verifies every file digest, reruns the full literature-review 
 - Ratings govern novelty positioning only. They do not certify empirical validity, confirmatory status, implementation correctness, or evidence promotion.
 
 The Markdown report must exactly project the three ratings, narrowest positioning, change condition, literature-assurance mode and verdict, and unresolved critical question IDs from the JSON decision.
+
+A passing linked validation establishes repository-local byte continuity across the validation window and consistency with the selected upstream validator. It does not establish external immutability, trusted execution, reviewer independence, literature completeness, or scientific novelty.
