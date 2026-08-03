@@ -1,0 +1,209 @@
+{
+  "schema_version": "1.0",
+  "source_basis": "2026-07-31 landscape map, narrative review, and experiment plan",
+  "snapshots": [
+    {
+      "snapshot_id": "LT-S1",
+      "commitment": {
+        "schema_version": "1.0",
+        "paper_id": "llm-triangulation-contract",
+        "identity_version": 1,
+        "status": "committed",
+        "main_question": "Can a multi-context validation contract support bounded mechanism-acceptance decisions?",
+        "central_object_or_phenomenon": "environment-indexed N/S/I/C mechanism acceptance protocol",
+        "contribution_class": "protocol",
+        "minimum_publishable_claim": "The protocol supports bounded mechanism acceptance under declared reference families.",
+        "primary_evidence_obligation": "A complete end-to-end ground-truth mechanism experiment",
+        "intended_audience": "ML researchers",
+        "permitted_refinements": ["Narrow the benchmark scope"],
+        "pivot_triggers": ["Primary experiment falsifies the route"],
+        "kill_conditions": ["No measurable signal"],
+        "successor_idea_policy": "park",
+        "next_mandatory_evidence_artifact": "results/B1.json",
+        "reconsideration_gate": "G1",
+        "selection_history": [],
+        "predecessor_failures": [],
+        "last_change_class": "D0",
+        "last_change_rationale": "Recorded transition",
+        "identity_anchors": {
+          "question": {"id": "Q-MULTICONTEXT-CONTRACT", "definition": "Can a multi-context validation contract support bounded mechanism-acceptance decisions?", "definition_digest": "a4962c58868a126be85df05bf620cdf7848f21671917d61fd5327d3810ba150f"},
+          "central_object": {"id": "OBJ-NSIC-PROTOCOL", "definition": "environment-indexed N/S/I/C mechanism acceptance protocol", "definition_digest": "e32fc54e4af81c9c219213519cf03b2de2159dd71eedd7286d4f2e92f4185acf"},
+          "evidence_obligation": {"id": "EVID-GROUND-TRUTH-MECHANISM", "definition": "A complete end-to-end ground-truth mechanism experiment", "definition_digest": "926f7522542273dce101458a51bd3de1b7cfda93ea3528051d8f4a8bd4d7eb8f"}
+        }
+      }
+    },
+    {
+      "snapshot_id": "LT-S2",
+      "commitment": {
+        "schema_version": "1.0",
+        "paper_id": "llm-triangulation-contract",
+        "identity_version": 1,
+        "status": "committed",
+        "main_question": "Can a multi-context validation contract support bounded mechanism-acceptance decisions?",
+        "central_object_or_phenomenon": "environment-indexed N/S/I/C mechanism acceptance protocol",
+        "contribution_class": "protocol",
+        "minimum_publishable_claim": "The protocol supports bounded mechanism acceptance under declared reference families.",
+        "primary_evidence_obligation": "A complete end-to-end ground-truth mechanism experiment",
+        "intended_audience": "ML researchers",
+        "permitted_refinements": ["Narrow the benchmark scope"],
+        "pivot_triggers": ["Primary experiment falsifies the route"],
+        "kill_conditions": ["No measurable signal"],
+        "successor_idea_policy": "park",
+        "next_mandatory_evidence_artifact": "results/B1.json",
+        "reconsideration_gate": "G1",
+        "selection_history": [],
+        "predecessor_failures": ["Backend parity remains unresolved."],
+        "last_change_class": "D1",
+        "last_change_rationale": "Added implementation-parity failure without changing the route.",
+        "identity_anchors": {
+          "question": {"id": "Q-MULTICONTEXT-CONTRACT", "definition": "Can a multi-context validation contract support bounded mechanism-acceptance decisions?", "definition_digest": "a4962c58868a126be85df05bf620cdf7848f21671917d61fd5327d3810ba150f"},
+          "central_object": {"id": "OBJ-NSIC-PROTOCOL", "definition": "environment-indexed N/S/I/C mechanism acceptance protocol", "definition_digest": "e32fc54e4af81c9c219213519cf03b2de2159dd71eedd7286d4f2e92f4185acf"},
+          "evidence_obligation": {"id": "EVID-GROUND-TRUTH-MECHANISM", "definition": "A complete end-to-end ground-truth mechanism experiment", "definition_digest": "926f7522542273dce101458a51bd3de1b7cfda93ea3528051d8f4a8bd4d7eb8f"}
+        }
+      }
+    },
+    {
+      "snapshot_id": "LT-S3",
+      "commitment": {
+        "schema_version": "1.0",
+        "paper_id": "llm-triangulation-contract",
+        "identity_version": 1,
+        "status": "committed",
+        "main_question": "Can a multi-context validation contract support bounded mechanism-acceptance decisions?",
+        "central_object_or_phenomenon": "environment-indexed N/S/I/C mechanism acceptance protocol",
+        "contribution_class": "protocol",
+        "minimum_publishable_claim": "The protocol supports bounded acceptance only for frozen, measurable environments and reference families.",
+        "primary_evidence_obligation": "A complete end-to-end ground-truth mechanism experiment",
+        "intended_audience": "ML researchers",
+        "permitted_refinements": ["Narrow the benchmark scope"],
+        "pivot_triggers": ["Primary experiment falsifies the route"],
+        "kill_conditions": ["No measurable signal"],
+        "successor_idea_policy": "park",
+        "next_mandatory_evidence_artifact": "results/B1.json",
+        "reconsideration_gate": "G1",
+        "selection_history": [],
+        "predecessor_failures": ["Backend parity remains unresolved."],
+        "last_change_class": "D2",
+        "last_change_rationale": "Narrowed global wording to the measured environment set.",
+        "identity_anchors": {
+          "question": {"id": "Q-MULTICONTEXT-CONTRACT", "definition": "Can a multi-context validation contract support bounded mechanism-acceptance decisions?", "definition_digest": "a4962c58868a126be85df05bf620cdf7848f21671917d61fd5327d3810ba150f"},
+          "central_object": {"id": "OBJ-NSIC-PROTOCOL", "definition": "environment-indexed N/S/I/C mechanism acceptance protocol", "definition_digest": "e32fc54e4af81c9c219213519cf03b2de2159dd71eedd7286d4f2e92f4185acf"},
+          "evidence_obligation": {"id": "EVID-GROUND-TRUTH-MECHANISM", "definition": "A complete end-to-end ground-truth mechanism experiment", "definition_digest": "926f7522542273dce101458a51bd3de1b7cfda93ea3528051d8f4a8bd4d7eb8f"}
+        }
+      }
+    },
+    {
+      "snapshot_id": "LT-S4",
+      "commitment": {
+        "schema_version": "1.0",
+        "paper_id": "validators-curse",
+        "identity_version": 1,
+        "status": "committed",
+        "main_question": "How much does adaptive mechanism selection inflate false acceptance?",
+        "central_object_or_phenomenon": "selected end-to-end mechanistic claim pipeline",
+        "contribution_class": "mixed",
+        "minimum_publishable_claim": "Naive post-selection validation is anti-conservative in the tested pipeline.",
+        "primary_evidence_obligation": "Known-truth false-acceptance curves and selection-safe corrections",
+        "intended_audience": "ML researchers",
+        "permitted_refinements": ["Narrow the benchmark scope"],
+        "pivot_triggers": ["Primary experiment falsifies the route"],
+        "kill_conditions": ["No measurable signal"],
+        "successor_idea_policy": "park",
+        "next_mandatory_evidence_artifact": "results/B1.json",
+        "reconsideration_gate": "G1",
+        "selection_history": [],
+        "predecessor_failures": [],
+        "last_change_class": "D4",
+        "last_change_rationale": "Recorded transition",
+        "identity_anchors": {
+          "question": {"id": "Q-VALIDATORS-CURSE", "definition": "How much does adaptive mechanism selection inflate false acceptance?", "definition_digest": "e8937525c0e1b057b00211d338fd4d3b1f81238fc6a3aed91920b322938b47ca"},
+          "central_object": {"id": "OBJ-SELECTED-PIPELINE", "definition": "selected end-to-end mechanistic claim pipeline", "definition_digest": "731f2f4f803bd567b1f3a7e8c8da4d9a257455e889de9ab9713ed81716f1cc1f"},
+          "evidence_obligation": {"id": "EVID-FALSE-ACCEPTANCE", "definition": "Known-truth false-acceptance curves and selection-safe corrections", "definition_digest": "fecc37f1cf932cfbd975b170c235913f0cd163c099d25402bd07b19ecd9d2ff5"}
+        }
+      }
+    }
+  ],
+  "transitions": [
+    {
+      "transition_id": "CT-LT-S1-LT-S2",
+      "from_snapshot_id": "LT-S1",
+      "to_snapshot_id": "LT-S2",
+      "before_digest": "686b8abdf7047bd02298b0d1e59ba279dcabb0ed38c61e2e261d234681357e98",
+      "after_digest": "689188572cea3628c8ac6192e8fa8fe4b09f146424aefa2b8b615635d3b335f9",
+      "declared_change_class": "D1",
+      "computed_change_class": "D1",
+      "computed_field_changes": {"predecessor_failures": [[], ["Backend parity remains unresolved."]]},
+      "authorization": null,
+      "switching_cost": "",
+      "discarded_evidence": [],
+      "successor_project_assessment": "",
+      "trigger": null
+    },
+    {
+      "transition_id": "CT-LT-S2-LT-S3",
+      "from_snapshot_id": "LT-S2",
+      "to_snapshot_id": "LT-S3",
+      "before_digest": "689188572cea3628c8ac6192e8fa8fe4b09f146424aefa2b8b615635d3b335f9",
+      "after_digest": "e8eeb63274fc0ac326167ed81fff00dc2f4d9358971273ce6d94f11742766578",
+      "declared_change_class": "D2",
+      "computed_change_class": "D2",
+      "computed_field_changes": {"minimum_publishable_claim": ["The protocol supports bounded mechanism acceptance under declared reference families.", "The protocol supports bounded acceptance only for frozen, measurable environments and reference families."]},
+      "authorization": null,
+      "switching_cost": "",
+      "discarded_evidence": [],
+      "successor_project_assessment": "",
+      "trigger": null
+    },
+    {
+      "transition_id": "CT-LT-S3-LT-S4",
+      "from_snapshot_id": "LT-S3",
+      "to_snapshot_id": "LT-S4",
+      "before_digest": "e8eeb63274fc0ac326167ed81fff00dc2f4d9358971273ce6d94f11742766578",
+      "after_digest": "c80bffdedf494f27891eae367e03a41836adc109a1d81c37420457c3cc05b84f",
+      "declared_change_class": "D4",
+      "computed_change_class": "D4",
+      "computed_field_changes": {
+        "central_object_or_phenomenon": ["environment-indexed N/S/I/C mechanism acceptance protocol", "selected end-to-end mechanistic claim pipeline"],
+        "contribution_class": ["protocol", "mixed"],
+        "identity_anchors": [
+          {
+            "question": {"id": "Q-MULTICONTEXT-CONTRACT", "definition": "Can a multi-context validation contract support bounded mechanism-acceptance decisions?", "definition_digest": "a4962c58868a126be85df05bf620cdf7848f21671917d61fd5327d3810ba150f"},
+            "central_object": {"id": "OBJ-NSIC-PROTOCOL", "definition": "environment-indexed N/S/I/C mechanism acceptance protocol", "definition_digest": "e32fc54e4af81c9c219213519cf03b2de2159dd71eedd7286d4f2e92f4185acf"},
+            "evidence_obligation": {"id": "EVID-GROUND-TRUTH-MECHANISM", "definition": "A complete end-to-end ground-truth mechanism experiment", "definition_digest": "926f7522542273dce101458a51bd3de1b7cfda93ea3528051d8f4a8bd4d7eb8f"}
+          },
+          {
+            "question": {"id": "Q-VALIDATORS-CURSE", "definition": "How much does adaptive mechanism selection inflate false acceptance?", "definition_digest": "e8937525c0e1b057b00211d338fd4d3b1f81238fc6a3aed91920b322938b47ca"},
+            "central_object": {"id": "OBJ-SELECTED-PIPELINE", "definition": "selected end-to-end mechanistic claim pipeline", "definition_digest": "731f2f4f803bd567b1f3a7e8c8da4d9a257455e889de9ab9713ed81716f1cc1f"},
+            "evidence_obligation": {"id": "EVID-FALSE-ACCEPTANCE", "definition": "Known-truth false-acceptance curves and selection-safe corrections", "definition_digest": "fecc37f1cf932cfbd975b170c235913f0cd163c099d25402bd07b19ecd9d2ff5"}
+          }
+        ],
+        "main_question": ["Can a multi-context validation contract support bounded mechanism-acceptance decisions?", "How much does adaptive mechanism selection inflate false acceptance?"],
+        "minimum_publishable_claim": ["The protocol supports bounded acceptance only for frozen, measurable environments and reference families.", "Naive post-selection validation is anti-conservative in the tested pipeline."],
+        "paper_id": ["llm-triangulation-contract", "validators-curse"],
+        "predecessor_failures": [["Backend parity remains unresolved."], []],
+        "primary_evidence_obligation": ["A complete end-to-end ground-truth mechanism experiment", "Known-truth false-acceptance curves and selection-safe corrections"]
+      },
+      "authorization": {
+        "authorization_id": "AUTH-LT-S3-LT-S4",
+        "decision": "close-and-create-D4",
+        "before_digest": "e8eeb63274fc0ac326167ed81fff00dc2f4d9358971273ce6d94f11742766578",
+        "after_digest": "c80bffdedf494f27891eae367e03a41836adc109a1d81c37420457c3cc05b84f",
+        "rationale": "The deterministic drift floor requires explicit authorization.",
+        "self_review": true,
+        "transition_id": "CT-LT-S3-LT-S4"
+      },
+      "switching_cost": "Prior artifacts require reassessment.",
+      "discarded_evidence": [],
+      "successor_project_assessment": "A separate project was considered.",
+      "old_lineage_closure": {
+        "paper_id": "llm-triangulation-contract",
+        "status": "closed",
+        "closure_rationale": "The old route was closed before successor initialization.",
+        "closure_digest": "65e75330ffa8d400b16ba0ced0bfe25ef4c3f6380262e66820e76a05d20ef7d3",
+        "identity_version": 1,
+        "before_digest": "e8eeb63274fc0ac326167ed81fff00dc2f4d9358971273ce6d94f11742766578"
+      },
+      "trigger": {"kind": "pivot-trigger", "index": 0, "text": "Primary experiment falsifies the route"}
+    }
+  ]
+}

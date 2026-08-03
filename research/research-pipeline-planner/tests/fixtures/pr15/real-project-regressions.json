@@ -1,0 +1,125 @@
+{
+  "schema_version": "1.0",
+  "purpose": "Developmental and locked retrospective regressions for PR15 semantic assurance. These fixtures do not establish prospective effectiveness.",
+  "project_histories": [
+    {
+      "project": "Normality Milieu",
+      "source_basis": "2026-07-27 review state and the current-manuscript migration matrix for yananlong/normality_milieu_manuscript PR #1.",
+      "expected_transitions": [
+        {
+          "transition_id": "NM-01",
+          "from": "CIMM reporting schema with policy-defined blocking and illustrative audit claims",
+          "to": "typed report-sufficiency and reuse theory with quotient/exactness theorems and a diagnostic study",
+          "expected_class": "D3",
+          "rationale": "The central formal object, contribution class, primary evidence obligation, and theorem route change while remaining in the same research programme."
+        },
+        {
+          "transition_id": "NM-02",
+          "from": "broad novelty and universal non-transport taxonomy",
+          "to": "narrow typed non-transport reporting claim with explicit limitations",
+          "expected_class": "D2",
+          "rationale": "This is a claim narrowing that preserves the revised paper identity."
+        }
+      ],
+      "predecessor_failures_that_must_survive": [
+        "type-unsound claim extraction",
+        "policy-imposed direct-edge blocking",
+        "unsupported finite-sample audit guarantee",
+        "unreproducible leaderboard probabilities"
+      ]
+    },
+    {
+      "project": "LLM Triangulation",
+      "source_basis": "2026-07-31 landscape map, narrative review, and the ECCV VLM experiment plan for Multi-Context Mechanistic Validation Contracts.",
+      "expected_transitions": [
+        {
+          "transition_id": "LT-01",
+          "from": "multi-context mechanism validation protocol",
+          "to": "same protocol with backend parity, gate-writer, and snapshot-continuity repairs",
+          "expected_class": "D1",
+          "rationale": "The question, mechanism object, contribution class, and evidence obligation remain unchanged."
+        },
+        {
+          "transition_id": "LT-02",
+          "from": "global mechanism acceptance wording",
+          "to": "bounded environment-indexed acceptance under frozen reference families",
+          "expected_class": "D2",
+          "rationale": "The claim is narrowed without substituting a different contribution."
+        },
+        {
+          "transition_id": "LT-03",
+          "from": "protocol paper whose composite rule is not empirically validated",
+          "to": "Validator's Curse paper on post-selection false acceptance with a known-truth benchmark",
+          "expected_class": "D4",
+          "rationale": "The central question, contribution, and primary evidence target become a distinct result-bearing paper."
+        }
+      ],
+      "predecessor_failures_that_must_survive": [
+        "no end-to-end operating-characteristic evidence",
+        "candidate-selection uncertainty omitted",
+        "cue controls may be causally inert",
+        "correspondence failures may select away difficult pairs"
+      ]
+    }
+  ],
+  "literature_challenges": [
+    {
+      "domain": "mechanistic-interpretability selected-claim validity",
+      "source_basis": "LLM Triangulation landscape map closest-work table",
+      "visible_seed_ids": ["MIB-2025", "CIF-2026"],
+      "withheld_critical_ids": ["CAE-2026", "CIRCUS-2026"],
+      "expected_repair": true,
+      "success_condition": "The search recovers both the ground-truth validity benchmark and configuration-instability work, then updates the differentiation claim.",
+      "initially_recovered_ids": ["CAE-2026"],
+      "post_repair_recovered_ids": ["CAE-2026", "CIRCUS-2026"],
+      "baseline_recall": 0.5,
+      "post_repair_recall": 1.0,
+      "search_repairs": [
+        {
+          "repair_id": "DOMAIN-1-REPAIR-1",
+          "trigger": "Missed CIRCUS-2026 in the initial visible-seed search",
+          "recovered_record_ids": ["CIRCUS-2026"]
+        }
+      ]
+    },
+    {
+      "domain": "context-indexed evaluation and report sufficiency",
+      "source_basis": "Normality Milieu review and migration matrix",
+      "visible_seed_ids": ["VALIDITY-ARGUMENTS", "ASSURANCE-CASES"],
+      "withheld_critical_ids": ["BLACKWELL-SUFFICIENCY", "CAUSAL-TRANSPORTABILITY"],
+      "expected_repair": true,
+      "success_condition": "The search repairs broad novelty claims and separates report sufficiency from causal transport.",
+      "initially_recovered_ids": ["BLACKWELL-SUFFICIENCY"],
+      "post_repair_recovered_ids": ["BLACKWELL-SUFFICIENCY", "CAUSAL-TRANSPORTABILITY"],
+      "baseline_recall": 0.5,
+      "post_repair_recall": 1.0,
+      "search_repairs": [
+        {
+          "repair_id": "DOMAIN-2-REPAIR-1",
+          "trigger": "Missed CAUSAL-TRANSPORTABILITY in the initial visible-seed search",
+          "recovered_record_ids": ["CAUSAL-TRANSPORTABILITY"]
+        }
+      ]
+    },
+    {
+      "domain": "geometric and differential-form structures for machine learning",
+      "source_basis": "Curated evidence table covering meshfree exterior calculus, bundle networks, spectral/sheaf GNNs, and directed sheaves",
+      "visible_seed_ids": ["BUNDLE-NN-2025", "SHEAF-MTL-2025"],
+      "withheld_critical_ids": ["MESHFREE-EXTERIOR-CALCULUS-2026", "DIRECTED-SHEAF-2026"],
+      "expected_repair": false,
+      "success_condition": "The review recovers recent frontier work before making a broad geometry-for-ML coverage claim.",
+      "initially_recovered_ids": ["MESHFREE-EXTERIOR-CALCULUS-2026", "DIRECTED-SHEAF-2026"],
+      "post_repair_recovered_ids": ["MESHFREE-EXTERIOR-CALCULUS-2026", "DIRECTED-SHEAF-2026"],
+      "baseline_recall": 1.0,
+      "post_repair_recall": 1.0,
+      "search_repairs": []
+    }
+  ],
+  "evidence_selection": {
+    "claim": "Method A supports a bounded same-scope performance claim.",
+    "outcome_classes": ["positive", "negative", "null", "technical-failure"],
+    "adverse_run_exclusion_expected": false,
+    "technical_failure_exclusion_expected": true,
+    "paper_consequence": "Positive support must preserve the negative and null runs, report their dispositions, and qualify the manuscript claim when they alter scope or robustness."
+  }
+}
