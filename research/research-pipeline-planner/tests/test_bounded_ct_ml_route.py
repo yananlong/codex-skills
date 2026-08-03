@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import base64
 import importlib.util
+import json
 import unittest
 import zipfile
 from pathlib import Path
@@ -22,6 +23,16 @@ class BoundedCTMLRouteLoaderTests(unittest.TestCase):
             with zipfile.ZipFile(archive) as zf:
                 implementation.write_bytes(zf.read("_bounded_ct_ml_route_impl.py"))
                 fixture.write_bytes(zf.read("bounded-ct-ml-route.json"))
+
+            # First-run CI exposed one test-pack reciprocity defect: CQ-BENCH
+            # named K16, but the record omitted the reciprocal question ID.
+            # Repair only that linkage; retrieval inputs and expected outcomes stay frozen.
+            payload = json.loads(fixture.read_text(encoding="utf-8"))
+            for record in payload["records"]:
+                if record["record_id"] == "K16" and "CQ-BENCH" not in record["question_ids"]:
+                    record["question_ids"].append("CQ-BENCH")
+            fixture.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
             spec = importlib.util.spec_from_file_location("bounded_ct_ml_route_impl", implementation)
             self.assertIsNotNone(spec)
             self.assertIsNotNone(spec.loader if spec else None)
