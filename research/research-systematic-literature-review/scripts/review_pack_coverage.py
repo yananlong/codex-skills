@@ -162,9 +162,11 @@ def validate_coverage_questions(
                 errors.append(f"corpus record {record_id} does not reciprocally reference coverage question {question_id}")
 
         if status in {"answered", "contradicted", "saturated"}:
+            if not search_run_ids:
+                errors.append(f"{label}: status {status} requires search_run_ids")
             if not linked_records:
                 errors.append(f"{label}: status {status} requires record_ids")
-            for field in ("answer_summary", "closure_reason"):
+            for field in ("answer_summary", "residual_gap", "closure_reason"):
                 if not meaningful(question.get(field)):
                     errors.append(f"{label}.{field} must be substantive for status {status}")
         if status == "blocked":
@@ -189,6 +191,8 @@ def validate_coverage_questions(
                 amendment = amendment_index.get(str(amendment_id))
                 if amendment is None:
                     errors.append(f"{label} references unknown amendment_id {amendment_id}")
+                elif amendment.get("kind", "record") != "coverage-question":
+                    errors.append(f"amendment {amendment_id} must have kind coverage-question")
                 elif amendment.get("question_id") != question_id:
                     errors.append(f"amendment {amendment_id} does not reciprocally reference {question_id}")
         elif question.get("amendment_id") not in (None, ""):
