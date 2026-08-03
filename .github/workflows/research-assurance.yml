@@ -86,6 +86,13 @@ jobs:
         run: python -m unittest discover -s research/research-pipeline-planner/tests -p 'test_semantic_assurance.py' -v
       - name: Run prospective evaluation instrumentation tests
         run: python -m unittest discover -s research/research-pipeline-planner/tests -p 'test_prospective_evaluation.py' -v
+      - name: Validate Study 001 draft pack
+        run: |
+          python research/research-pipeline-planner/scripts/validate_prospective_evaluation.py \
+            --protocol research/research-pipeline-planner/prospective-studies/study-001-category-theory/prospective-protocol.json \
+            --observations research/research-pipeline-planner/prospective-studies/study-001-category-theory/prospective-observations.json \
+            --summary research/research-pipeline-planner/prospective-studies/study-001-category-theory/prospective-summary.json \
+            --assurance-profile structural
       - name: Run research-pack tests
         run: python -m unittest discover -s research/research-pipeline-planner/tests -p 'test_research_pack.py' -v
       - name: Run research-commitment tests
