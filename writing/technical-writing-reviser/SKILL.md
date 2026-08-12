@@ -11,7 +11,7 @@ Revise existing technical text so an outside reader can understand the claim, me
 
 ## Default Output
 
-Return revised prose first unless the user asks for diagnosis, markup, or alternatives. Keep commentary brief: include only important uncertainty notes, terminology questions, or places where the evidence does not support a stronger rewrite.
+Return revised prose first unless the user asks for diagnosis, markup, or alternatives. Keep commentary brief: include only important terminology questions or evidence mismatches that materially affect the revision. Do not add disclaimers merely because a stronger claim could be imagined.
 
 When the source is fragmentary, preserve the author's meaning and produce the most coherent technical version possible. Do not add invented transitions, citations, results, metrics, product claims, deployment facts, or motivation to make the passage feel complete.
 
@@ -19,15 +19,15 @@ When the source is fragmentary, preserve the author's meaning and produce the mo
 
 Treat this skill as a revision skill, not a planning, review, or evidence-generation skill. Improve wording, terminology, sentence shape, paragraph logic, claim framing, and limitation language, but do not invent citations, experiments, metrics, benchmarks, customer evidence, deployment details, product capabilities, novelty, or venue-specific requirements.
 
-Preserve numbers, methods, caveats, uncertainty, and negative results. If the draft is weak because the evidence is missing, say so plainly instead of polishing it into a stronger claim than the source supports.
+Preserve numbers, methods, caveats, uncertainty, negative results, and justified confidence. If a source claim exceeds its available support, weaken or flag that specific claim, but do not turn every bounded claim into a disclaimer about a stronger proposition the source never made.
 
 Use `research-paper-plan` when the real need is manuscript structure, claim-to-evidence mapping, or figure planning. Use `research-paper-review` or `research-review-loop` when the real need is critique. Use `research-novelty-review` when the real need is positioning against prior work. Use `commercialize-academic-research` when the real need is buyer, budget, or commercialization analysis. Use `prose-flow-improver` alongside this skill when the draft is also too choppy, list-heavy, or note-like.
 
 ## Calibrate the Revision
 
-Choose the lightest revision that solves the problem. If the draft is already reader-facing technical prose, preserve sentence order and mainly tighten phrasing. If it reads like a lab note, engineering memo, internal status update, or sales-adjacent whitepaper draft, restructure paragraphs around claim, method, evidence, consequence, and limitation. If it is a pile of fragments, build coherent paragraphs but flag missing support instead of hiding gaps.
+Choose the lightest revision that solves the problem. If the draft is already reader-facing technical prose, preserve sentence order and mainly tighten phrasing. If it reads like a lab note, engineering memo, internal status update, or sales-adjacent whitepaper draft, restructure paragraphs around claim, method, evidence, consequence, and limitation. If it is a pile of fragments, build coherent paragraphs but flag missing support only when the gap materially affects what the passage can claim.
 
-Preserve authorial commitments. A rewrite may clarify "we test," "we find," "we argue," "the report shows," or "the system supports," but should not turn a preliminary observation into a result, a result into a mechanism, a prototype into a production capability, or a local finding into a general market or field-wide claim.
+Preserve authorial commitments and justified confidence. A rewrite may clarify "we test," "we find," "we argue," "the report shows," or "the system supports," but should not turn a preliminary observation into a result, a result into a mechanism, a prototype into a production capability, or a local finding into a general market or field-wide claim. Likewise, do not lower a supported claim merely because a more ambitious unsupported claim is conceivable.
 
 ## Rewrite Workflow
 
@@ -35,9 +35,19 @@ First identify the job of the passage: motivation, technical background, contrib
 
 Then mark any internal language that will confuse an outside reader on first pass: project nicknames, code names, lab shorthand, implementation labels, and locally meaningful terms. Replace them with reader-facing terminology when the mapping is obvious, and preserve the meaning rather than the local wording.
 
-Next identify the support level of each sentence. Separate what the text actually shows from why it matters, and keep that boundary visible in the rewrite. Prefer explicit qualifiers over overstated certainty.
+Next identify the support level of each sentence. Separate what the text actually shows from why it matters, and keep that boundary visible in the rewrite. Use qualifiers when they are needed to keep a claim within the source's support, but do not add precautionary qualification to claims that are already appropriately scoped.
 
 Finally tighten the prose into reader-facing technical form. Replace lab-log narration, internal memo phrasing, procedural diary language, and unsupported promotional language with sentences that foreground the technical object, method, evidence, result, decision, limitation, or implication. Join closely related sentences aggressively when a conjunction, relative clause, appositive, or subordinate clause can make the technical relationship clearer without changing the claim. Lean toward relative pronouns such as "that," "which," and "who" when they attach constraints, assumptions, mechanisms, or consequences to the specific technical object they modify. Make paragraphs do one clear job each and end with the practical inference when that helps the reader.
+
+### Prefer Direct Positive Framing
+
+State the supported proposition directly instead of first denying an adjacent stronger, weaker, or mistaken proposition. Do not invent a rejected interpretation merely to distinguish the author's actual claim from it.
+
+Rewrite constructions such as "X is not A. X is B," "the point is not A but B," "this does not mean A," "we are not claiming A," "rather than A, this shows B," and "not merely A but B" as direct affirmative statements when A is not already salient in the source or necessary to the argument.
+
+Use corrective negation only when the source is explicitly correcting a misconception, distinguishing genuinely confusable concepts, reporting an absence or exclusion that is itself a technical fact, answering a live objection, or ruling out an alternative explanation. When the rejected proposition is doing no real argumentative work, lead with the supported proposition and omit the invented contrast.
+
+Do not manufacture caution by naming claims the author supposedly is not making. Preserve genuine qualifications, but express the intended claim positively whenever its evidential boundary can be conveyed through precise scope, conditions, nouns, and verbs.
 
 Read [references/claim-discipline.md](references/claim-discipline.md) when the draft mixes claims, interpretation, speculation, and missing evidence.
 
@@ -56,10 +66,10 @@ Build a short revision brief before launching workers. Include:
 - Audience and intended section role.
 - Document-level thesis, contribution, decision, or recommendation.
 - Key claims with source locations and support level.
-- Important caveats, negative results, uncertainty, and scope limits that must survive revision.
+- Important caveats, negative results, uncertainty, scope limits, and justified confidence that must survive revision.
 - Terminology map for internal labels, symbols, acronyms, product names, and reader-facing replacements.
 - Known critique items or reviewer issues to resolve.
-- Claims that require external verification or should remain marked as unverified.
+- Claims that genuinely require verification when verification is part of the task.
 
 Do not launch section workers until the brief is strong enough that another agent can revise locally without guessing the document's global meaning.
 
@@ -92,26 +102,27 @@ Each worker prompt should:
 - State the worker's assigned scope and owned output target.
 - State that the worker must not edit shared files or other workers' outputs.
 - Provide the revision brief, audience, terminology map, claim constraints, and relevant critique notes.
-- Require revised prose plus brief notes on claim-strength changes, preserved caveats, unresolved terminology, and missing support.
+- Require revised prose plus brief notes on any material claim-strength changes, preserved caveats, unresolved terminology, and missing support.
 - Require an empty but explicit result if no safe revision is possible.
 
-Workers must not invent citations, experiments, metrics, deployment facts, product claims, mechanisms, generalizations, or cross-section commitments. They may weaken unsupported claims, surface missing support, and preserve locally awkward wording when a cleaner rewrite would silently change meaning.
+Workers must not invent citations, experiments, metrics, deployment facts, product claims, mechanisms, generalizations, or cross-section commitments. They may weaken a claim only when that claim exceeds the supplied support, and they must not introduce a stronger rejected alternative merely to disclaim it.
 
 ### Parent Merge And Audit
 
 While workers run, the parent should do non-overlapping work only: check source coverage, refine merge criteria, inspect critique artifacts, or prepare the final document structure. Do not redo a worker's assigned pass before reviewing its output.
 
-After all passes complete, merge in the parent. The parent must harmonize terminology, claim strength, tense, notation, contribution framing, limitation language, section transitions, and sentence rhythm across the whole artifact. Prefer the clearest supported rewrite over the most polished local sentence when those conflict.
+After all passes complete, merge in the parent. The parent must harmonize terminology, claim strength, tense, notation, contribution framing, limitation language, section transitions, and sentence rhythm across the whole artifact. Prefer the clearest supported rewrite over the most polished local sentence when those conflict, while preserving the source's justified confidence.
 
 Run an adversarial final audit after merging:
 
 - Check that every strengthened sentence is supported by the source, critique artifacts, or provided evidence.
-- Restore any caveat, negative result, uncertainty, baseline condition, or scope limit that a local rewrite softened.
+- Restore any source caveat, negative result, uncertainty, baseline condition, or scope limit that a local rewrite softened.
 - Check for definitional drift, inconsistent terminology, unsupported causal language, and conclusions that no longer follow from the revised paragraph.
 - Verify that cross-section transitions do not imply evidence, chronology, deployment status, or novelty that the source did not establish.
-- Label externally checkable or time-sensitive claims as unverified unless the user requested verification and reliable sources were checked.
+- Scan for corrective negation, anticipatory disclaimers, and objection-answering language that the source did not motivate. For each occurrence, ask whether the rejected interpretation is already salient or materially necessary. If not, delete the rejected proposition and state the supported proposition directly.
+- Do not label source claims "unverified" merely because they are externally checkable. Verification belongs to a review or fact-checking task unless the user explicitly requested it as part of revision.
 
-If the revision is file-based, preserve the user's requested output format and avoid generating a parallel report unless requested. If brief notes are useful, keep them focused on unresolved evidence gaps, terminology uncertainties, and places where the source cannot support a stronger rewrite.
+If the revision is file-based, preserve the user's requested output format and avoid generating a parallel report unless requested. If brief notes are useful, keep them focused on evidence gaps or terminology uncertainties that materially constrain the rewrite.
 
 ## Handle Terminology Carefully
 
@@ -125,14 +136,14 @@ Read [references/terminology-conversion.md](references/terminology-conversion.md
 
 Prefer motivation over scene-setting, method or design over chronology, result over observation log, and limitation over apology. Replace sentences that narrate what the authors or team did in time order with sentences that explain what was done and why that choice matters.
 
-Keep contribution and value framing modest and specific. State the artifact's contribution as what it provides, clarifies, tests, measures, supports, or argues, not as a sweeping claim about a field, market, product category, or deployment environment unless the evidence really supports that scope.
+Keep contribution and value framing specific and proportional to the evidence. State the artifact's contribution as what it provides, clarifies, tests, measures, supports, or argues, and preserve stronger framing when the source supports it rather than weakening it by default.
 
-Use section-appropriate prose. Methods and technical approach sections should foreground design choices, controls, data, assumptions, architecture, and procedures. Results and evaluation sections should foreground findings and their evidential limits. Reports and whitepapers should distinguish measured behavior from interpretation, recommendation, and positioning. Limitations should state the constraint and its consequence.
+Use section-appropriate prose. Methods and technical approach sections should foreground design choices, controls, data, assumptions, architecture, and procedures. Results and evaluation sections should foreground findings at the scope supported by the evidence. Reports and whitepapers should distinguish measured behavior from interpretation, recommendation, and positioning. Limitations should state material constraints and their consequences without adding hypothetical objections.
 
 Read [references/technical-writing-patterns.md](references/technical-writing-patterns.md) when the draft reads like a lab report, project memo, internal research note, engineering status update, or under-supported whitepaper. Read [references/rewrite-examples.md](references/rewrite-examples.md) when a concrete before-and-after pattern will help.
 
 ## Final Pass
 
-Check that the rewrite still says exactly what the source can support, no more and no less. Make sure internal labels are either translated cleanly or left visible with a note of uncertainty.
+Check that the rewrite still says exactly what the source can support and preserves the source's intended strength. Make sure internal labels are either translated cleanly or left visible with a note of uncertainty.
 
-Check that each paragraph has a single center and that the prose sounds like technical writing for informed outsiders rather than a note written for teammates or a claim written for persuasion without support. Avoid semicolons by default, using one only when it is cleaner than a period, conjunction, relative clause, or subordinate clause. Leave the draft more legible and more credible, but never more certain than the evidence allows.
+Check that each paragraph has a single center and that the prose sounds like technical writing for informed outsiders rather than a note written for teammates or a claim written for persuasion without support. Avoid semicolons by default, using one only when it is cleaner than a period, conjunction, relative clause, or subordinate clause. Leave the draft more legible and more credible without making it either more or less certain than the evidence warrants.
