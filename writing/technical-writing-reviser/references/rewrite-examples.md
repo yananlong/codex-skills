@@ -22,7 +22,7 @@ Before:
 "We looked at a bunch of tasks where the model might be using shortcuts, and the archive setup seemed to help in some cases."
 
 After:
-"We evaluate whether archive-constrained prompting reduces shortcut-consistent behavior across a set of controlled tasks. The constraint improves behavior in some settings, with the effect varying by task family."
+"We evaluate whether archive-constrained prompting reduces shortcut-consistent behavior across a set of controlled tasks. The results suggest improved behavior in some settings, with the effect varying by task family."
 
 ## Introduction Framing
 
