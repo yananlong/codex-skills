@@ -16,7 +16,7 @@ Replace diary language with design language. Instead of narrating what the team 
 
 ### Observation to Result
 
-Turn raw noticing into a stated finding with scope. Say what pattern was observed, under what condition, and how strongly the source supports the claim.
+Turn raw noticing into a stated finding with scope. Say what pattern was observed, under what condition, and at the strength supported by the source.
 
 ### Note to Claim
 
@@ -24,7 +24,7 @@ Many internal drafts contain fragments such as "important because shortcut expla
 
 ### Caveat to Limitation
 
-Do not bury constraints in parenthetical hedges. State the limitation directly and give its consequence for interpretation, generalization, or applicability.
+Do not bury material constraints in parenthetical hedges. State the limitation directly and give its consequence for interpretation, generalization, or applicability when that consequence matters.
 
 ### Contribution to Payoff
 
@@ -32,7 +32,19 @@ When a draft says a contribution is "interesting" or "useful," replace that with
 
 ### Positioning to Supported Value
 
-When a report or whitepaper says a result is "transformative," "production-ready," or "commercially compelling," replace that with the supported technical value: the measured improvement, reduced failure mode, clarified tradeoff, validated operating condition, or remaining evidence needed for deployment or adoption.
+When a report or whitepaper says a result is "transformative," "production-ready," or "commercially compelling," replace that wording only when the source does not support it. State the strongest supported technical value directly: the measured improvement, reduced failure mode, clarified tradeoff, validated operating condition, or other evidenced payoff.
+
+### Defensive Contrast to Direct Claim
+
+When a sentence first denies a proposition and then states the actual point, ask whether the denied proposition is already salient or technically necessary. If not, remove the denial and state the supported proposition directly.
+
+Prefer "The contribution is an evaluation framework for retrieval behavior" over "The contribution is not a new retrieval algorithm; it is an evaluation framework for retrieval behavior" unless the algorithm/framework distinction is a live issue.
+
+Prefer "The results support the mechanism under the evaluated settings" over "The results do not establish universal validity; rather, they support the mechanism under the evaluated settings" unless universal validity has actually been asserted or is central to the argument.
+
+Keep negation when an absence, exclusion, correction, or ruled-out alternative is itself part of the technical content.
+
+Do not treat every `not only ... but also` construction as defensive negation. It is an additive emphasis construction and may be appropriate when both elements matter. Because repeated use can make prose formulaic, simplify it when the emphasis is unnecessary or the pattern recurs, but do not remove it solely because it contains `not`.
 
 ## Section-Specific Guidance
 
@@ -49,16 +61,16 @@ Methods:
 Lead with the design choice, dataset, prompting regime, annotation procedure, or control. Keep implementation detail only when it affects validity or reproducibility.
 
 Results:
-Lead with the finding, then give the comparison or condition that grounds it. Keep interpretation adjacent to the evidence and qualified by what was actually measured.
+Lead with the finding, then give the comparison or condition that grounds it. Keep interpretation adjacent to the evidence and calibrated to what was actually measured.
 
 Discussion:
-Interpret the result, explain what it does and does not establish, and resist turning one positive result into a field-wide conclusion.
+Interpret the result and state its supported implication directly. Add boundary conditions, exclusions, or unresolved alternatives when they materially affect interpretation, but do not automatically frame discussion around what the result "does not establish."
 
 Limitations:
-State the limitation, then state its consequence. A good limitation paragraph tells the reader what remains unresolved and why.
+State the material limitation, then state its consequence. Avoid introducing hypothetical objections merely to disclaim them.
 
 Technical report or whitepaper:
-Separate technical evidence from positioning. State the observed capability, tested setting, operating assumptions, and decision relevance without turning a narrow evaluation into proof of general readiness or market demand.
+Separate technical evidence from positioning. State the observed capability, tested setting, operating assumptions, and decision relevance at the strength the evidence supports, without automatically adding a disclaimer about broader readiness or market demand unless that broader proposition is at issue.
 
 Transitions:
 Use transitions to make the research logic explicit. A transition should explain why the next section, experiment, or comparison follows from the previous one, not merely announce that it comes next.
@@ -69,6 +81,8 @@ Prefer concrete nouns and verbs over inflated academic filler.
 
 Prefer explicit causal or evidential links such as "because," "therefore," "under this condition," or "consistent with" over vague transitions such as "notably" or "interestingly."
 
-Prefer modest precision over broad significance claims. If the draft only supports a conditional or local conclusion, keep it conditional or local.
+Prefer calibrated precision over reflexive modesty. Keep conditional or local conclusions conditional or local when the evidence requires it, and preserve strong conclusions when the evidence supports them.
 
 Cut meta-commentary such as "it is worth noting," "the key thing here is," or "what we are trying to show." Replace it with the actual claim and its support.
+
+Scan for repeated defensive patterns such as "not X but Y," "this does not mean X," "we are not claiming X," "this does not establish X," and "rather than X, Y." Keep them only when X is already salient or the negation carries substantive technical information. Treat additive `not only ... but also` separately: reduce repetitive or ornamental use, not legitimate emphasis.
