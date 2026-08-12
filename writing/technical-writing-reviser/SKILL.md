@@ -144,6 +144,6 @@ Read [references/technical-writing-patterns.md](references/technical-writing-pat
 
 ## Final Pass
 
-Check that the rewrite still says exactly what the source can support and preserves the source's intended strength. Make sure internal labels are either translated cleanly or left visible with a note of uncertainty.
+Check that the rewrite still says exactly what the source can support and preserves the source's supported strength. Make sure internal labels are either translated cleanly or left visible with a note of uncertainty.
 
 Check that each paragraph has a single center and that the prose sounds like technical writing for informed outsiders rather than a note written for teammates or a claim written for persuasion without support. Avoid semicolons by default, using one only when it is cleaner than a period, conjunction, relative clause, or subordinate clause. Leave the draft more legible and more credible without making it either more or less certain than the evidence warrants.
