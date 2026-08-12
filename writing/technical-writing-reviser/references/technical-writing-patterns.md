@@ -44,6 +44,8 @@ Prefer "The results support the mechanism under the evaluated settings" over "Th
 
 Keep negation when an absence, exclusion, correction, or ruled-out alternative is itself part of the technical content.
 
+Do not treat every `not only ... but also` construction as defensive negation. It is an additive emphasis construction and may be appropriate when both elements matter. Because repeated use can make prose formulaic, simplify it when the emphasis is unnecessary or the pattern recurs, but do not remove it solely because it contains `not`.
+
 ## Section-Specific Guidance
 
 Title or headline:
@@ -83,4 +85,4 @@ Prefer calibrated precision over reflexive modesty. Keep conditional or local co
 
 Cut meta-commentary such as "it is worth noting," "the key thing here is," or "what we are trying to show." Replace it with the actual claim and its support.
 
-Scan for repeated patterns such as "not X but Y," "this does not mean X," "we are not claiming X," "this does not establish X," and "rather than X, Y." Keep them only when X is already salient or the negation carries substantive technical information.
+Scan for repeated defensive patterns such as "not X but Y," "this does not mean X," "we are not claiming X," "this does not establish X," and "rather than X, Y." Keep them only when X is already salient or the negation carries substantive technical information. Treat additive `not only ... but also` separately: reduce repetitive or ornamental use, not legitimate emphasis.
