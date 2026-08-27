@@ -14,7 +14,6 @@ from __future__ import annotations
 import argparse
 import json
 import math
-import os
 import sys
 from fractions import Fraction
 from dataclasses import asdict, dataclass
