@@ -14,7 +14,7 @@
     "Optional per-skill catalog.json sidecars may add or override structured metadata."
   ],
   "open_catalog": true,
-  "skill_count": 19,
+  "skill_count": 20,
   "skills": [
     {
       "agent_metadata": {
@@ -151,12 +151,13 @@
       },
       "capabilities": [
         "literature-review",
-        "paper-review"
+        "paper-review",
+        "stage-routing"
       ],
-      "description": "Pedantic, adversarial stress-testing of documents (often Markdown .md) with claim-by-claim scrutiny, internal consistency checks, citation auditing, and up-to-date fact-checking via web search. Use when asked to critique, peer-review, red-team, verify references, or pressure-test time-sensitive statements; default deliverable is a structured report in chat.",
+      "description": "Pedantic, adversarial stress-testing of documents with claim-by-claim scrutiny, internal consistency checks, citation auditing, and up-to-date fact-checking. Use when asked to critique, peer-review, red-team, verify references, pressure-test time-sensitive statements, or assess whether validation, verification, independence, immutability, isolation, replay, auditability, or route-readiness claims are actually supported; default deliverable is a structured report in chat.",
       "domain": "documents",
       "frontmatter": {
-        "description": "Pedantic, adversarial stress-testing of documents (often Markdown .md) with claim-by-claim scrutiny, internal consistency checks, citation auditing, and up-to-date fact-checking via web search. Use when asked to critique, peer-review, red-team, verify references, or pressure-test time-sensitive statements; default deliverable is a structured report in chat.",
+        "description": "Pedantic, adversarial stress-testing of documents with claim-by-claim scrutiny, internal consistency checks, citation auditing, and up-to-date fact-checking. Use when asked to critique, peer-review, red-team, verify references, pressure-test time-sensitive statements, or assess whether validation, verification, independence, immutability, isolation, replay, auditability, or route-readiness claims are actually supported; default deliverable is a structured report in chat.",
         "name": "adversarial-doc-review"
       },
       "inputs": [],
@@ -174,6 +175,7 @@
         "assets": [],
         "prompts": [],
         "references": [
+          "references/epistemic-assurance-contract.md",
           "references/report-template.md",
           "references/review-checklist.md"
         ],
@@ -307,6 +309,46 @@
         ]
       },
       "skill_file": "documents/pdf-book-assembler/SKILL.md"
+    },
+    {
+      "agent_metadata": {
+        "interface": {
+          "default_prompt": "Use $proportional-pdf-trimmer to trim a specified fraction of removable PDF whitespace, preserve the page aspect ratio, and apply one common crop size across all pages.",
+          "display_name": "Proportional PDF Trimmer",
+          "short_description": "User-controlled uniform PDF whitespace trimming"
+        }
+      },
+      "capabilities": [
+        "pdf-processing"
+      ],
+      "description": "Trim a user-specified proportion of removable whitespace from PDF pages while preserving the document page aspect ratio and enforcing one common output crop size across all pages. Use for PDFs with oversized margins, uneven whitespace, scanned or generated pages that should be uniformly cropped, or requests to identify the page(s) with the largest visual content footprint and use that footprint to determine a proportional crop for the whole document. Before trimming, ask how much removable whitespace to trim unless the user already supplied a proportion such as 2/3, 0.67, or 67%. Supports text, vector, image, and scanned PDFs through raster-based content detection while applying non-destructive PDF crop boxes.",
+      "domain": "documents",
+      "frontmatter": {
+        "description": "Trim a user-specified proportion of removable whitespace from PDF pages while preserving the document page aspect ratio and enforcing one common output crop size across all pages. Use for PDFs with oversized margins, uneven whitespace, scanned or generated pages that should be uniformly cropped, or requests to identify the page(s) with the largest visual content footprint and use that footprint to determine a proportional crop for the whole document. Before trimming, ask how much removable whitespace to trim unless the user already supplied a proportion such as 2/3, 0.67, or 67%. Supports text, vector, image, and scanned PDFs through raster-based content detection while applying non-destructive PDF crop boxes.",
+        "name": "proportional-pdf-trimmer"
+      },
+      "inputs": [],
+      "name": "proportional-pdf-trimmer",
+      "outputs": [
+        "input.pdf",
+        "output.pdf",
+        "trim-report.json"
+      ],
+      "path": "documents/proportional-pdf-trimmer",
+      "primary_intent": "specialized-workflow",
+      "related_skills": [],
+      "resources": {
+        "agents": [
+          "agents/openai.yaml"
+        ],
+        "assets": [],
+        "prompts": [],
+        "references": [],
+        "scripts": [
+          "scripts/proportional_trim.py"
+        ]
+      },
+      "skill_file": "documents/proportional-pdf-trimmer/SKILL.md"
     },
     {
       "agent_metadata": {
@@ -489,6 +531,7 @@
       "path": "research/research-novelty-review",
       "primary_intent": "review",
       "related_skills": [
+        "research-experiment-plan",
         "research-idea-discovery",
         "research-paper-plan",
         "research-paper-review",
@@ -507,6 +550,7 @@
         "references": [
           "references/adversarial-query-patterns.md",
           "references/decision-scale.md",
+          "references/literature-assurance-contract.md",
           "references/novelty-checklist.md",
           "references/overlap-scoring-rubric.md",
           "references/paper-review-integration.md",
@@ -516,7 +560,8 @@
           "references/tabmol-ddi-ood-adapter.md"
         ],
         "scripts": [
-          "scripts/init_novelty_pack.py"
+          "scripts/init_novelty_pack.py",
+          "scripts/validate_novelty_pack.py"
         ]
       },
       "skill_file": "research/research-novelty-review/SKILL.md"
@@ -536,29 +581,31 @@
         "paper-planning",
         "paper-review",
         "research-planning",
+        "results-audit",
         "stage-routing"
       ],
-      "description": "Turn supported claims and evidence into a research paper plan that works either as a standalone manuscript-structuring pass or as the paper stage inside a coordinated research workflow. Use when asked to outline a paper, map claims to evidence, plan figures and citations, align experiments to manuscript claims, or keep limitations and threats to validity explicit.",
+      "description": "Turn supported claims and evidence into a research paper plan that works either as a standalone manuscript-structuring pass or as the paper stage inside a coordinated research workflow. Use when asked to outline a paper, map claims to evidence, bind audited results to manuscript claims, plan figures and citations, align experiments to manuscript language, or keep limitations and threats to validity explicit.",
       "domain": "research",
       "frontmatter": {
-        "description": "Turn supported claims and evidence into a research paper plan that works either as a standalone manuscript-structuring pass or as the paper stage inside a coordinated research workflow. Use when asked to outline a paper, map claims to evidence, plan figures and citations, align experiments to manuscript claims, or keep limitations and threats to validity explicit.",
+        "description": "Turn supported claims and evidence into a research paper plan that works either as a standalone manuscript-structuring pass or as the paper stage inside a coordinated research workflow. Use when asked to outline a paper, map claims to evidence, bind audited results to manuscript claims, plan figures and citations, align experiments to manuscript language, or keep limitations and threats to validity explicit.",
         "name": "research-paper-plan"
       },
       "inputs": [],
       "name": "research-paper-plan",
       "outputs": [
-        "artifact-index.md",
         "citation-plan.md",
+        "claim-evidence-bindings.json",
         "claims-evidence-matrix.md",
         "figure-plan.md",
         "paper-plan.md",
-        "research-brief.md"
+        "research-commitment.json",
+        "results-audit.json",
+        "work-items.json"
       ],
       "path": "research/research-paper-plan",
       "primary_intent": "planning",
       "related_skills": [
         "research-idea-discovery",
-        "research-novelty-review",
         "research-pipeline-planner",
         "research-results-auditor",
         "research-review-loop",
@@ -572,6 +619,7 @@
         "prompts": [],
         "references": [
           "references/citation-verification-rules.md",
+          "references/claim-evidence-binding-schema.md",
           "references/claims-evidence-matrix-template.md",
           "references/exhibit-plan-checklist.md",
           "references/paper-outline-template.md",
@@ -580,7 +628,8 @@
           "references/venue-adapters.md"
         ],
         "scripts": [
-          "scripts/init_paper_pack.py"
+          "scripts/init_paper_pack.py",
+          "scripts/validate_paper_pack.py"
         ]
       },
       "skill_file": "research/research-paper-plan/SKILL.md"
@@ -676,38 +725,29 @@
         "ideation",
         "literature-review",
         "novelty-review",
-        "paper-review",
+        "rebuttal",
         "research-planning",
-        "stage-routing",
-        "zotero"
+        "stage-routing"
       ],
-      "description": "Coordinate research as either a standalone staged planning pass or an orchestrated multi-skill workflow with shared artifacts, stage gates, and optional collaboration with Zotero library sync, literature review, idea discovery, novelty review, experiment planning, paper review, result auditing, review, paper planning, and venue-response drafting. Use when asked to scope a research direction, inspect existing research artifacts, choose the next research stage, create a research brief or task board, coordinate a reusable research workflow, build a research roadmap or agenda, organize a research repo, turn notes into a phase plan, define milestones, decide what to do next, or coordinate literature plus ideation plus experiments plus paper work.",
+      "description": "Coordinate research as either a standalone staged planning pass or a durable orchestrated multi-skill workflow with shared artifacts, explicit work items, paper-level commitment, verifier-backed transitions, checkpoints, replay, observability, stage gates, evidence assurance, and controlled pivots. Use when asked to scope a research direction, inspect existing research artifacts, choose the next research stage, create a research brief or task board, coordinate a reusable research workflow, build a research roadmap or agenda, organize a research repo, turn notes into a phase plan, define milestones, decide what to do next, coordinate literature, ideation, novelty, experiments, auditing, review, paper planning, and rebuttal work, or prevent a project from drifting between paper identities.",
       "domain": "research",
       "frontmatter": {
-        "description": "Coordinate research as either a standalone staged planning pass or an orchestrated multi-skill workflow with shared artifacts, stage gates, and optional collaboration with Zotero library sync, literature review, idea discovery, novelty review, experiment planning, paper review, result auditing, review, paper planning, and venue-response drafting. Use when asked to scope a research direction, inspect existing research artifacts, choose the next research stage, create a research brief or task board, coordinate a reusable research workflow, build a research roadmap or agenda, organize a research repo, turn notes into a phase plan, define milestones, decide what to do next, or coordinate literature plus ideation plus experiments plus paper work.",
+        "description": "Coordinate research as either a standalone staged planning pass or a durable orchestrated multi-skill workflow with shared artifacts, explicit work items, paper-level commitment, verifier-backed transitions, checkpoints, replay, observability, stage gates, evidence assurance, and controlled pivots. Use when asked to scope a research direction, inspect existing research artifacts, choose the next research stage, create a research brief or task board, coordinate a reusable research workflow, build a research roadmap or agenda, organize a research repo, turn notes into a phase plan, define milestones, decide what to do next, coordinate literature, ideation, novelty, experiments, auditing, review, paper planning, and rebuttal work, or prevent a project from drifting between paper identities.",
         "name": "research-pipeline-planner"
       },
       "inputs": [],
       "name": "research-pipeline-planner",
       "outputs": [
+        "HARNESS_STATE.json",
         "artifact-index.md",
-        "decision-log.md",
-        "research-brief.md",
-        "task-board.md"
+        "research-commitment.json",
+        "run-blocks.json",
+        "work-items.json"
       ],
       "path": "research/research-pipeline-planner",
       "primary_intent": "orchestration",
       "related_skills": [
-        "research-experiment-plan",
-        "research-idea-discovery",
-        "research-novelty-review",
-        "research-paper-plan",
-        "research-paper-review",
-        "research-rebuttal",
-        "research-results-auditor",
-        "research-review-loop",
-        "research-systematic-literature-review",
-        "research-zotero"
+        "research-results-auditor"
       ],
       "resources": {
         "agents": [
@@ -716,17 +756,43 @@
         "assets": [],
         "prompts": [],
         "references": [
+          "references/agentic-harness-contract.md",
           "references/decision-log-template.md",
+          "references/epistemic-assurance-contract.md",
+          "references/experiment-execution-binding.md",
+          "references/prospective-evaluation-contract.md",
           "references/research-brief-template.md",
+          "references/research-commitment-contract.md",
+          "references/research-commitment.schema.json",
+          "references/result-audit-paper-binding-contract.md",
           "references/review-stage-contract.md",
+          "references/semantic-assurance-contract.md",
           "references/stage-gates.md",
           "references/suite-contract.md",
           "references/tabmol-ddi-ood-adapter.md",
           "references/task-board-template.md"
         ],
         "scripts": [
+          "scripts/harness_common.py",
+          "scripts/harness_runtime.py",
+          "scripts/init_prospective_evaluation.py",
+          "scripts/init_research_commitment.py",
           "scripts/init_research_pack.py",
-          "scripts/validate_research_pack.py"
+          "scripts/prospective_evaluation/__init__.py",
+          "scripts/prospective_evaluation/common.py",
+          "scripts/prospective_evaluation/observations.py",
+          "scripts/prospective_evaluation/protocol.py",
+          "scripts/prospective_evaluation/summary.py",
+          "scripts/semantic_assurance/__init__.py",
+          "scripts/semantic_assurance/common.py",
+          "scripts/semantic_assurance/evidence.py",
+          "scripts/semantic_assurance/fixtures.py",
+          "scripts/semantic_assurance/literature.py",
+          "scripts/semantic_assurance/transitions.py",
+          "scripts/validate_prospective_evaluation.py",
+          "scripts/validate_research_commitment.py",
+          "scripts/validate_research_pack.py",
+          "scripts/validate_semantic_assurance.py"
         ]
       },
       "skill_file": "research/research-pipeline-planner/SKILL.md"
@@ -809,22 +875,24 @@
         "results-audit",
         "validation"
       ],
-      "description": "Audit ML/statistics experiment outputs for validity, confounds, statistical support, calibration, and mismatch between measured results and claimed conclusions. Use when asked to interpret results, sanity-check benchmarks, review ablations, assess robustness claims, or decide whether an experiment actually supports a paper or project claim.",
+      "description": "Audit ML/statistics experiment outputs for validity, confounds, statistical support, calibration, and mismatch between measured results and claimed conclusions. Use when asked to interpret results, sanity-check benchmarks, review ablations, assess robustness claims, decide whether an experiment supports a paper claim, or produce a machine-readable result-audit record for downstream paper planning.",
       "domain": "research",
       "frontmatter": {
-        "description": "Audit ML/statistics experiment outputs for validity, confounds, statistical support, calibration, and mismatch between measured results and claimed conclusions. Use when asked to interpret results, sanity-check benchmarks, review ablations, assess robustness claims, or decide whether an experiment actually supports a paper or project claim.",
+        "description": "Audit ML/statistics experiment outputs for validity, confounds, statistical support, calibration, and mismatch between measured results and claimed conclusions. Use when asked to interpret results, sanity-check benchmarks, review ablations, assess robustness claims, decide whether an experiment supports a paper claim, or produce a machine-readable result-audit record for downstream paper planning.",
         "name": "research-results-auditor"
       },
       "inputs": [],
       "name": "research-results-auditor",
       "outputs": [
-        "artifact-index.md",
-        "research-brief.md",
-        "results-audit.md"
+        "research-commitment.json",
+        "results-audit.json",
+        "results-audit.md",
+        "work-items.json"
       ],
       "path": "research/research-results-auditor",
       "primary_intent": "review",
       "related_skills": [
+        "research-paper-plan",
         "research-pipeline-planner"
       ],
       "resources": {
@@ -835,10 +903,14 @@
         "prompts": [],
         "references": [
           "references/metrics-and-tests-checklist.md",
+          "references/results-audit-schema.md",
           "references/results-audit-template.md",
           "references/tabmol-ddi-ood-adapter.md"
         ],
-        "scripts": []
+        "scripts": [
+          "scripts/init_results_audit.py",
+          "scripts/validate_results_audit.py"
+        ]
       },
       "skill_file": "research/research-results-auditor/SKILL.md"
     },
@@ -883,7 +955,8 @@
         "adversarial-doc-review",
         "research-paper-review",
         "research-pipeline-planner",
-        "research-rebuttal"
+        "research-rebuttal",
+        "research-results-auditor"
       ],
       "resources": {
         "agents": [
@@ -916,25 +989,26 @@
       },
       "capabilities": [
         "literature-review",
+        "novelty-review",
         "validation"
       ],
-      "description": "Full systematic literature review (PRISMA 2020 core) with discovery, screening, evidence extraction, synthesis, confidence grading, and adversarial stress-testing across papers. Prefer peer-reviewed published versions over preprints and use this skill either directly or as the coordinated literature stage inside a larger research workflow. Use when asked to run or audit a literature review, evidence synthesis, state-of-the-art survey with explicit methods, citation integrity checks, or confidence-rated conclusions from research publications.",
+      "description": "Run or audit literature discovery and evidence synthesis with explicit review profiles, high-recall discovery, seed and challenge-set testing, citation searching, corpus freezing, PRISMA 2020 core accounting, evidence extraction, confidence grading, and adversarial stress-testing across publications. Prefer peer-reviewed published versions over preprints. Use for systematic reviews, bounded evidence maps, state-of-the-art surveys with explicit methods, citation-integrity checks, novelty-critical prior-art searches, confidence-rated conclusions, or when a research commitment depends on reliable literature coverage.",
       "domain": "research",
       "frontmatter": {
-        "description": "Full systematic literature review (PRISMA 2020 core) with discovery, screening, evidence extraction, synthesis, confidence grading, and adversarial stress-testing across papers. Prefer peer-reviewed published versions over preprints and use this skill either directly or as the coordinated literature stage inside a larger research workflow. Use when asked to run or audit a literature review, evidence synthesis, state-of-the-art survey with explicit methods, citation integrity checks, or confidence-rated conclusions from research publications.",
+        "description": "Run or audit literature discovery and evidence synthesis with explicit review profiles, high-recall discovery, seed and challenge-set testing, citation searching, corpus freezing, PRISMA 2020 core accounting, evidence extraction, confidence grading, and adversarial stress-testing across publications. Prefer peer-reviewed published versions over preprints. Use for systematic reviews, bounded evidence maps, state-of-the-art surveys with explicit methods, citation-integrity checks, novelty-critical prior-art searches, confidence-rated conclusions, or when a research commitment depends on reliable literature coverage.",
         "name": "research-systematic-literature-review"
       },
       "inputs": [],
       "name": "research-systematic-literature-review",
       "outputs": [
+        ".corpus-manifest.json",
         ".evidence-table.md",
+        ".prisma-flow.md",
         ".protocol.md",
+        ".recall-audit.md",
         ".review.md",
         ".screening-log.md",
         ".search-log.md",
-        ".zotero-items.json",
-        ".zotero-sync.md",
-        "artifact-index.md",
         "literature-context-decision.json",
         "literature-context-evidence-table.md",
         "literature-context-search-log.md",
@@ -964,6 +1038,7 @@
           "references/paper-context-template.md",
           "references/prisma-core-checklist.md",
           "references/protocol-template.md",
+          "references/recall-assurance-contract.md",
           "references/report-template.md",
           "references/screening-template.md",
           "references/search-strategy-template.md"
@@ -972,6 +1047,7 @@
           "scripts/init_review_pack.py",
           "scripts/paper_context_artifacts.py",
           "scripts/prisma_flow_md.py",
+          "scripts/review_pack_coverage.py",
           "scripts/validate_review_pack.py"
         ]
       },

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Proportional PDF Trimmer"
+  short_description: "User-controlled uniform PDF whitespace trimming"
+  default_prompt: "Use $proportional-pdf-trimmer to trim a specified fraction of removable PDF whitespace, preserve the page aspect ratio, and apply one common crop size across all pages."
