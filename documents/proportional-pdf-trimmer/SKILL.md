@@ -28,7 +28,7 @@ python scripts/proportional_trim.py input.pdf output.pdf --trim-proportion 2/3 -
 ```
 
 4. Interpret `main_pages` as the page(s) that require the largest aspect-ratio-preserving crop after content detection and safety padding. The script computes the maximum safe common crop first, then interpolates from the largest common source page size toward that crop by the requested trim proportion.
-5. Re-render the output with a renderer that visibly respects the PDF CropBox and compare it with the input. Confirm that no text, figures, annotations, or page-edge marks are clipped and that every visible page has the same width and height. Do not rely on a MediaBox-only render to verify cropping.
+5. Re-render the output with a renderer that visibly respects the PDF CropBox and compare it with the input. Confirm that no text, figures, annotations, or page-edge marks are clipped and that every visible page has the same width and height within normal PDF coordinate precision (use a 0.001 pt tolerance, or confirm identical rendered pixel dimensions at the same DPI). Do not require bit-identical floating-point `Rect` dimensions, and do not rely on a MediaBox-only render to verify cropping.
 6. If content is clipped or faint marks were missed, rerun with a lower `--white-threshold`, higher `--dpi`, or larger `--padding-ratio`. If scanner noise prevents trimming, raise `--white-threshold` or `--min-line-coverage` cautiously.
 7. Deliver only the final PDF unless the user asks for the JSON report.
 
@@ -43,7 +43,7 @@ final_width  = baseline_width  - p * (baseline_width  - maximum_trim_width)
 final_height = baseline_height - p * (baseline_height - maximum_trim_height)
 ```
 
-Because the baseline and maximum-trim rectangles have the same aspect ratio, every intermediate crop preserves that ratio exactly. Reposition a rectangle of exactly the final shared size independently on every page so each page's own content remains inside the crop whenever geometrically possible.
+Because the baseline and maximum-trim rectangles have the same aspect ratio, every intermediate crop preserves that ratio exactly. Reposition a rectangle of the final shared size independently on every page so each page's own content remains inside the crop whenever geometrically possible. PDF libraries may round serialized box coordinates by a few ten-thousandths of a point, so treat dimensions within 0.001 pt as the same physical page size.
 
 Treat pages within `--main-tolerance` of the largest required crop as co-main pages. Blank pages never drive the crop and receive a centered crop of the shared size.
 
