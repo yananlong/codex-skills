@@ -13,8 +13,9 @@ description: Audit ML/statistics experiment outputs for validity, confounds, sta
 4. Reconstruct the experiment binding, submitted run, verifier decision, gate result, lineage, artifact digests, and failure history before interpreting the headline metric.
 5. Audit protocol integrity, metrics, baselines, uncertainty, selection, outcome accounting, provenance, confounds, and actual independence.
 6. Record one bounded audit object per claim under review; do not hide conflicting runs inside a prose summary.
-7. Validate with `scripts/validate_results_audit.py`; use the linked profile for orchestrated runs.
-8. Hand the canonical JSON audit to `research-paper-plan` instead of asking it to infer support from figures or filenames.
+7. Before recommending narrowing or handing results downstream, compare the audited claim trajectory against the original or frozen claim and, when available, the paper commitment or minimum publishable claim. Distinguish precision from evidence qualification, semantic scope narrowing, contribution reframing, and paper-identity drift.
+8. Validate with `scripts/validate_results_audit.py`; use the linked profile for orchestrated runs.
+9. Hand the canonical JSON audit to `research-paper-plan` instead of asking it to infer support from figures or filenames.
 
 ## Modes
 
@@ -32,6 +33,8 @@ description: Audit ML/statistics experiment outputs for validity, confounds, sta
 - Resolve run IDs and parent relations from event-backed work-item records or `harness_runtime.py experiment-lineage`; never infer lineage from filenames.
 - Use `source_mode=orchestrated`, freeze the exact claim scope, and bind every included source run to its work item, episode digest, scoped submitted effect, verifier decision, and verified gate/disposition.
 - Account for every eligible run under the same paper identity and source claim. Include it or place it in `run_selection.excluded_runs` with a substantive rationale; never silently select only favorable runs.
+- Compare the current audited claim with prior audit records and the active commitment. Several individually minor scope reductions may cumulatively amount to a contribution reframe or paper-identity change even when no one edit looks like a pivot.
+- Treat `accepted_with_narrowing` as a bounded disposition of an overclaim, not as proof that the original contribution remains viable or that the predecessor failure has disappeared.
 - Keep the audit legible to paper planning, review-loop, rebuttal, and later claim narrowing.
 
 ## Input contract
@@ -48,7 +51,8 @@ Prefer:
 - claim map and run block;
 - work-item and episode records;
 - verifier decision and evidence;
-- run logs, seeds, intervals, ablations, baselines, selection rule, all skipped/failed/null/retried cases, provenance records, and independence evidence.
+- run logs, seeds, intervals, ablations, baselines, selection rule, all skipped/failed/null/retried cases, provenance records, and independence evidence;
+- the original or frozen claim, prior claim revisions or audits, the minimum publishable claim or contribution floor when one exists, and the evidence or decision that triggered each prior narrowing.
 
 ## Output contract
 
@@ -68,6 +72,8 @@ Write `results-audit.json` as the authority for downstream claim support. It con
 - limitations, predecessor-failure dispositions, and minimum corrective action.
 
 Use the schema in `references/results-audit-schema.md` and the authority rules in `../research-pipeline-planner/references/result-audit-paper-binding-contract.md`.
+
+Until the machine schema has a dedicated claim-trajectory object, record every material scope-change assessment in `limitations`, `predecessor_failures`, and `minimum_corrective_action`. State the original claim, the retained claim, the scientific content lost, claim-preserving alternatives considered, what evidence could restore the stronger claim, and whether project-level review is required.
 
 ### Human-readable view
 
@@ -102,6 +108,9 @@ The narrative may explain the audit but must not promote, soften, or replace the
 - Do not omit an eligible run. Include it or record an explicit exclusion and rationale in `run_selection`.
 - Preserve outcome-informed case, metric, or run selection as exploratory unless a separate confirmatory evaluation exists.
 - Do not let a prose result summary override a negative or inconclusive machine-readable audit.
+- Do not treat `accepted_with_narrowing` as full resolution of the original claim. Narrowing can correctly remove an overstatement while leaving a material loss of contribution, significance, or paper identity that must remain visible.
+- Do not recommend a sequence of ever-narrower claims merely because each residual claim is easier to support. Before narrowing, test whether the strongest supportable contribution can be preserved through a lower assurance class, additional decisive evidence, a sharper comparator or mechanism distinction, or an explicit negative or mixed result.
+- Stop downstream paper-support handoff and escalate to project-level review when cumulative narrowing changes the central research object, contribution class, or minimum publishable claim, or when the surviving claim has become materially less decision-relevant than the committed paper. A sequence of locally small edits can cross this boundary cumulatively.
 
 ## Audit workflow
 
@@ -153,9 +162,18 @@ Use `pass`, `fail`, `inconclusive`, or `not_assessed`, with a substantive ration
 - Operational/high-stakes support requires all independence dimensions and every required check, including snapshot continuity and independence, to pass.
 - Keep assurance strength separate from direction of evidence: a confirmatory audit may conclude `does_not_support_claim`.
 
-### 6) Preserve failure inheritance and write the handoff
+### 6) Audit the claim-scope trajectory
 
-- Classify each predecessor failure as open, resolved, or accepted with narrowing.
+- Reconstruct the original or frozen source claim, the current audited claim, any proposed downstream wording, and prior narrowing or reframing steps that affect the same paper identity.
+- Classify the latest change and the cumulative trajectory as one of: `precision`, `evidence qualification`, `scope narrowing`, `contribution reframe`, or `identity drift`. The label is a semantic audit aid until a dedicated machine field exists.
+- State what scientific content is lost, what remains, and whether the retained contribution still satisfies any declared minimum publishable claim or intended decision role. Do not equate a more defensible sentence with a more worthwhile paper.
+- Evaluate claim-preserving alternatives before recommending semantic narrowing. Consider whether a lower assurance class can preserve the claim as exploratory, whether a specific additional experiment can discriminate the live alternatives, whether the comparator or mechanism distinction can be sharpened without special pleading, and whether a negative or mixed result is itself the more informative contribution.
+- If narrowing is necessary, state the evidence that forced it, the lost contribution, what evidence could restore the stronger claim, and whether the same paper identity still holds. Repeated `proceed with narrowed claim` decisions require a cumulative project-level check rather than automatic progression to the next local gate.
+- For a predecessor failure marked `accepted_with_narrowing`, keep the failure visible relative to the original claim. The overclaim may be retired while the resulting loss of contribution remains an open project-level consequence.
+
+### 7) Preserve failure inheritance and write the handoff
+
+- Classify each predecessor failure as open, resolved, or accepted with narrowing, while keeping accepted narrowing visible as a loss against the original claim until its project-level consequence has been explicitly dispositioned.
 - State limitations and the minimum corrective action.
 - Write the JSON record first, then the matching narrative section.
 - Validate before handing the audit to paper planning.
@@ -182,7 +200,7 @@ python scripts/validate_results_audit.py \
   --work-items work-items.json
 ```
 
-A passing validator establishes declared repository consistency, not scientific validity, authenticated execution, external immutability, or real-world independence.
+A passing validator establishes declared repository consistency, not scientific validity, authenticated execution, external immutability, real-world independence, or preservation of the paper's contribution under cumulative narrowing. Claim-trajectory review remains a semantic responsibility until the machine contract encodes it directly.
 
 ## References
 
