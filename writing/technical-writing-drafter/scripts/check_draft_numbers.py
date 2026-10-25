@@ -32,7 +32,8 @@ from pathlib import Path
 NUMBER_RE = re.compile(r"(?<![\w.])[-+]?\d{1,3}(?:,\d{3})+(?:\.\d+)?%?|(?<![\w.])[-+]?\d+(?:\.\d+)?%?(?![\w.]\d)")
 MARKER_RE = re.compile(r"\[(EVIDENCE|CITATION) NEEDED:?[^\]]*\]")
 SKIP_BEFORE = re.compile(
-    r"(?:section|sec\.|table|tab\.|figure|fig\.|equation|eq\.|chapter|appendix|algorithm|step|line|page|p\.|pp\.|footnote|version|v)\s*$",
+    r"(?:section|sections|sec\.|secs\.|\\S|table|tables|tab\.|figure|figures|fig\.|figs\.|equation|eq\.|eqs\.|chapter|appendix|app\.|"
+    r"algorithm|alg\.|step|line|page|p\.|pp\.|footnote|version|v)[\s~]*\(?\s*$",
     re.IGNORECASE,
 )
 LATEX_SKIP = re.compile(r"\\(?:cite[tp]?\*?|ref|eqref|autoref|cref|Cref|label|pageref|footnote|bibitem|input|include)\s*(?:\[[^\]]*\])?\{[^}]*\}")

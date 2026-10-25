@@ -1,6 +1,6 @@
 ---
 name: technical-writing-drafter
-description: Kickstart the writing of a manuscript section, abstract, technical report, or rebuttal response from its supporting artifacts (result audits, data tables and figures, experiment plans, literature reviews and evidence tables, novelty decisions, paper plans and claim-evidence bindings, rebuttal issue boards, author notes), working with the author at checkpoints. Inventories the artifacts, builds a claim ledger that says what the draft may assert and at what strength, produces a paragraph-level outline for the author to edit before any prose is written, then drafts section by section under the drafting contract, evidence-bearing sections first, showing each section with its gates (every number traced to a source, machine-prose tells under a ceiling, claims matched to the ledger) before handing the whole to technical-writing-reviser. Use when there is no draft yet, when the author wants an outline before committing to prose, when a results folder and literature review need turning into a paper or report, or when the first draft of a reviewer response is needed from a decided issue board. Do not use to revise prose that exists (technical-writing-reviser), to smooth flow (prose-flow-improver), to decide the manuscript's claims and exhibits (research-paper-plan), to audit results (research-results-auditor), to decide what a rebuttal concedes (research-rebuttal), or to write claims no artifact supports.
+description: Kickstart the writing of a manuscript section, abstract, technical report, or rebuttal response from its supporting artifacts (result audits, data tables and figures, experiment plans, literature reviews and evidence tables, novelty decisions, paper plans and claim-evidence bindings, rebuttal issue boards, author notes), working with the author at checkpoints. Inventories the artifacts, builds a claim ledger that says what the draft may assert and at what strength, produces a paragraph-level outline for the author to edit before any prose is written, then drafts section by section under the drafting contract, evidence-bearing sections first, showing each section with its gates (every number traced to a source, machine-prose tells under a ceiling, claims matched to the ledger) before handing the whole to technical-writing-reviser. Use when there is no draft yet, when the author wants a paragraph-level outline built from an existing claim source (audits, bindings, a literature review) before committing to prose, when a results folder and literature review need turning into a paper or report, or when the first draft of a reviewer response is needed from a decided issue board. Do not use to revise prose that exists (technical-writing-reviser), to smooth flow (prose-flow-improver), to decide the manuscript's claims and exhibits (research-paper-plan), to audit results (research-results-auditor), to decide what a rebuttal concedes (research-rebuttal), or to write claims no artifact supports.
 ---
 
 # Technical Writing Drafter
@@ -32,6 +32,8 @@ stopping points, what is shown at each, and the defaults taken when the author i
 | "Write the abstract" with a drafted body | Lightweight path: ledger is the body's claims, a five-line outline shown once, then the paragraph | `references/drafting-contract.md` |
 | "Draft the intro from my notes", no data or plan | Lightweight path: hand-written ledger with `proposed` entries, outline shown, author confirms before prose | `references/claim-ledger.md`, `references/checkpoints.md` |
 | "Fix the results section", "tighten the intro", a draft exists | Not this skill: `technical-writing-reviser` | |
+| "Rewrite the results section from scratch against the new audit", the old text is void | This skill: redraft from the ledger; the old section is context, not source | `references/claim-ledger.md` |
+| "Turn these meeting notes into a paragraph", same facts, already in sentences | Not this skill: `prose-flow-improver`. Notes that need claims, numbers, or citations introduced come here | |
 | "Which claims can we make and which figures do we need" | Not this skill: `research-paper-plan` | |
 
 ## Quick start
@@ -79,7 +81,7 @@ in the same passage, `blocked` appears only as `[EVIDENCE NEEDED: what]` or
 `[CITATION NEEDED: what]`, `excluded` does not appear. Anything the author wants to say that no
 source carries enters as a `proposed` entry with the support it would need.
 
-Show the ledger as a compact table grouped by section. Settle each `proposed` entry (confirm,
+Show the ledger as a compact table (the script groups by status; regroup by section when that reads better). Settle each `proposed` entry (confirm,
 reword, drop), any `careful` entry the author wants asserted, and marker-or-omit for `blocked`
 entries. The ledger is the contract's claim list; the draft asserts nothing outside it.
 
@@ -102,8 +104,8 @@ says so. For a full manuscript with no paper plan, the outline is not a substitu
 ### 4) Draft section by section under the contract, checkpoint 4 between sections
 
 Read `references/drafting-contract.md` and the reviser's `machine-prose-tells.md` once. Then take
-the sections in the outline's order, using `references/section-sources.md` for what each section
-takes from which artifact:
+the sections in the drafting order the outline states (evidence-bearing first), using
+`references/section-sources.md` for what each section takes from which artifact:
 
 - Write each paragraph from its outline line and each asserting sentence against one ledger
   entry, tagged with a source comment (`<!-- PC-3 -->`, `% PC-3`) while drafting.
@@ -127,20 +129,25 @@ that single remaining stop.
 Drafting is serial. A full manuscript is one agent drafting in order, because framing depends on
 the evidence sections; parallel section drafting is for a report whose sections share no claims,
 and even then the abstract waits. Only the skill the user invoked spawns workers and sets the
-chain's budget; reached by handoff from a research skill, the drafter never spawns, and the
-reviser's pass on the draft counts inside the same budget.
+chain's budget (quick 1 pass, standard up to 3, deep 5 to 8); reached by handoff from a research
+skill, the drafter never spawns, and the reviser's pass and prose-flow's final pass on the draft
+count inside the same budget.
 
 ### 5) Gate each section and the whole
 
 1. `scripts/check_draft_numbers.py <draft> --source <audit> --source <table> ...`: every untraced
    number is fixed, sourced, marked, or listed with `--allow` and a reason in the brief.
-2. `<reviser>/scripts/prose_tells.py <draft> --max-density 20`: revise above the ceiling; the
-   target is under 10 per thousand words. Record the summary line.
-3. Compare the draft's claims with the ledger and the outline. A claim without an entry gets an
+2. `scripts/check_draft_citations.py <draft> --bib ... --bib-inventory ...`: every unresolved key
+   is fixed or replaced by a `[CITATION NEEDED: what]` marker.
+3. `<reviser>/scripts/prose_tells.py <draft> --max-density 20`: revise above the ceiling; the
+   target is under 10 per thousand words. Record the summary line. When the reviser is not
+   installed, skip this gate, say so in the brief, and read the draft against the contract's
+   one-screen tells list.
+4. Compare the draft's claims with the ledger and the outline. A claim without an entry gets an
    entry with its support or leaves the draft. A `careful` claim whose limitation drifted to
    another section is fixed. A paragraph the outline did not have is either added to the outline
    or removed.
-4. Read the draft once as its reader. The scanner measures tells, not whether the passage says
+5. Read the draft once as its reader. The scanner measures tells, not whether the passage says
    anything.
 
 ### 6) Hand off
@@ -178,6 +185,9 @@ author, and the defaults taken at checkpoints the author did not answer.
   [--sections a,b,c]`: one line per paragraph from the ledger, in drafting order, with unplaced
   entries and a questions list; `--check outline.md` exits 1 when a ready or careful claim has no
   paragraph, an ID is not in the ledger, or a blocked claim appears without a marker.
+- `scripts/check_draft_citations.py <draft> [--bib F] [--bib-inventory J] [--keys T]
+  [--format json]`: lists every LaTeX or Pandoc citation key the bibliography, bib inventory, or
+  key list does not resolve. Exit 1 on an unresolved key.
 - `scripts/check_draft_numbers.py <draft> --source ... [--allow N] [--format json]
   [--allow-untraced]`: traces every number in the draft to a source value, tolerating rounding
   and percentage conversion, and lists the gap markers. Exit 1 on an untraced number.
@@ -192,5 +202,7 @@ author, and the defaults taken at checkpoints the author did not answer.
 - `references/checkpoints.md`: the four stopping points, what is shown, what is asked, the defaults.
 - `references/writing-brief-template.md`: the short brief that travels with the outline.
 - `references/section-sources.md`: which artifact feeds each kind of section and what it may not do.
-- From `technical-writing-reviser`: `claim-discipline.md`, `machine-prose-tells.md`,
-  `register-and-format.md`, `terminology-conversion.md`.
+- From `technical-writing-reviser`, when installed: `claim-discipline.md`,
+  `machine-prose-tells.md`, `register-and-format.md`, `terminology-conversion.md`. Without them,
+  the contract's one-screen tells list and its claim rules are the fallback, and the handoff note
+  says the reviser's references were not consulted.

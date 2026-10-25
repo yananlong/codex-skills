@@ -60,8 +60,8 @@ claims appear only as markers.
 
 - Each sentence that asserts a result, a positioning claim, a theorem, or a concession is written
   against one ledger entry. Mark the entry ID in a draft comment (`<!-- PC-3 -->` in Markdown,
-  `% PC-3` in LaTeX) while drafting; the reviser strips the comments or leaves them for the
-  author.
+  `% PC-3` in LaTeX) while drafting. The reviser preserves them like any other comment and strips
+  them only when the author asks, listing the removal in its note.
 - A `careful` entry's limitation travels with it. Writing the claim in the results section and the
   limitation only in the limitations section is the overclaim the audit was meant to prevent.
 - A `blocked` entry appears as `[EVIDENCE NEEDED: <what the audit or table would show>]` in the

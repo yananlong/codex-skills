@@ -45,7 +45,7 @@ Use subordinate clauses or participial phrases when they make the relation clear
 
 Avoid semicolons by default. Use one only when it is clearly cleaner than a period, conjunction, relative clause, or subordinate clause, and do not use semicolons as the main mechanism for tightening prose.
 
-Avoid em dashes by default as well. They are the most recognizable habit of model-written prose. Use a comma for an aside, a period for a new thought, parentheses for a true parenthetical, and a colon for one specification. If a dash is the only mark that can hold an interruption, use one pair at most per page, spaced on both sides.
+Avoid em dashes by default as well. They are the most recognizable habit of model-written prose. The dash policy is stated once, in `technical-writing-drafter/references/drafting-contract.md`: a comma for an aside, a period for a new thought, parentheses for a true parenthetical, a colon for one specification, and where a dash is the only mark that can hold an interruption, one pair per page at most (`---` in LaTeX).
 
 Expand or compress as needed. Add missing connective tissue when the reader would otherwise have to infer what happened, why it matters, what it changes, or what constraint it implies. Remove redundant framing when the prose already carries the meaning.
 
@@ -63,7 +63,7 @@ Smoothing prose must not introduce the habits that make text read as model-writt
 
 Default to a serial single-agent pass whenever the whole artifact fits comfortably in context, which covers a conference paper or a long report of up to roughly thirty pages. A serial pass still builds the shape brief below and still runs the preservation audit on its own output. Fan out to workers only for longer artifacts, for several independent documents, or when the user asks for parallel revision. If this skill is itself running inside a subagent, run serially.
 
-When workers are used, keep the plan small: at most one worker per major section or coherent chunk, and any cross-cutting pass (transitions, repetition, rhythm) is comment-only, returning findings to the parent and never editing text, so ownership stays disjoint. When `technical-writing-reviser` also applies, it owns the plan and the workers, and this skill's rules apply as constraints inside that plan. More generally, only the skill the user invoked spawns workers and sets the chain's budget (quick 1, standard up to 3, deep 5 to 8); reached by handoff, this skill is one serial final pass inside that budget and never spawns.
+When workers are used, keep the plan small: at most one worker per major section or coherent chunk, and any cross-cutting pass (transitions, repetition, rhythm) is comment-only, returning findings to the parent and never editing text, so ownership stays disjoint. When `technical-writing-reviser` also applies, this skill is one serial final pass counted in the reviser's budget, and its connective rules bind the reviser's workers; there is never a second orchestration. Only the skill the user invoked spawns workers and sets the chain's budget (quick 1, standard up to 3, deep 5 to 8); reached by handoff, this skill never spawns.
 
 ### Parent Shape Brief Before Workers
 
@@ -77,6 +77,7 @@ Build a short shape brief before launching workers. Include:
 - Lists, headings, tables, or procedural structures that should remain intact.
 - Sentence-shape preference, including aggressive but readable joining, relative clauses, and minimal semicolon use.
 - Boundaries where the draft should keep a short sentence for emphasis or a real shift in idea.
+- Any length or page budget, and what the budget may not cut (facts, caveats, numbers, constraints); "expand" below is bounded by it.
 
 Do not launch workers until the shape brief is clear enough that local rewrites will not fight the document's intended form.
 
@@ -144,6 +145,14 @@ This skill never writes the first draft of reader-facing prose. First drafts are
 For marked-up sources, preserve the format as well as the words. In LaTeX, never join a line that ends in an unescaped `%` comment with the following line, keep every macro, citation key, label, and cross-reference byte-identical and attached to the same clause, do not edit inside math or comments, and compare the visible text before and after. In Markdown, preserve code spans, links, and footnote markers.
 
 For user-provided drafts, preserve the author's intent, level of formality, and technical precision unless the user asks for a stronger tonal change.
+
+### Routing near misses
+
+- "Turn these meeting notes into a paragraph", the facts are already there in sentences or fragments: this skill. Notes that need claims, numbers, or citations introduced to become a section: `technical-writing-drafter`.
+- "The results section reads choppy, smooth it": this skill, if no claim or connective changes. "The results paragraph overclaims": `technical-writing-reviser`.
+- "Merge these two thin paragraphs": this skill. "Cut related work by a third": `technical-writing-reviser`, with the budget in the brief.
+- "Write the abstract from the body": `technical-writing-drafter`.
+- "Fix typos and LaTeX warnings": neither writing skill.
 
 ## Preserve Signal
 

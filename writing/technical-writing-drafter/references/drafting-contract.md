@@ -41,7 +41,10 @@ drafting agent reads when the case calls for them.
   fact and stop where a model draft would add a participial tail announcing importance. End a
   paragraph on its evidence or its consequence, in a sentence of ordinary length, and vary
   paragraph shape (`machine-prose-tells.md`).
-- Use a comma, a period, parentheses, or a colon where a model draft would use a dash.
+- Dash policy (the one statement the other writing pages point at): no dashes by default. Use a
+  comma for an aside, a period for a new thought, parentheses for a true parenthetical, a colon
+  for one specification. Where a dash is the only mark that can hold an interruption, one pair per
+  page at most; in LaTeX that pair is `---`, and it counts the same.
 - Keep every number, citation key, label, macro, and comment attached to the clause it belongs to
   in the source format.
 - Keep process commentary out of the prose. Notes to the author go in a separate note, never in
@@ -51,10 +54,13 @@ drafting agent reads when the case calls for them.
 
 1. When the draft carries numbers, run `check_draft_numbers.py <draft> --source <data> ...` and
    fix or mark every untraced number; a result sentence may not carry a number the sources do
-   not. Then run `python3 <technical-writing-reviser>/scripts/prose_tells.py <draft> --max-density 20`.
+   not. When the draft cites, run `check_draft_citations.py <draft> --bib ... --bib-inventory ...`
+   and fix or mark every unresolved key. Then run
+   `python3 <technical-writing-reviser>/scripts/prose_tells.py <draft> --max-density 20`.
    A draft above 20 tells per thousand words is revised before it leaves the skill; the target is
    under 10. Record the scanner's summary line in the artifact index or handoff note so the next
-   stage can see it.
+   stage can see it. When `technical-writing-reviser` is not installed beside this skill, skip the
+   scanner, say so in the handoff note, and check the draft by eye against the tells list below.
 2. Read the draft once as its reader. The scanner measures tells, not quality; a passage can score
    zero and still say nothing.
 3. Compare the draft's claims with the list from step 3 above. A claim that appeared without an
@@ -78,3 +84,27 @@ drafting agent reads when the case calls for them.
 
 When the writing skills are not installed beside a research skill, the contract still applies as
 written here; the scanner step is skipped and the handoff note says so.
+
+## The tells, on one screen
+
+The reviser's `machine-prose-tells.md` has the recipes and the legitimate uses; this list is
+enough to draft by when that file is not installed.
+
+- Dashes as the all-purpose joint (see the dash policy above).
+- Deny-then-claim contrasts: "not X but Y", "not just X", "rather than X, Y". State Y.
+- Sentence-opening signposts: Importantly, Notably, Crucially, Interestingly, Moreover,
+  Furthermore, Additionally. Delete, or use a real ordinal.
+- Significance words standing in for a measurement or mechanism: crucial, robust, nuanced,
+  pivotal, comprehensive, seamless, leverage, landscape, underscore, delve, foster.
+- Participial tails that announce importance: ", highlighting ...", ", underscoring ...",
+  ", paving the way for ...". End at the fact.
+- Three parallel items for two-item content; three short parallel sentences; antithesis for
+  effect. Write the number of items the content has.
+- Interpretation chains: "This suggests ... This means ... This highlights ...". One
+  interpretation per piece of evidence, next to it.
+- Kickers: a short closing sentence after long ones, one-sentence drumbeat paragraphs. End on the
+  evidence.
+- Uniform paragraph length and shape. Let length follow the argument.
+- Meta-commentary: "It is worth noting", "the key insight is". Delete the frame.
+- Hedge stacks: "may potentially", "could possibly suggest". One hedge, the one the evidence needs.
+- Rhetorical questions, "Let's", bolded lead-ins, bullets for argument.

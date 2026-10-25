@@ -168,9 +168,12 @@ def scan(text: str) -> Report:
         if BOLD_LEADIN_RE.match(raw):
             report.add("bold_leadin", number, raw)
 
+    latex = bool(LATEX_HINT.search(text))
     for number, line in enumerate(lowered_lines, start=1):
         low = line.lower()
-        for _ in re.finditer(r"\u2014|\u2013| -- ", line):
+        # In LaTeX, --- is an em dash and -- an en dash; in Markdown a bare -- is usually a flag.
+        dash_pattern = r"\u2014|\u2013|---|(?<!-)--(?!-)" if latex else r"\u2014|\u2013|---| -- "
+        for _ in re.finditer(dash_pattern, line):
             report.add("dash", number, line)
         for word in INFLATION_WORDS:
             for _ in re.finditer(r"\b" + re.escape(word) + r"\b", low):

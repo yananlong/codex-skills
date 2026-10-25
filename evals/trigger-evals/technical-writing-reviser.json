@@ -49,5 +49,14 @@
     "query": "write the results section from results-audit.json and the tables, there is no draft yet",
     "should_trigger": false,
     "expected_skill": "technical-writing-drafter"
+  },
+  {
+    "query": "the audit for family C changed everything, throw away the old results section and redraft it from results-audit.json",
+    "should_trigger": false,
+    "expected_skill": "technical-writing-drafter"
+  },
+  {
+    "query": "the results section stands but reviewer 1 says paragraph two overclaims, fix the wording",
+    "should_trigger": true
   }
 ]

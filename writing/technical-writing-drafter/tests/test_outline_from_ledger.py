@@ -36,6 +36,7 @@ class RenderTests(unittest.TestCase):
     def test_render_marks_statuses(self) -> None:
         text = render(CLAIMS, ["results", "related_work", "abstract"], "manuscript")
         self.assertIn("- Error falls on family A. [PC-1] <- results/a.csv", text)
+        self.assertIn("Drafting order: Results, Related Work, Abstract", text)
         self.assertIn("[PC-2] (careful: one seed)", text)
         self.assertIn("- [EVIDENCE NEEDED: a proof] where [PC-3] would go", text)
         self.assertNotIn("PC-4", text)
@@ -65,6 +66,13 @@ class CheckTests(unittest.TestCase):
     def test_clean_outline_passes(self) -> None:
         outline = render(CLAIMS, ["results", "related_work", "abstract"], "manuscript")
         self.assertEqual(check(outline, CLAIMS), [])
+
+    def test_unplaced_ready_claim_is_reported(self) -> None:
+        outline = render(CLAIMS, ["results", "abstract"], "manuscript")  # LIT-S1 lands under Unplaced
+        problems = check(outline, CLAIMS)
+        self.assertEqual(len(problems), 1)
+        self.assertIn("[LIT-S1] (ready) is still unplaced", problems[0])
+        self.assertIn("Drafting order: Results, Abstract", outline)
 
     def test_drift_is_reported(self) -> None:
         outline = (

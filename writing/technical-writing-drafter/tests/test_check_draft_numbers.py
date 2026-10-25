@@ -24,6 +24,8 @@ class ExtractTests(unittest.TestCase):
         )
         tokens = [token for _, token in extract_draft_numbers(text)]
         self.assertEqual(tokens, ["12.3%", "1,200"])
+        latex_refs = "See Section~3.1, Sec.~4.2, Fig.~2b, Tab.~3, App.~B, Eq.~(7), Figs.~3 and Secs.~5 with \\emph{x} and error 4.5."
+        self.assertEqual([t for _, t in extract_draft_numbers(latex_refs)], ["4.5"])
 
     def test_latex_comment_is_ignored(self) -> None:
         text = "The gain is \\emph{0.42} % and 99 in the comment\n"

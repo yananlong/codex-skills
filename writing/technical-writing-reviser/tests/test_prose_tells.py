@@ -37,6 +37,12 @@ class MarkupTests(unittest.TestCase):
         latex = "Accuracy rose by 12\\% as \\cite{x} shows. % robust seamless synergy leverages\n"
         self.assertNotIn("synergy", strip_markup(latex))
 
+    def test_latex_dashes_are_counted(self) -> None:
+        latex = "We test---as \\cite{x} did---two settings -- both hold.\n"
+        self.assertEqual(scan(latex).counts.get("dash", 0), 3)
+        markdown = "Pass --limit 200 and --out here; one spaced -- aside.\n"
+        self.assertEqual(scan(markdown).counts.get("dash", 0), 1)
+
     def test_line_numbers_survive_fenced_blocks(self) -> None:
         text = "Intro.\n\n```\na\nb\nc\n```\n\nImportantly, this is crucial.\n"
         report = scan(text)

@@ -80,7 +80,7 @@ jobs:
             )
           }
           package_skill documents/adversarial-doc-review adversarial-doc-review
-          for skill_dir in research/*/; do
+          for skill_dir in research/*/ writing/*/; do
             skill_dir="${skill_dir%/}"
             package_skill "$skill_dir" "$(basename "$skill_dir")"
           done

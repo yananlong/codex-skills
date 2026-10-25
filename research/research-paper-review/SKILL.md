@@ -138,7 +138,7 @@ Choose the smallest route that covers the request, and load only the listed file
 ## Research-suite handoff
 
 - Keep the `/openaireview` workspace layout, but write research-suite handoff artifacts into that same review directory.
-- `summary.md`, `final_issues.json`, `review_summary.json`, and `overall_assessment.txt` are the stable handoff bundle for `research-review-loop`, `research-paper-plan`, and `research-rebuttal`.
+- `summary.md`, `final_issues.json`, `review_summary.json`, and `overall_assessment.txt` are the stable handoff bundle for `research-review-loop`, `research-paper-plan`, `research-rebuttal`, and `technical-writing-reviser` (which reads `final_issues.json` as critique intake).
 - `review_summary.json` is required for native (`codex_native`) runs because sibling skills use it for numeric routing, currentness, top blockers, execution mode, and context provenance.
 - Contextual paper-review outputs should live under `<review_dir>/context/` and be listed in `review_summary.json.context_artifacts` so `research-novelty-review` and `research-systematic-literature-review` outputs remain traceable.
 - If a project-level `artifact-index.md` exists, record the review directory, viz JSON path, and any sibling-skill context artifact paths there.

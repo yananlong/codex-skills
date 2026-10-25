@@ -7,7 +7,7 @@ description: Revise technical writing into clear, audience-facing prose while pr
 
 ## Overview
 
-Write or revise technical text so an outside reader can understand the claim, method, result, limitation, design decision, or technical implication without first learning the author's internal shorthand. This skill revises prose that already exists. First drafts are written by `technical-writing-drafter` under its drafting contract, which applies the rules below at writing time, so a draft arriving from the drafter needs revision rather than a patch for habits the draft baked in. Prefer reader-facing technical prose that states what matters, what supports it, and what the reader should conclude, while keeping the original evidential and scope limits intact.
+Revise technical text so an outside reader can understand the claim, method, result, limitation, design decision, or technical implication without first learning the author's internal shorthand. This skill revises prose that already exists. First drafts are written by `technical-writing-drafter` under its drafting contract, which applies the rules below at writing time, so a draft arriving from the drafter needs revision rather than a patch for habits the draft baked in. Prefer reader-facing technical prose that states what matters, what supports it, and what the reader should conclude, while keeping the original evidential and scope limits intact.
 
 ## Default Output
 
@@ -23,7 +23,7 @@ Preserve numbers, methods, caveats, uncertainty, negative results, and justified
 
 Preserve the source format as well as the content. For LaTeX, Markdown, and other marked-up sources, keep macros, citation keys and their attachment to the clause they support, labels, cross-references, comments, and code spans intact. Read [references/register-and-format.md](references/register-and-format.md) before editing any LaTeX source or any manuscript outside empirical machine learning.
 
-Use `technical-writing-drafter` when no draft exists and the prose must be written from results, audits, a literature review, a paper plan, or an issue board. Use `research-paper-plan` when the real need is manuscript structure, claim-to-evidence mapping, or figure planning. Use `research-paper-review` or `research-review-loop` when the real need is critique. Use `research-novelty-review` when the real need is positioning against prior work. Use `commercialize-academic-research` when the real need is buyer, budget, or commercialization analysis. Use `research-rebuttal` when the output is a response to reviewers rather than revised manuscript text. Use `prose-flow-improver` when the draft is also too choppy, list-heavy, or note-like. When both writing skills apply, run this skill first and treat `prose-flow-improver` as a constrained final pass that may not change causal, evidential, or contrastive connectives, or run one combined pass under this skill's brief.
+Use `technical-writing-drafter` when no draft exists and the prose must be written from results, audits, a literature review, a paper plan, or an issue board. Use `research-paper-plan` when the real need is manuscript structure, claim-to-evidence mapping, or figure planning. Use `research-paper-review` or `research-review-loop` when the real need is critique. Use `research-novelty-review` when the real need is positioning against prior work. Use `commercialize-academic-research` when the real need is buyer, budget, or commercialization analysis. Use `research-rebuttal` when the output is a response to reviewers rather than revised manuscript text. Use `prose-flow-improver` when the draft is also too choppy, list-heavy, or note-like. When both writing skills apply, this skill runs first and `prose-flow-improver` is one serial final pass counted in the same budget; its connective rules also bind this skill's workers, so no second orchestration is needed.
 
 ### Routing near misses
 
@@ -34,6 +34,8 @@ Use `technical-writing-drafter` when no draft exists and the prose must be writt
 - "Draft the response to reviewer 2 from the issue board": `technical-writing-drafter`, with the paste-ready text returned to `research-rebuttal`. "Reviewer 2's response reads defensive, fix it": this skill.
 - "Is our positioning against prior work defensible?": `research-novelty-review`. "Rewrite the related-work paragraph to state our difference clearly": this skill.
 - "Cut related work by a third to fit the page limit": this skill, with the budget in the brief.
+- "Turn these meeting notes into a paragraph", same facts already in sentences: `prose-flow-improver`. Notes that need claims, numbers, or citations introduced: `technical-writing-drafter`.
+- "Rewrite the results section from scratch against the new audit": `technical-writing-drafter` (redraft from the ledger). "Fix the results section" with the text standing: this skill.
 - "Fix typos and LaTeX warnings": neither writing skill.
 
 ## Calibrate the Revision
@@ -76,9 +78,9 @@ Run `python3 scripts/prose_tells.py <source>` before editing to get the baseline
 
 Default to a serial single-agent pass whenever the whole artifact fits comfortably in context, which covers a conference paper of up to roughly thirty pages. A serial pass still builds the revision brief below and still runs the merge audit on its own output. Fan out to workers only for longer artifacts, for several independent documents, or when the user asks for parallel revision. If this skill is itself running inside a subagent, run serially.
 
-Ownership when skills chain: only the skill the user invoked spawns workers and sets one budget for the whole chain (quick: 1 pass; standard: up to 3; deep: 5 to 8), and a skill reached by handoff never spawns. When the user invoked a review skill that hands revision to this skill, this skill runs inside the review's budget as the owner of prose per issue cluster; when the user invoked this skill, it owns the budget, review stays diagnosis, `technical-writing-drafter` drafts serially, and `prose-flow-improver` is one final pass inside the same budget. Record the budget and the passes used in the handoff note.
+Ownership when skills chain: only the skill the user invoked spawns workers and sets one budget for the whole chain (quick: 1 pass; standard: up to 3; deep: 5 to 8), and a skill reached by handoff never spawns. When the user invoked a review skill that hands revision to this skill, this skill runs inside the review's budget as the owner of prose per issue cluster; when the user invoked this skill, it owns the budget, review stays diagnosis, and `prose-flow-improver` is one serial final pass inside the same budget. Record the budget and the passes used in the handoff note.
 
-When workers are used, keep the plan small. Assign at most one worker per major section or reviewer-issue cluster, and make any cross-cutting pass (claim discipline, terminology, limitation language) comment-only: it returns findings to the parent and never edits text, so worker ownership stays disjoint. When `prose-flow-improver` also applies, use one parent plan and one set of workers under this skill's brief rather than two orchestrations.
+When workers are used, keep the plan small. Assign at most one worker per major section or reviewer-issue cluster, and make any cross-cutting pass (claim discipline, terminology, limitation language) comment-only: it returns findings to the parent and never edits text, so worker ownership stays disjoint. When `prose-flow-improver` also applies, it is one serial final pass counted in the budget, and its connective rules bind this skill's workers; there is never a second orchestration.
 
 ### Parent Brief Before Workers
 
@@ -95,6 +97,7 @@ Build a short revision brief before launching workers. Include:
 - Source format and the elements that must survive byte-for-byte (macros, citation keys, labels, comments).
 - Any page or word budget, and what may be cut to meet it.
 - Known critique items or reviewer issues to resolve, taken through the critique intake below.
+- For a draft from `technical-writing-drafter`: the ledger entries as the key claims with their support level and status, taken through the drafter handoff intake below.
 - Claims that genuinely require verification when verification is part of the task.
 
 Do not launch section workers until the brief is strong enough that another agent can revise locally without guessing the document's global meaning.
@@ -108,6 +111,15 @@ Check staleness first. Compare the critique's recorded source head or date with 
 Translate each issue into an edit, not a disclaimer. An issue whose effect is "blocks claim X" means the revision must not assert X; it does not license a sentence announcing that X is not claimed unless the reviewer explicitly asked for that statement or the venue requires a scope statement. An issue that narrows a claim means stating the narrower claim directly at the strength the evidence supports.
 
 Record every issue-driven weakening in a short claim-change note (original wording, revised wording, the issue that forced it) so the owning review or planning stage can see the cumulative scope loss. Do not let several locally reasonable narrowings shrink the contribution without the author seeing the total.
+
+### Drafter Handoff Intake
+
+A draft from `technical-writing-drafter` arrives with its claim ledger, its approved outline, its brief, and the gate lines (numbers traced, citations resolved, tells density). Use them rather than re-deriving the claims:
+
+- The ledger's `ready` and `careful` entries are the brief's key claims with their support level; a `careful` entry's limitation must still sit in the same passage after revision.
+- `[EVIDENCE NEEDED: ...]` and `[CITATION NEEDED: ...]` markers are preserved as they stand. Never write around a marker or soften the sentence so the gap looks filled; the receiving review stage decides about gaps.
+- Ledger source comments (`<!-- PC-3 -->`, `% PC-3`) are comments like any other: kept in place, stripped only when the author asks, and listed in the note when stripped.
+- Compare the revised draft's tells density with the drafter's gate line as the baseline; a `--fail-if-worse` result is a failed revision.
 
 ### Revision Pass Plan
 

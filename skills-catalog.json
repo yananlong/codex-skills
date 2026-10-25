@@ -706,7 +706,8 @@
         "research-rebuttal",
         "research-review-loop",
         "research-systematic-literature-review",
-        "technical-writing-drafter"
+        "technical-writing-drafter",
+        "technical-writing-reviser"
       ],
       "resources": {
         "agents": [
@@ -1207,16 +1208,22 @@
       "skill_file": "writing/prose-flow-improver/SKILL.md"
     },
     {
-      "agent_metadata": {},
+      "agent_metadata": {
+        "interface": {
+          "default_prompt": "Use $technical-writing-drafter to inventory the supporting artifacts, build the claim ledger and outline for my review, then draft section by section.",
+          "display_name": "Technical Writing Drafter",
+          "short_description": "Kickstart a draft from results, reviews, and plans"
+        }
+      },
       "capabilities": [
         "interactive",
         "technical-writing",
         "validation"
       ],
-      "description": "Kickstart the writing of a manuscript section, abstract, technical report, or rebuttal response from its supporting artifacts (result audits, data tables and figures, experiment plans, literature reviews and evidence tables, novelty decisions, paper plans and claim-evidence bindings, rebuttal issue boards, author notes), working with the author at checkpoints. Inventories the artifacts, builds a claim ledger that says what the draft may assert and at what strength, produces a paragraph-level outline for the author to edit before any prose is written, then drafts section by section under the drafting contract, evidence-bearing sections first, showing each section with its gates (every number traced to a source, machine-prose tells under a ceiling, claims matched to the ledger) before handing the whole to technical-writing-reviser. Use when there is no draft yet, when the author wants an outline before committing to prose, when a results folder and literature review need turning into a paper or report, or when the first draft of a reviewer response is needed from a decided issue board. Do not use to revise prose that exists (technical-writing-reviser), to smooth flow (prose-flow-improver), to decide the manuscript's claims and exhibits (research-paper-plan), to audit results (research-results-auditor), to decide what a rebuttal concedes (research-rebuttal), or to write claims no artifact supports.",
+      "description": "Kickstart the writing of a manuscript section, abstract, technical report, or rebuttal response from its supporting artifacts (result audits, data tables and figures, experiment plans, literature reviews and evidence tables, novelty decisions, paper plans and claim-evidence bindings, rebuttal issue boards, author notes), working with the author at checkpoints. Inventories the artifacts, builds a claim ledger that says what the draft may assert and at what strength, produces a paragraph-level outline for the author to edit before any prose is written, then drafts section by section under the drafting contract, evidence-bearing sections first, showing each section with its gates (every number traced to a source, machine-prose tells under a ceiling, claims matched to the ledger) before handing the whole to technical-writing-reviser. Use when there is no draft yet, when the author wants a paragraph-level outline built from an existing claim source (audits, bindings, a literature review) before committing to prose, when a results folder and literature review need turning into a paper or report, or when the first draft of a reviewer response is needed from a decided issue board. Do not use to revise prose that exists (technical-writing-reviser), to smooth flow (prose-flow-improver), to decide the manuscript's claims and exhibits (research-paper-plan), to audit results (research-results-auditor), to decide what a rebuttal concedes (research-rebuttal), or to write claims no artifact supports.",
       "domain": "writing",
       "frontmatter": {
-        "description": "Kickstart the writing of a manuscript section, abstract, technical report, or rebuttal response from its supporting artifacts (result audits, data tables and figures, experiment plans, literature reviews and evidence tables, novelty decisions, paper plans and claim-evidence bindings, rebuttal issue boards, author notes), working with the author at checkpoints. Inventories the artifacts, builds a claim ledger that says what the draft may assert and at what strength, produces a paragraph-level outline for the author to edit before any prose is written, then drafts section by section under the drafting contract, evidence-bearing sections first, showing each section with its gates (every number traced to a source, machine-prose tells under a ceiling, claims matched to the ledger) before handing the whole to technical-writing-reviser. Use when there is no draft yet, when the author wants an outline before committing to prose, when a results folder and literature review need turning into a paper or report, or when the first draft of a reviewer response is needed from a decided issue board. Do not use to revise prose that exists (technical-writing-reviser), to smooth flow (prose-flow-improver), to decide the manuscript's claims and exhibits (research-paper-plan), to audit results (research-results-auditor), to decide what a rebuttal concedes (research-rebuttal), or to write claims no artifact supports.",
+        "description": "Kickstart the writing of a manuscript section, abstract, technical report, or rebuttal response from its supporting artifacts (result audits, data tables and figures, experiment plans, literature reviews and evidence tables, novelty decisions, paper plans and claim-evidence bindings, rebuttal issue boards, author notes), working with the author at checkpoints. Inventories the artifacts, builds a claim ledger that says what the draft may assert and at what strength, produces a paragraph-level outline for the author to edit before any prose is written, then drafts section by section under the drafting contract, evidence-bearing sections first, showing each section with its gates (every number traced to a source, machine-prose tells under a ceiling, claims matched to the ledger) before handing the whole to technical-writing-reviser. Use when there is no draft yet, when the author wants a paragraph-level outline built from an existing claim source (audits, bindings, a literature review) before committing to prose, when a results folder and literature review need turning into a paper or report, or when the first draft of a reviewer response is needed from a decided issue board. Do not use to revise prose that exists (technical-writing-reviser), to smooth flow (prose-flow-improver), to decide the manuscript's claims and exhibits (research-paper-plan), to audit results (research-results-auditor), to decide what a rebuttal concedes (research-rebuttal), or to write claims no artifact supports.",
         "name": "technical-writing-drafter"
       },
       "inputs": [
@@ -1247,7 +1254,9 @@
         "technical-writing-reviser"
       ],
       "resources": {
-        "agents": [],
+        "agents": [
+          "agents/openai.yaml"
+        ],
         "assets": [],
         "prompts": [],
         "references": [
@@ -1260,6 +1269,7 @@
         ],
         "scripts": [
           "scripts/build_claim_ledger.py",
+          "scripts/check_draft_citations.py",
           "scripts/check_draft_numbers.py",
           "scripts/inventory_artifacts.py",
           "scripts/outline_from_ledger.py"

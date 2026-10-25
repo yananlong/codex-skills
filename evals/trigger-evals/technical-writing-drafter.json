@@ -13,7 +13,8 @@
   },
   {
     "query": "we have the data and the lit review but no claims decided yet, what would the paper's skeleton look like? check with me before drafting",
-    "should_trigger": true
+    "should_trigger": false,
+    "expected_skill": "research-paper-plan"
   },
   {
     "query": "the paper plan and claim-evidence bindings are validated, start drafting the paper, methods and results first",
@@ -69,5 +70,18 @@
     "query": "is our positioning against the two closest prior papers defensible?",
     "should_trigger": false,
     "expected_skill": "research-novelty-review"
+  },
+  {
+    "query": "turn these meeting notes into a paragraph for the status update, the facts are all there already",
+    "should_trigger": false,
+    "expected_skill": "prose-flow-improver"
+  },
+  {
+    "query": "the audit for family C changed everything, throw away the old results section and redraft it from results-audit.json",
+    "should_trigger": true
+  },
+  {
+    "query": "turn my bullet notes on the method into the methods section, the hyperparameters are in configs/ and the baselines need citing",
+    "should_trigger": true
   }
 ]

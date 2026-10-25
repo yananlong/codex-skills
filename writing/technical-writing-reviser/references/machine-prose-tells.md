@@ -17,8 +17,9 @@ Tell: em dashes used as the all-purpose joint, several to a paragraph, often in 
 aside the sentence did not need.
 
 Recipe: a comma for an aside, a period for a new thought, parentheses for a true parenthetical,
-a colon for one specification. One dash pair per page is a ceiling, not a target. In LaTeX, `---`
-is the same tell.
+a colon for one specification. The policy is stated once in the drafter's `drafting-contract.md`:
+one dash pair per page is a ceiling, not a target, and in LaTeX `---` is the same tell (the
+scanner counts `---` and `--` in LaTeX sources).
 
 Legitimate: a single interruption that changes the sentence's direction and that no other mark
 can hold.

@@ -105,7 +105,7 @@ Before:
 - Reader cannot see why the choice matters.
 
 After:
-This section needs more detail because it states the choice without explaining why it matters. The reader cannot see the consequence of the decision or the tradeoff it resolves.
+This section needs more detail. It is too short, and the reader cannot see why the choice matters.
 
 Example 3:
 
@@ -131,7 +131,7 @@ Before:
 - If we split it, rollback is easier.
 
 After:
-We should keep this migration small because the schema rename is the only meaningfully risky part, while most of the remaining work is mechanical. Splitting the change also makes rollback easier, which reduces the cost of discovering a problem late.
+We should keep this migration small. The schema rename is the risky part, and the rest is mechanical. Splitting the change makes rollback easier.
 
 Example 5:
 
@@ -142,13 +142,13 @@ Before:
 - Churn is still elevated in SMB.
 
 After:
-Revenue increased, and margin improved after the pricing changes took effect. SMB churn remains elevated, however, so the improvement still depends on fixing retention.
+Revenue was up, and margin improved after the pricing changes. Churn is still elevated in SMB.
 
 ## Machine-Prose Tells to Avoid While Smoothing
 
 Joining sentences is where these habits enter. Each line names the habit and the plain alternative:
 
-- Em dash as the joint: comma, period, parentheses, or colon instead; one dash pair per page at most.
+- Em dash as the joint: comma, period, parentheses, or colon instead; the dash policy in the drafter's `drafting-contract.md` (one pair per page at most, `---` in LaTeX) is the single statement.
 - "Not X but Y", "not just X", "rather than X, Y": state Y precisely; keep the contrast only when X is a real position the reader holds.
 - Sentence-opening Importantly, Notably, Crucially, Interestingly, Ultimately, Moreover, Furthermore, Additionally: delete, or use "and", a new sentence, or a real ordinal.
 - Crucial, robust, nuanced, pivotal, comprehensive, seamless, leverage, landscape, underscore, delve, foster: the measurement or mechanism the word stands in for, or nothing.

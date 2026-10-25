@@ -51,7 +51,7 @@ Prefer:
 
 ## Output contract
 
-Reader-facing prose in these artifacts is written under the drafting contract (`writing/technical-writing-drafter/references/drafting-contract.md`): claims listed with their support before writing, no machine-prose tells, and `prose_tells.py --max-density 20` run on the draft before handoff, with its summary line recorded in the artifact index. Do not draft first and patch later. Manuscript prose itself is not this skill's output; it is drafted by `technical-writing-reviser` from the bindings below.
+Reader-facing prose in these artifacts is written under the drafting contract (`writing/technical-writing-drafter/references/drafting-contract.md`): claims listed with their support before writing, no machine-prose tells, and `prose_tells.py --max-density 20` run on the draft before handoff, with its summary line recorded in the artifact index. Do not draft first and patch later. Manuscript prose itself is not this skill's output; `technical-writing-drafter` drafts it from the bindings below and `technical-writing-reviser` revises it.
 
 ### Canonical machine binding
 

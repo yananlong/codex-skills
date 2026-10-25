@@ -25,5 +25,15 @@
     "query": "draft the methods section from the experiment plan",
     "should_trigger": false,
     "expected_skill": "technical-writing-drafter"
+  },
+  {
+    "query": "turn my bullet notes on the method into the methods section, the hyperparameters are in configs/ and the baselines need citing",
+    "should_trigger": false,
+    "expected_skill": "technical-writing-drafter"
+  },
+  {
+    "query": "write the abstract from the drafted body",
+    "should_trigger": false,
+    "expected_skill": "technical-writing-drafter"
   }
 ]

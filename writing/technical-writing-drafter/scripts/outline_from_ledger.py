@@ -155,10 +155,13 @@ def render(claims: list[dict], sections: list[str], piece: str, plan_order: bool
     lines.append("One line per paragraph: its topic sentence or job, the ledger entries it carries in brackets, "
                  "and the exhibit it draws on after the arrow. Edit lines, reorder, delete, or add; keep the IDs.")
     if plan_order:
-        lines.append("Sections follow the paper plan's own labels and order. Drafting still runs evidence-bearing "
-                     "sections first; mark the order to draft in if it differs from the order shown.")
+        lines.append("Sections follow the paper plan's own labels and order. The drafting order below is the "
+                     "order prose is written in; put evidence-bearing sections (method, results, limitations) "
+                     "before framing sections (introduction, abstract) by editing that line.")
     else:
         lines.append("Framing sections are listed last because they are written last.")
+    lines.append("")
+    lines.append("Drafting order: " + ", ".join(heading(s) for s in sections))
     lines.append("")
     for order, section in enumerate(sections, start=1):
         lines.append(f"## {order}. {heading(section)}")
@@ -189,7 +192,19 @@ def check(outline_text: str, claims: list[dict]) -> list[str]:
     by_id = {c.get("id"): c for c in claims}
     problems: list[str] = []
     seen: set[str] = set()
+    in_unplaced = False
     for line_no, line in enumerate(outline_text.splitlines(), start=1):
+        if line.startswith("## "):
+            in_unplaced = line.strip().lower().startswith("## unplaced")
+        if in_unplaced:
+            # Entries left under "Unplaced ledger entries" are not in any section. A ready or
+            # careful claim left there is reported; the author drops it by deleting the line.
+            for match in ID_RE.finditer(line):
+                cid = match.group(1)
+                if cid in by_id and by_id[cid].get("status") in {"ready", "careful"}:
+                    problems.append(f"line {line_no}: ledger claim [{cid}] ({by_id[cid].get('status')}) is still unplaced; move it into a section or delete the line")
+                    seen.add(cid)
+            continue
         is_marker = bool(MARKER_RE.search(line))
         for match in ID_RE.finditer(line):
             cid = match.group(1)
