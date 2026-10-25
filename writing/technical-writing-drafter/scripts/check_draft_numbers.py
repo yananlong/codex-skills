@@ -141,10 +141,10 @@ def matches(draft_token: str, sources: set[float]) -> bool:
     if parsed is None:
         return False
     value, decimals, percent = parsed
-    candidates = [value]
-    if percent:
-        candidates.append(value / 100.0)
-    else:
+    candidates = [value, value / 100.0]  # a percentage written from a source fraction
+    if not percent and 0 < abs(value) < 1 and decimals > 0:
+        # A fraction such as 0.82 written from a source that holds 82.3. Integers and values
+        # above 1 never take this route: 64 must not match a source 6412.
         candidates.append(value * 100.0)
     base_tolerance = 0.5 * 10 ** (-decimals) + 1e-9
     for candidate in candidates:

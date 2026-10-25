@@ -192,7 +192,17 @@ def fetch_items_with_total(
             total = header_total
         items.extend(page)
         start += len(page)
-        if not page or len(page) < page_limit or (total is not None and start >= total):
+        if not page:
+            exhausted = True
+            break
+        if total is not None:
+            # Zotero caps a page at 100 whatever --limit asks, so a short page is not the end
+            # while Total-Results says more remain.
+            if start >= total:
+                exhausted = True
+                break
+            continue
+        if len(page) < page_limit:
             exhausted = True
             break
     if total is not None:

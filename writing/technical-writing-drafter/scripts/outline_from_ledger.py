@@ -62,7 +62,10 @@ SECTION_ALIASES = {
     "response": {"response", "rebuttal"},
 }
 
-ID_RE = re.compile(r"\[([A-Za-z][\w\-. ,'()]*?)\]")
+ID_RE = re.compile(r"\[([^\[\]\n]+?)\]")
+# Bracketed text that is not a ledger ID is reported only when it looks like one (an upper-case
+# prefix with a digit, or a bare number), so "[see Table 2]" in an author's line is left alone.
+ID_LIKE_RE = re.compile(r"^(?:[A-Z][\w&.' -]*\d[\w&.' -]*|\d+)$")
 MARKER_RE = re.compile(r"\[(?:EVIDENCE|CITATION) NEEDED")
 
 
@@ -193,7 +196,8 @@ def check(outline_text: str, claims: list[dict]) -> list[str]:
             if cid.startswith(("EVIDENCE NEEDED", "CITATION NEEDED")):
                 continue
             if cid not in by_id:
-                problems.append(f"line {line_no}: [{cid}] is not in the ledger")
+                if ID_LIKE_RE.match(cid):
+                    problems.append(f"line {line_no}: [{cid}] is not in the ledger")
                 continue
             seen.add(cid)
             status = by_id[cid].get("status")

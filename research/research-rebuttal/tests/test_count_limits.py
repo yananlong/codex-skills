@@ -58,7 +58,7 @@ class CountLimitsTests(unittest.TestCase):
             "Shared preface line.\n"
             "## Reviewer Alpha\n" + ("short reply. " * 5) + "\n"
             "## Reviewer Beta\n" + ("long reply sentence. " * 30) + "\n"
-            "### Reviewer Gamma\n" + ("ok. " * 5) + "\n"
+            "## Reviewer Gamma\n" + ("ok. " * 5) + "\n"
         )
         path = self.write("responses.md", text)
         result = self.run_script(str(path), "--limit", "300")
@@ -71,6 +71,23 @@ class CountLimitsTests(unittest.TestCase):
         self.assertIn("OVER LIMIT", beta[0])
         self.assertTrue(alpha and alpha[0].endswith("ok"), result.stdout)
         self.assertTrue(gamma and gamma[0].endswith("ok"), result.stdout)
+
+    def test_single_response_with_subsections_is_counted_whole(self) -> None:
+        block = "sentence of reply. " * 60  # about 1140 chars each
+        text = (
+            "## Reviewer xK3p\n"
+            "### W1\n" + block + "\n"
+            "### W2\n" + block + "\n"
+            "### W3\n" + block + "\n"
+        )
+        path = self.write("one-response.md", text)
+        result = self.run_script(str(path), "--chars", "--limit", "2000")
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        self.assertNotIn("Per-section counts", result.stdout)
+        self.assertIn("WARNING: Exceeds limit", result.stdout)
+        forced = self.run_script(str(path), "--chars", "--limit", "2000", "--per-section")
+        self.assertEqual(forced.returncode, 0, forced.stdout + forced.stderr)
+        self.assertIn("Per-section counts", forced.stdout)
 
     def test_limit_without_value_is_a_usage_error(self) -> None:
         path = self.write("plain.md", "text\n")

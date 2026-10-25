@@ -113,6 +113,21 @@ class LedgerRuleTests(unittest.TestCase):
             self.assertEqual(by_id["RESP-EXT-R3-1"]["status"], "blocked")
             self.assertEqual(by_id["RESP-EXT-R2-1"]["text"], "contribution overclaimed")
 
+    def test_issue_board_from_init_rebuttal_pack_header_is_read(self) -> None:
+        board = (
+            "# Issue board\n\n"
+            "| Issue ID | Reviewer | Internal issue IDs | Severity | Category | Strategy | Stance | Status | Shared with | Evidence source | Notes |\n"
+            "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |\n"
+            "| EXT-xK3p-1 | xK3p | F3 | major | claims | concede and narrow | agree | decided | all | audit | overclaim |\n"
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "issue-board.md"
+            path.write_text(board)
+            ledger = from_issue_board(path)
+            self.assertEqual(ledger[0]["id"], "RESP-EXT-xK3p-1")
+            self.assertEqual(ledger[0]["status"], "ready")
+            self.assertIn("strategy: concede and narrow", ledger[0]["notes"])
+
     def test_pipe_table_ignores_non_table_lines(self) -> None:
         rows = parse_pipe_table(ISSUE_BOARD)
         self.assertEqual(len(rows), 3)

@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import sys
 from dataclasses import asdict, dataclass
@@ -141,23 +142,29 @@ def collapse(found: list[Artifact]) -> list[Artifact]:
 
 
 def walk(root: Path, max_files: int) -> tuple[list[Artifact], bool]:
+    """Walk the tree, pruning skipped directories before descending; max_files bounds visited files."""
     found: list[Artifact] = []
     truncated = False
-    for path in sorted(root.rglob("*")):
-        if any(part in SKIP_DIRS for part in path.relative_to(root).parts):
-            continue
-        if not path.is_file():
-            continue
-        if len(found) >= max_files:
-            truncated = True
+    visited = 0
+    for dirpath, dirnames, filenames in os.walk(root):
+        dirnames[:] = sorted(d for d in dirnames if d not in SKIP_DIRS)
+        for name in sorted(filenames):
+            visited += 1
+            if visited > max_files:
+                truncated = True
+                break
+            path = Path(dirpath) / name
+            if not path.is_file():
+                continue
+            rel = path.relative_to(root)
+            hit = classify(rel)
+            if hit is None:
+                continue
+            kind, role = hit
+            found.append(Artifact(path=rel.as_posix(), kind=kind, role=role, bytes=path.stat().st_size))
+        if truncated:
             break
-        rel = path.relative_to(root)
-        hit = classify(rel)
-        if hit is None:
-            continue
-        kind, role = hit
-        found.append(Artifact(path=rel.as_posix(), kind=kind, role=role, bytes=path.stat().st_size))
-    return collapse(found), truncated
+    return collapse(sorted(found, key=lambda a: a.path)), truncated
 
 
 def summarize(artifacts: list[Artifact]) -> dict:

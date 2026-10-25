@@ -42,6 +42,16 @@ jobs:
             echo "::endgroup::"
           done
           exit $status
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Compile every skill script under the oldest supported Python
+        run: |
+          find research documents writing -path '*/scripts/*' -name '*.py' -not -path '*/__pycache__/*' -print0 \
+            | xargs -0 python3.11 -m py_compile
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
       - name: Standalone novelty-review install must work without the literature-review sibling
         run: |
           tmp="$(mktemp -d)"

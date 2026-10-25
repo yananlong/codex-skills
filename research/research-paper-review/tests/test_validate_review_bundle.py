@@ -95,17 +95,38 @@ class ValidateReviewBundleTests(unittest.TestCase):
         self.assertIn("Inferred family: codex_native", failed.stdout)
         self.assertIn("missing required rating keys", failed.stdout)
 
-    def test_hybrid_sibling_rounds_use_newest_valid_summary(self) -> None:
+    def test_hybrid_sibling_rounds_use_newest_summary(self) -> None:
         self.make_bundle([severity_issue(1)])
         self.write_json(self.root / "round-1" / "review_summary.json", VALID_SUMMARY)
         self.write_json(self.root / "round-1" / "REVIEW_STATE.json", {"round": 1})
-        # Newer round with drifted summary keys must be skipped, not chosen.
-        self.write_json(self.root / "round-2" / "review_summary.json", {"overall_score_1_to_5": 3})
+        self.write_json(self.root / "round-2" / "review_summary.json", VALID_SUMMARY)
         result = self.run_validator()
         self.assertEqual(result.returncode, 0, result.stdout)
         self.assertIn("Inferred family: review_loop_hybrid", result.stdout)
-        self.assertIn(str(self.root / "round-1" / "review_summary.json"), result.stdout)
+        self.assertIn(str(self.root / "round-2" / "review_summary.json"), result.stdout)
+
+    def test_hybrid_malformed_newest_summary_fails_instead_of_falling_back(self) -> None:
+        self.make_bundle([severity_issue(1)])
+        self.write_json(self.root / "round-1" / "review_summary.json", VALID_SUMMARY)
+        self.write_json(self.root / "round-1" / "REVIEW_STATE.json", {"round": 1})
+        # A drifted newest round must fail the bundle, not hand validation to round 1.
+        self.write_json(self.root / "round-2" / "review_summary.json", {"overall_score_1_to_5": 3})
+        result = self.run_validator()
+        self.assertEqual(result.returncode, 1, result.stdout)
+        self.assertIn("newest round summary", result.stdout)
+        self.assertIn(str(self.root / "round-2" / "review_summary.json"), result.stdout)
+        self.assertNotIn("Summary artifact: " + str(self.root / "round-1"), result.stdout)
+
+    def test_hybrid_missing_metadata_summary_falls_back_to_round_dirs(self) -> None:
+        self.make_bundle(
+            [severity_issue(1)],
+            metadata={"title": "Demo", "round_summaries": {"round-5": "round-5/review_summary.json"}},
+        )
+        self.write_json(self.review_dir / "round-4" / "review_summary.json", VALID_SUMMARY)
+        result = self.run_validator()
+        self.assertEqual(result.returncode, 0, result.stdout)
         self.assertIn("skipped round summary", result.stdout)
+        self.assertIn("file not found", result.stdout)
 
     def test_hybrid_metadata_round_summaries_resolve(self) -> None:
         self.make_bundle(
@@ -124,7 +145,8 @@ class ValidateReviewBundleTests(unittest.TestCase):
         result = self.run_validator()
         self.assertEqual(result.returncode, 1, result.stdout)
         self.assertIn("Inferred family: review_loop_hybrid", result.stdout)
-        self.assertIn("resolvable valid round summary", result.stdout)
+        self.assertIn("newest round summary", result.stdout)
+        self.assertIn("is invalid", result.stdout)
         first_pass = self.run_validator("--family", "openaireview_claude")
         self.assertEqual(first_pass.returncode, 0, first_pass.stdout)
 

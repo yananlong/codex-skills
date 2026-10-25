@@ -83,6 +83,17 @@ class CheckTests(unittest.TestCase):
         self.assertIn("ledger claim [LIT-S1] (ready) has no paragraph", joined)
         self.assertEqual(len(problems), 5)
 
+    def test_ids_with_symbols_and_author_brackets(self) -> None:
+        claims = [
+            {"id": "LIT-Smith & Jones 2020", "text": "A.", "status": "ready", "sections": ["related_work"], "source": {"kind": "literature.evidence_table"}},
+            {"id": "1", "text": "B.", "status": "ready", "sections": ["results"], "source": {"kind": "results_audit"}},
+        ]
+        outline = render(claims, ["results", "related_work"], "manuscript")
+        self.assertEqual(check(outline, claims), [])
+        edited = outline + "- An author's line [see Table 2] with a note [PC-9].\n"
+        problems = check(edited, claims)
+        self.assertEqual(problems, ["line " + str(len(edited.splitlines())) + ": [PC-9] is not in the ledger"])
+
     def test_cli_build_then_check(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

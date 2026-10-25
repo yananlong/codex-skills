@@ -242,7 +242,8 @@ def parse_pipe_table(text: str) -> list[dict[str, str]]:
             continue
         cells = [c.strip() for c in line.strip("|").split("|")]
         if header is None:
-            header = [c.strip("`* ").lower() for c in cells]
+            # "Issue ID", "issue_id" and "Issue id" are the same column.
+            header = [re.sub(r"[^a-z0-9]+", "_", c.strip("`* ").lower()).strip("_") for c in cells]
             continue
         if all(re.fullmatch(r":?-{2,}:?", c) for c in cells if c):
             continue
@@ -256,11 +257,11 @@ EVIDENCE_ALIASES = {
     "id": ("study_id", "id", "work", "source", "citation", "canonical_citation"),
     "citation": ("canonical_citation", "citation", "work", "source", "title"),
     "result": (
-        "key_result", "extracted finding", "method_or_finding", "relevant claim", "key finding", "finding",
-        "relevance to this project", "target and method", "evaluator-change signal", "relation to paper", "coverage",
+        "key_result", "extracted_finding", "method_or_finding", "relevant_claim", "key_finding", "finding",
+        "relevance_to_this_project", "target_and_method", "evaluator_change_signal", "relation_to_paper", "coverage",
     ),
-    "quote": ("quote", "verbatim quote"),
-    "fetch_status": ("fetch_status", "fetch status", "access_level"),
+    "quote": ("quote", "verbatim_quote"),
+    "fetch_status": ("fetch_status", "access_level"),
     "rung": ("rung",),
 }
 

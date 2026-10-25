@@ -58,6 +58,11 @@ class MatchTests(unittest.TestCase):
         self.assertFalse(matches("91.5%", sources))
         self.assertFalse(matches("9.9%", {0.071}))
         self.assertTrue(matches("7.1%", {0.071}))
+        # An integer or a value above one is never a fraction of a source percentage.
+        self.assertFalse(matches("64", {6412.0}))
+        self.assertFalse(matches("12.3", {1234.0}))
+        self.assertTrue(matches("0.82", {82.3}))
+        self.assertTrue(matches("82.3", {0.8234}))
 
     def test_source_values_from_json_csv_and_markdown(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

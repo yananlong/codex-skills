@@ -253,7 +253,8 @@ def main() -> int:
     metadata_path.write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
 
     print(f"root: {report['root']}")
-    print(f"title: {title or '(no \\title found)'}")
+    fallback_title = "(no \\title found)"
+    print(f"title: {title or fallback_title}")
     print(f"wrote {full_text} ({len(flattener.lines)} lines) and {source_map_path}")
     print(f"included: {', '.join(included)}")
     print(f"excluded (unreferenced): {', '.join(excluded) if excluded else 'none'}")

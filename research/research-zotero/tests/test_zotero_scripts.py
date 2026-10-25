@@ -67,7 +67,7 @@ class MockZotero(BaseHTTPRequestHandler):
             self.send(429, "Too many requests", {"Retry-After": "0"})
             return
         start = int(query.get("start", ["0"])[0])
-        limit = int(query.get("limit", ["25"])[0])
+        limit = min(int(query.get("limit", ["25"])[0]), 100)  # Zotero's server-side page cap
         fmt = query.get("format", ["json"])[0]
         page = range(start, min(start + limit, LIBRARY_SIZE))
         headers = {"Total-Results": str(LIBRARY_SIZE)}
@@ -116,6 +116,14 @@ class ZoteroScriptTests(unittest.TestCase):
         self.assertIs(payload["partial"], False)
         self.assertEqual(len({item["key"] for item in payload["items"]}), LIBRARY_SIZE)
         self.assertIn("Partial sync: no", note.read_text())
+
+    def test_fetch_limit_above_server_cap_still_pages_to_total(self) -> None:
+        out = self.root / "items.json"
+        cp = self.run_script(FETCH, "--out", str(out), "--limit", "200")
+        self.assertEqual(cp.returncode, 0, cp.stdout + cp.stderr)
+        payload = json.loads(out.read_text())
+        self.assertEqual(payload["item_count"], LIBRARY_SIZE)
+        self.assertIs(payload["partial"], False)
 
     def test_fetch_max_items_marks_partial(self) -> None:
         out = self.root / "items.json"

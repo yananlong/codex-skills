@@ -28,6 +28,23 @@ quantifies. The remaining experiments test whether the reduction survives a chan
 """
 
 
+class MarkupTests(unittest.TestCase):
+    def test_markdown_percent_is_not_a_comment(self) -> None:
+        text = "Accuracy rose by 12% across the board, a testament to the robust and seamless pipeline that leverages synergy.\n"
+        stripped = strip_markup(text)
+        self.assertIn("leverages synergy", stripped)
+        self.assertGreaterEqual(scan(text).counts.get("inflation", 0), 2)
+        latex = "Accuracy rose by 12\\% as \\cite{x} shows. % robust seamless synergy leverages\n"
+        self.assertNotIn("synergy", strip_markup(latex))
+
+    def test_line_numbers_survive_fenced_blocks(self) -> None:
+        text = "Intro.\n\n```\na\nb\nc\n```\n\nImportantly, this is crucial.\n"
+        report = scan(text)
+        lines = {finding.line for finding in report.findings}
+        self.assertIn(9, lines)
+        self.assertNotIn(5, lines)
+
+
 class ProseTellsTests(unittest.TestCase):
     def test_tell_heavy_text_is_flagged_across_categories(self) -> None:
         report = scan(TELL_HEAVY)

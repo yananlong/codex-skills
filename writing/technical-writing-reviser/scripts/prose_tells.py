@@ -106,14 +106,28 @@ class Report:
         return round(sum(self.counts.values()) / max(self.words, 1) * 1000, 2)
 
 
+LATEX_HINT = re.compile(r"\\(?:documentclass|begin|section|subsection|cite|ref|textbf|emph|label|%)")
+
+
+def _keep_lines(replacement: str):
+    """Replace a multi-line match while keeping its newlines, so line numbers stay right."""
+
+    def repl(match: re.Match) -> str:
+        return replacement + "\n" * match.group(0).count("\n")
+
+    return repl
+
+
 def strip_markup(text: str) -> str:
     """Remove comments, math, code, and non-prose commands so counts describe visible prose."""
-    text = re.sub(r"```.*?```", " ", text, flags=re.S)
+    text = re.sub(r"```.*?```", _keep_lines(" "), text, flags=re.S)
     text = re.sub(r"`[^`\n]*`", " CODE ", text)
-    text = re.sub(r"(?m)(?<!\\)%.*$", "", text)
-    text = re.sub(r"\$\$.*?\$\$", " MATH ", text, flags=re.S)
+    if LATEX_HINT.search(text):
+        # Only LaTeX treats % as a comment; in Markdown "12% of runs" keeps its sentence.
+        text = re.sub(r"(?m)(?<!\\)%.*$", "", text)
+    text = re.sub(r"\$\$.*?\$\$", _keep_lines(" MATH "), text, flags=re.S)
     text = re.sub(r"(?<!\\)\$[^$\n]*\$", " MATH ", text)
-    text = re.sub(r"\\begin\{(equation|align|figure|table|tabular|algorithm|lstlisting|verbatim)\*?\}.*?\\end\{\1\*?\}", " ", text, flags=re.S)
+    text = re.sub(r"\\begin\{(equation|align|figure|table|tabular|algorithm|lstlisting|verbatim)\*?\}.*?\\end\{\1\*?\}", _keep_lines(" "), text, flags=re.S)
     text = re.sub(r"\\(?:cite[tp]?\*?|citep|citet|ref|Cref|cref|eqref|label|includegraphics|input|include|bibliography|footnote)(?:\[[^\]]*\])?\{[^}]*\}", " ", text)
     text = re.sub(r"\\(?:emph|textbf|textit|texttt|underline)\{([^}]*)\}", r"\1", text)
     text = re.sub(r"\\[A-Za-z]+\*?(?:\[[^\]]*\])?(?:\{[^}]*\})?", " ", text)

@@ -67,6 +67,23 @@ class WalkTests(unittest.TestCase):
             self.assertNotIn("__pycache__/x.csv", paths)
             self.assertNotIn("settings.json", paths)
 
+    def test_skipped_dirs_are_pruned_and_max_files_counts_visited(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / ".venv" / "lib").mkdir(parents=True)
+            for i in range(50):
+                (root / ".venv" / "lib" / f"m{i}.py").write_text("")
+            (root / "results").mkdir()
+            (root / "results" / "results-audit.json").write_text("{}")
+            for i in range(10):
+                (root / f"plain{i}.cfg").write_text("")
+            artifacts, truncated = walk(root, 5)
+            self.assertTrue(truncated)
+            self.assertLessEqual(len(artifacts), 5)
+            artifacts, truncated = walk(root, 1000)
+            self.assertFalse(truncated)
+            self.assertEqual([a.path for a in artifacts], ["results/results-audit.json"])
+
     def test_summary_names_gaps(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

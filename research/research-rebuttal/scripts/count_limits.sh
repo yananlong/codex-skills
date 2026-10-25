@@ -27,7 +27,7 @@ usage() {
     echo "  --words         Count raw words"
     echo "  --pages         PDF page limits cannot be verified from text; prints guidance only"
     echo "  --limit N       Fail (exit 2) if the file, or any section, exceeds N"
-    echo "  --per-section   Count each level-2/3 Markdown heading block separately"
+    echo "  --per-section   Count each reviewer response (level-2 heading block; level-3 when there is one response) separately"
     echo "                  (on by default when the file has more than one such heading)"
     echo "  --whole         Count the whole file only, even if it has several headings"
     echo "  --strip-markup  Strip common LaTeX/Markdown/HTML markup first (estimate only;"
@@ -122,12 +122,16 @@ fi
 WORK="$(mktemp -d)"
 trap 'rm -rf "$WORK"' EXIT
 
-# Split on level-2/3 Markdown headings outside fenced code blocks. Each section
-# keeps its heading line; text before the first heading becomes section 0.
-awk -v dir="$WORK" '
+# One response per reviewer lives under a level-2 heading. Split on level-2 headings
+# when the file has more than one; otherwise the file is one response and its level-3
+# subsections are parts of it, so the whole-file total is what the limit applies to.
+# Each section keeps its heading line; text before the first heading becomes section 0.
+H2_COUNT="$(awk '/^(```|~~~)/ { fence = !fence } !fence && /^##[ \t]/ { n++ } END { print n + 0 }' "$FILE")"
+if (( H2_COUNT > 1 )); then SPLIT_RE='^##[ \t]'; else SPLIT_RE='^###[ \t]'; fi
+awk -v dir="$WORK" -v split_re="$SPLIT_RE" '
     BEGIN { n = 0; out = dir "/sec_0"; title[0] = "(before first heading)"; printf "" > out }
     /^(```|~~~)/ { fence = !fence }
-    !fence && (/^##[ \t]/ || /^###[ \t]/) {
+    !fence && $0 ~ split_re {
         close(out); n++; out = dir "/sec_" n
         t = $0; sub(/^#+[ \t]+/, "", t); title[n] = t
         printf "" > out
@@ -142,7 +146,9 @@ awk -v dir="$WORK" '
 
 HEADINGS="$(cat "$WORK/count")"
 if [[ "$SPLIT" == "auto" ]]; then
-    if [[ "$HEADINGS" -gt 1 ]]; then SPLIT="yes"; else SPLIT="no"; fi
+    # Auto mode splits only when the file holds several reviewer responses (level-2 headings).
+    # A single response with level-3 subsections is counted whole against the limit.
+    if (( H2_COUNT > 1 )); then SPLIT="yes"; else SPLIT="no"; fi
 fi
 
 TOTAL="$(count_stream < "$FILE")"
@@ -151,7 +157,7 @@ echo "Count: $TOTAL $UNIT"
 
 FAILED=0
 if [[ "$SPLIT" == "yes" ]]; then
-    echo "Per-section counts (split on level-2/3 headings, heading line included):"
+    echo "Per-section counts (split on ${SPLIT_RE:1:3} headings, heading line included):"
     i=0
     while IFS= read -r title; do
         sec="$WORK/sec_$i"

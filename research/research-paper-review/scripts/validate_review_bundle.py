@@ -134,8 +134,13 @@ def _summary_errors(summary, label: str) -> list[str]:
     return errors
 
 
-def _resolve_round_summary(review_dir: Path) -> tuple[Path | None, list[str]]:
-    """Pick the newest round summary that validates; report the skipped ones."""
+def _resolve_round_summary(review_dir: Path) -> tuple[Path | None, list[str], list[str]]:
+    """Pick the newest round summary that exists; it must validate.
+
+    Returns (path, skipped, errors). A candidate whose file is missing (a stale metadata
+    entry) is skipped and the next newest is tried. A candidate that exists but is malformed is
+    an error, never a reason to validate the bundle against an older round's summary.
+    """
     skipped: list[str] = []
     for round_no, source, path in _round_summary_candidates(review_dir):
         if not path.exists():
@@ -143,10 +148,9 @@ def _resolve_round_summary(review_dir: Path) -> tuple[Path | None, list[str]]:
             continue
         problems = _summary_errors(_load_json_optional(path), path.name)
         if problems:
-            skipped.append(f"{path} ({source}): {'; '.join(problems)}")
-            continue
-        return path, skipped
-    return None, skipped
+            return None, skipped, [f"newest round summary {path} ({source}) is invalid: {'; '.join(problems)}"]
+        return path, skipped, []
+    return None, skipped, []
 
 
 def _issue_schema(final_issues) -> tuple[bool, bool]:
@@ -291,9 +295,10 @@ def main() -> int:
             summary_path = root_summary
             errors.extend(_summary_errors(_load_json_optional(root_summary), "review_summary.json"))
     elif family == "review_loop_hybrid":
-        summary_path, skipped = _resolve_round_summary(review_dir)
+        summary_path, skipped, summary_errors = _resolve_round_summary(review_dir)
         notes.extend(f"skipped round summary {item}" for item in skipped)
-        if summary_path is None:
+        errors.extend(summary_errors)
+        if summary_path is None and not summary_errors:
             errors.append(
                 "review_loop_hybrid needs a resolvable valid round summary: none of "
                 "metadata.round_summaries, <review_dir>/round-*/review_summary.json, or "
