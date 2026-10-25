@@ -63,7 +63,7 @@ Smoothing prose must not introduce the habits that make text read as model-writt
 
 Default to a serial single-agent pass whenever the whole artifact fits comfortably in context, which covers a conference paper or a long report of up to roughly thirty pages. A serial pass still builds the shape brief below and still runs the preservation audit on its own output. Fan out to workers only for longer artifacts, for several independent documents, or when the user asks for parallel revision. If this skill is itself running inside a subagent, run serially.
 
-When workers are used, keep the plan small: at most one worker per major section or coherent chunk, and any cross-cutting pass (transitions, repetition, rhythm) is comment-only, returning findings to the parent and never editing text, so ownership stays disjoint. When `technical-writing-reviser` also applies, it owns the plan and the workers, and this skill's rules apply as constraints inside that plan.
+When workers are used, keep the plan small: at most one worker per major section or coherent chunk, and any cross-cutting pass (transitions, repetition, rhythm) is comment-only, returning findings to the parent and never editing text, so ownership stays disjoint. When `technical-writing-reviser` also applies, it owns the plan and the workers, and this skill's rules apply as constraints inside that plan. More generally, only the skill the user invoked spawns workers and sets the chain's budget (quick 1, standard up to 3, deep 5 to 8); reached by handoff, this skill is one serial final pass inside that budget and never spawns.
 
 ### Parent Shape Brief Before Workers
 

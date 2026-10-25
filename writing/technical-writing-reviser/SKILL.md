@@ -76,6 +76,8 @@ Run `python3 scripts/prose_tells.py <source>` before editing to get the baseline
 
 Default to a serial single-agent pass whenever the whole artifact fits comfortably in context, which covers a conference paper of up to roughly thirty pages. A serial pass still builds the revision brief below and still runs the merge audit on its own output. Fan out to workers only for longer artifacts, for several independent documents, or when the user asks for parallel revision. If this skill is itself running inside a subagent, run serially.
 
+Ownership when skills chain: only the skill the user invoked spawns workers and sets one budget for the whole chain (quick: 1 pass; standard: up to 3; deep: 5 to 8), and a skill reached by handoff never spawns. When the user invoked a review skill that hands revision to this skill, this skill runs inside the review's budget as the owner of prose per issue cluster; when the user invoked this skill, it owns the budget, review stays diagnosis, `technical-writing-drafter` drafts serially, and `prose-flow-improver` is one final pass inside the same budget. Record the budget and the passes used in the handoff note.
+
 When workers are used, keep the plan small. Assign at most one worker per major section or reviewer-issue cluster, and make any cross-cutting pass (claim discipline, terminology, limitation language) comment-only: it returns findings to the parent and never edits text, so worker ownership stays disjoint. When `prose-flow-improver` also applies, use one parent plan and one set of workers under this skill's brief rather than two orchestrations.
 
 ### Parent Brief Before Workers

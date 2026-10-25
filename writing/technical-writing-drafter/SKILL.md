@@ -126,7 +126,9 @@ that single remaining stop.
 
 Drafting is serial. A full manuscript is one agent drafting in order, because framing depends on
 the evidence sections; parallel section drafting is for a report whose sections share no claims,
-and even then the abstract waits.
+and even then the abstract waits. Only the skill the user invoked spawns workers and sets the
+chain's budget; reached by handoff from a research skill, the drafter never spawns, and the
+reviser's pass on the draft counts inside the same budget.
 
 ### 5) Gate each section and the whole
 
