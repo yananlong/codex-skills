@@ -1,6 +1,6 @@
 ---
 name: research-paper-review
-description: Run academic paper review with OCR extraction, ChatGPT-native multi-agent critique, local visualization, and section-level review workflows integrated into the research skill suite. Use when Codex needs an initial or first-pass review of one paper artifact or arXiv URL, including OCR, extraction, default Claude-style or multi-agent review, contextualized critique, or viz JSON generation. Prefer `research-review-loop` once a tracked review state or revised artifact already exists, `research-novelty-review` for prior-art and positioning questions, `research-rebuttal` when concrete reviewer comments already exist, and `adversarial-doc-review` for non-paper documents.
+description: Run a first-pass academic review of one manuscript (LaTeX source tree, PDF, DOCX, Markdown, or arXiv URL) with a full-paper summary, planned section and cross-cutting review passes, quote-anchored issues with 1-5 ratings, optional OCR extraction and viz JSON, and a validated handoff bundle. Use when the agent needs an initial or first-pass review of one paper artifact, including extraction, multi-agent or serial pass-based critique, contextualized critique, or viz JSON generation. Prefer `research-review-loop` once a tracked review state or revised artifact already exists, `research-novelty-review` for prior-art and positioning questions, `research-rebuttal` when concrete reviewer comments already exist, and `adversarial-doc-review` for non-paper documents.
 ---
 
 # Research Paper Review
@@ -12,12 +12,12 @@ description: Run academic paper review with OCR extraction, ChatGPT-native multi
    - a local viz server for existing result JSON
    - the default multi-agent / Claude-style paper-review pass
    - contextualized review that also assesses novelty, impact, and related-work coverage
-2. Inside ChatGPT/Codex, default LLM review to the active chat model. Do not require external LLM API keys for normal review.
+2. Default LLM review to the active agent model in the current runtime. Do not require external LLM API keys for normal review.
 3. Default to Claude-style / multi-agent orchestration for paper review. Build the full-paper summary first, then spawn one worker per planned review pass when the runtime supports subagents.
 4. Use serial single-agent execution only as a fallback when subagents are unavailable, disabled, or clearly impractical for the paper size or runtime.
 5. Bootstrap the upstream engine with `python3 scripts/install_engine.py` only when deterministic helpers are needed for extraction, workspace preparation, viz output, or explicit upstream provider-backed review.
 6. Use the `/openaireview` workspace convention as the canonical stage root: `./review_results/<slug>_review/`. Record any non-canonical output paths in `artifact-index.md`.
-7. Use `references/chatgpt-native-review.md`, `references/rating-rubric.md`, and the 1-5 issue/output scales.
+7. Use `references/chatgpt-native-review.md` (the runtime-neutral native review contract), `references/rating-rubric.md`, and the 1-5 issue/output scales.
 8. When review quality depends on novelty, impact, or literature context, route through `research-systematic-literature-review` and `research-novelty-review` instead of limiting the critique to internal paper consistency.
 9. When reusing an existing review workspace, infer its provenance from `metadata.json`, `artifact-index.md`, `final_issues.json`, `review_summary.json`, and any `round-N/` folders before moving files or declaring artifacts missing.
 10. Treat `research-systematic-literature-review` as an independent literature-review skill that can either run on its own or attach to this review workspace through `<review_dir>/context/`.
@@ -25,10 +25,10 @@ description: Run academic paper review with OCR extraction, ChatGPT-native multi
 
 ## Upstream Claude Skill Compatibility
 
-- The upstream OpenAIReview Claude Code skill lives in `src/reviewer/skill/` and is installed by `openaireview install-skill` into `~/.claude/commands/openaireview`. That install path, the `/openaireview` slash command, and references to Claude's Agent/task tools are Claude-specific and are not directly usable as a native Codex skill.
+- The upstream OpenAIReview Claude Code skill lives in `src/reviewer/skill/` and is installed by `openaireview install-skill` into `~/.claude/commands/openaireview`. That install path, the `/openaireview` slash command, and references to Claude's Agent/task tools are specific to Claude Code. In Claude Code the upstream command is a valid way to produce an `openaireview_claude` bundle; in other runtimes, follow the portable workflow below.
 - The underlying workflow is portable: prepare a review workspace, collect section-review JSON, consolidate comments, and emit viz-compatible JSON.
-- The upstream Claude/OpenAIReview workspace convention is `./review_results/<slug>_review/`, with `summary.md`, `final_issues.json`, `overall_assessment.txt`, `metadata.json`, `full_text.md`, `comments/`, `sections/`, and severity-tiered issues. It may not contain `review_summary.json` or 1-5 rating fields unless a Codex-adapted pass added them.
-- Treat Claude-style review and multi-agent review as the default paper-review execution style in this skill, not as special opt-in modes. Translate upstream Claude sub-agent instructions into Codex/ChatGPT subagents whenever available.
+- The upstream Claude/OpenAIReview workspace convention is `./review_results/<slug>_review/`, with `summary.md`, `final_issues.json`, `overall_assessment.txt`, `metadata.json`, `full_text.md`, `comments/`, `sections/`, and severity-tiered issues. It may not contain `review_summary.json` or 1-5 rating fields unless a native-schema pass added them.
+- Treat Claude-style review and multi-agent review as the default paper-review execution style in this skill, not as special opt-in modes. Translate upstream Claude sub-agent instructions into the runtime's own subagent mechanism whenever available.
 - If a runtime does not expose subagents, explicitly state that limitation and run the same pass plan serially in the current agent. Preserve the worker-style output contract even in fallback mode by writing one JSON file per planned pass under `comments/`.
 - The upstream viz helper accepts `severity`. This skill's canonical handoff uses `impact_rating` and `confidence_rating`; `scripts/save_viz_json.py --derive-severity` can temporarily derive severity values for visualization when that compatibility layer is explicitly requested.
 
@@ -39,16 +39,16 @@ description: Run academic paper review with OCR extraction, ChatGPT-native multi
   - `codex_native`: `review_results/<slug>_review/`, 1-5 `impact_rating`/`confidence_rating`, and root `review_summary.json`.
   - `review_loop_hybrid`: a first-pass paper-review bundle at the workspace root plus iterative `round-N/` folders from `research-review-loop`.
 - Infer provenance from available evidence, not directory name alone. Check `metadata.json` fields such as `review_mode`, `review_loop`, `canonical_handoff_files`, and `round_summaries`; inspect whether `final_issues.json` uses `severity` or 1-5 ratings; and check for `round-N/REVIEW_STATE.json`.
-- When importing or continuing an existing OpenAIReview-style workspace, do not move files just to satisfy the Codex-native path preference. Record the actual path in `artifact-index.md` and preserve existing relative paths.
-- When downstream skills need numeric routing, prefer a root `review_summary.json` if present; otherwise, in a review-loop hybrid, use the latest existing `round-N/review_summary.json` and record that provenance in `artifact-index.md`.
-- If converting an upstream OpenAIReview bundle to Codex-native form, add missing 1-5 ratings and a root `review_summary.json` as a deliberate normalization step. Do not silently reinterpret `severity` as a numeric rating without documenting the mapping.
+- When importing or continuing an existing OpenAIReview-style workspace, do not move files just to satisfy the native path preference. Record the actual path in `artifact-index.md` and preserve existing relative paths.
+- When downstream skills need numeric routing, prefer a root `review_summary.json` if present; otherwise, in a review-loop hybrid, use the newest `round-N/review_summary.json` that validates (rounds may sit inside `<review_dir>` or next to it) and record that provenance in `artifact-index.md`.
+- If converting an upstream OpenAIReview bundle to the native 1-5 form (`codex_native` family), add missing 1-5 ratings and a root `review_summary.json` as a deliberate normalization step. Do not silently reinterpret `severity` as a numeric rating without documenting the mapping.
 
 ## Modes
 
-### ChatGPT-native review mode
+### Native review mode
 
-- Use this as the default for paper-review requests inside ChatGPT/Codex.
-- The active chat model performs the LLM critique directly. Scripts may prepare files, validate bundles, or render visualization artifacts, but scripts cannot call the hidden ChatGPT conversation model on their own.
+- Use this as the default for paper-review requests in any agent runtime.
+- The active agent model performs the LLM critique directly. Scripts may prepare files, validate bundles, or render visualization artifacts, but scripts cannot call the runtime's conversation model on their own.
 - Follow `references/chatgpt-native-review.md` for the native artifact contract.
 - Do not run `python3 scripts/run_openaireview.py review ...` by default. That upstream provider-backed path is only for explicit external-provider review.
 
@@ -59,7 +59,7 @@ description: Run academic paper review with OCR extraction, ChatGPT-native multi
   - `extract`: OCR or parse a paper into Markdown with metadata
   - `serve`: browse saved result JSON in a local UI
   - `review`: only when the user explicitly asks for upstream provider-backed OpenAIReview scoring and has configured the required provider credentials
-- Do not confuse the upstream `review` command with the ChatGPT-native default review path.
+- Do not confuse the upstream `review` command with the native default review path.
 
 ### Default multi-agent / Claude-style deep review mode
 
@@ -123,9 +123,9 @@ description: Run academic paper review with OCR extraction, ChatGPT-native multi
 
 ## Research-suite handoff
 
-- Keep the `/openaireview` workspace layout, but write Codex research-suite handoff artifacts into that same review directory.
+- Keep the `/openaireview` workspace layout, but write research-suite handoff artifacts into that same review directory.
 - `summary.md`, `final_issues.json`, `review_summary.json`, and `overall_assessment.txt` are the stable handoff bundle for `research-review-loop`, `research-paper-plan`, and `research-rebuttal`.
-- `review_summary.json` is required for Codex-native runs because sibling skills use it for numeric routing, currentness, top blockers, execution mode, and context provenance.
+- `review_summary.json` is required for native (`codex_native`) runs because sibling skills use it for numeric routing, currentness, top blockers, execution mode, and context provenance.
 - Contextual paper-review outputs should live under `<review_dir>/context/` and be listed in `review_summary.json.context_artifacts` so `research-novelty-review` and `research-systematic-literature-review` outputs remain traceable.
 - If a project-level `artifact-index.md` exists, record the review directory, viz JSON path, and any sibling-skill context artifact paths there.
 
@@ -134,7 +134,8 @@ description: Run academic paper review with OCR extraction, ChatGPT-native multi
 - Minimum:
   - one concrete paper artifact or URL
 - Supported inputs:
-  - local `.pdf`, `.docx`, `.tex`, `.txt`, `.md`
+  - local `.pdf`, `.docx`, `.txt`, `.md`
+  - a LaTeX source tree (root `.tex` plus the files it `\input`s); see "LaTeX source" below
   - arXiv `abs` or `html` URLs
   - extracted Markdown or existing `full_text.md`
 - Prefer:
@@ -142,7 +143,7 @@ description: Run academic paper review with OCR extraction, ChatGPT-native multi
   - whether the user wants quick scoring, issue discovery, rebuttal-grade critique, or contextualized critique
   - OCR engine and token/cost constraints when extraction is needed
 - Environment:
-  - no external provider key is required for ChatGPT-native review
+  - no external provider key is required for native review
   - optional upstream engine and optional OCR backends may require separate setup
 
 ## Hard stops
@@ -150,7 +151,7 @@ description: Run academic paper review with OCR extraction, ChatGPT-native multi
 - Stop if there is no concrete paper artifact, URL, or readable paper text.
 - Stop if the task would require invented evidence, fabricated quotes, or guessed paper contents.
 - Stop before deep review when the paper is too incomplete to support meaningful section-level scrutiny.
-- If the upstream engine is missing and a helper is needed, install it with `scripts/install_engine.py` instead of recreating the package inline. If only ChatGPT-native critique is needed, do not install the upstream engine just to perform LLM review.
+- If the upstream engine is missing and a helper is needed, install it with `scripts/install_engine.py` instead of recreating the package inline. If only native critique is needed, do not install the upstream engine just to perform LLM review.
 
 ## Output contract
 
@@ -177,7 +178,7 @@ description: Run academic paper review with OCR extraction, ChatGPT-native multi
   - `<review_dir>/context/novelty-context.md`
   - `./review_results/<slug>_skill.json`
 - Record the exact active review workspace path and any viz JSON path in `artifact-index.md` so later skills do not guess.
-- For imported Claude/OpenAIReview or review-loop hybrid workspaces, `review_summary.json` may be satisfied by a recorded latest `round-N/review_summary.json`; keep this exception explicit in `artifact-index.md` or `metadata.json`.
+- Imported `openaireview_claude` bundles carry no root `review_summary.json`; the validator accepts them as that family. For review-loop hybrid workspaces, `review_summary.json` may be satisfied by the newest valid `round-N/review_summary.json` (listed in `metadata.json.round_summaries`, inside `<review_dir>`, or next to it); keep this exception explicit in `artifact-index.md` or `metadata.json`.
 - `review_summary.json` is the numeric summary artifact for downstream routing. It should include:
   - `overall_paper_rating` (1-5)
   - `decision_relevance_rating` (1-5)
@@ -214,7 +215,17 @@ python3 scripts/run_openaireview.py extract <paper> [flags]
 ```
 
 - If the upstream engine is unavailable but the runtime has another reliable extraction path, use that path and write `full_text.md` yourself.
-- Do not use `scripts/run_openaireview.py review ...` for normal ChatGPT-native review.
+- Do not use `scripts/run_openaireview.py review ...` for normal native review.
+
+#### LaTeX source
+
+- Treat a `.tex` input as a source tree, not a single file. The root is the file with `\documentclass` that no other file `\input`s or `\include`s; if several qualify, prefer the user's choice or `main.tex`, and ask when the choice changes what gets reviewed.
+- Flatten it with `python3 scripts/flatten_latex.py <root.tex or source_dir> --output-dir <review_dir>`. It inlines `\input`, `\include`, and `\subfile` recursively, drops the preamble and comments, takes the title from `\title{}`, writes `full_text.md`, and writes `latex_source_map.json` (flattened line -> `file:line`, included files, unreferenced `.tex` files, missing inputs). It also records the title, root, and exclusions in `metadata.json`.
+- Review only what the root reaches. List unreferenced `.tex` files (retired drafts, unused sections) as excluded in `summary.md`; never review them as part of the paper.
+- Build `sections/index.json` from `\section` boundaries in the flattened text, not from size-based chunks. Cite locations as `file:line` from the source map.
+- Value or slot macros (for example a `\resultslot{ID}` resolved from a values file) hide the numbers the reader sees. Expand them from the registry when it is readable; otherwise keep the macro calls and record "values not reviewed" in `review_summary.json.limitations`. A quote that contains a macro call is not evidence of the printed value.
+- A compiled PDF, when present, is the authority for page counts, figure and table placement, and float checks. The flattened source is the authority for wording and quotes.
+- If the repo has its own manuscript checks (for example `scripts/check_manuscript_integrity.py`, a `review_checks.py`, or a bibliography audit), run or read them and cite their output instead of duplicating that pass.
 
 ### 2) Prepare the review workspace
 
@@ -322,7 +333,7 @@ python3 scripts/prepare_workspace.py "<input>" \
   - proposed literature-context scope
   - whether full systematic review is needed or paper-context mode is enough
 - If only bounded context is needed, invoke `research-systematic-literature-review` in paper-context mode with the paper summary, extracted contribution, domain, cited prior work, and 3-8 targeted search questions. Write or copy the resulting summary to `<review_dir>/context/literature-context.md`.
-- The paper-context SLR exchange must produce or reference all four paper-context artifacts under `<review_dir>/context/`: `literature-context.md`, `literature-context-search-log.md`, `literature-context-evidence-table.md`, and `literature-context-decision.json`. Use the SLR helper `scripts/paper_context_artifacts.py init --review-dir <review_dir> ...` when a deterministic scaffold is useful.
+- The paper-context SLR exchange must produce or reference all four paper-context artifacts under `<review_dir>/context/`: `literature-context.md`, `literature-context-search-log.md`, `literature-context-evidence-table.md`, and `literature-context-decision.json`. Use the SLR helper `scripts/paper_context_artifacts.py init --review-dir <review_dir> ...` when a deterministic scaffold is useful. The scaffold starts with null ratings and TODO cells and fails `paper_context_artifacts.py validate` until it is filled; pass `--draft` to validate a work-in-progress bundle.
 - If the user explicitly asks for a full systematic review, or if a venue-critical claim depends on broad evidence coverage, run the full `research-systematic-literature-review` workflow and record its artifact directory as `systematic_review_artifact_dir` in `review_summary.json.context_artifacts`.
 - Invoke `research-novelty-review` when novelty or impact positioning matters. It should consume `summary.md`, `<review_dir>/context/literature-context.md` when present, and any recorded `systematic_review_artifact_dir`. Write or copy its bottom-line decision to `<review_dir>/context/novelty-context.md`.
 - Add any context-derived findings to the raw comments set before consolidation, preferably in `comments/cross_literature_context.json` and `comments/cross_novelty_positioning.json`.
@@ -379,12 +390,14 @@ python3 scripts/consolidate_comments.py <review_dir>
 - Build viz JSON when useful and the upstream engine is installed:
 
 ```bash
-python3 scripts/save_viz_json.py <review_dir> --slug-suffix _skill
+python3 scripts/save_viz_json.py <review_dir> --slug-suffix _skill [--runtime <name>]
 ```
+
+- `--runtime` labels the viz method key `openaireview__<name>`, the method label, and the model field (default `agent`).
 
 - The output lands in `./review_results/` unless overridden. Add `--derive-severity` only when the visualization/export should explicitly map 1-5 impact ratings to OpenAIReview severity tiers.
 - Use `python3 scripts/run_openaireview.py serve` to browse results locally.
-- Run `python3 scripts/validate_review_bundle.py --review-dir <review_dir>` before treating the bundle as stable.
+- Run `python3 scripts/validate_review_bundle.py --review-dir <review_dir>` before treating the bundle as stable. It prints the inferred provenance family (`openaireview_claude`, `codex_native`, or `review_loop_hybrid`), also on failure, and checks that family's required set: `openaireview_claude` needs the root files and severity-tiered issues and no root `review_summary.json`; `codex_native` needs a root `review_summary.json` and 1-5 ratings; `review_loop_hybrid` needs a resolvable valid round summary. Pass `--family <name>` to validate against a stated family (for example `--family openaireview_claude` to check only the first-pass bundle of a hybrid).
 - Treat `summary.md`, `final_issues.json`, `review_summary.json`, and `overall_assessment.txt` as the canonical handoff bundle for `research-review-loop`, `research-paper-plan`, and `research-rebuttal`.
 
 ## References
@@ -402,6 +415,7 @@ python3 scripts/save_viz_json.py <review_dir> --slug-suffix _skill
 - `scripts/install_engine.py`: create or update a virtualenv with the upstream OpenAIReview engine
 - `scripts/run_openaireview.py`: mirror the upstream `openaireview` CLI, with provider-backed `review` opt-in only
 - `scripts/prepare_workspace.py`: delegate to the packaged deep-review workspace preparer
-- `scripts/validate_review_bundle.py`: validate required handoff files and 1-5 rating fields for downstream use
+- `scripts/validate_review_bundle.py`: infer the provenance family, then validate that family's required handoff files, issue schema, and summary; resolves round summaries from `metadata.round_summaries`, `<review_dir>/round-*`, and `<review_dir>/../round-*`, newest valid first; `--family` asserts a family
+- `scripts/flatten_latex.py`: flatten a LaTeX source tree into `full_text.md` with `latex_source_map.json` and a list of unreferenced `.tex` files (stdlib only, no engine needed)
 - `scripts/consolidate_comments.py`: delegate to the packaged consolidation helper
-- `scripts/save_viz_json.py`: delegate to the packaged viz JSON helper
+- `scripts/save_viz_json.py`: delegate to the packaged viz JSON helper; `--runtime` sets the method key and model label (default `agent`)

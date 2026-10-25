@@ -16,7 +16,7 @@ Use `REVIEW_STATE.json` to track issue status across rounds.
 
 ## Issue object
 
-- `id`: stable identifier
+- `id`: stable identifier; keep it unchanged across rounds (`init_review_loop.py` preserves incoming IDs and mints `PR<n>` only when an issue has none)
 - `severity`: `major`, `moderate`, or `minor`
 - `impact_rating`: optional integer 1-5, preserved from `research-paper-review` when available
 - `confidence_rating`: optional integer 1-5, preserved from `research-paper-review` when available

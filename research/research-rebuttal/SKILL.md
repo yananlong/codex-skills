@@ -1,6 +1,6 @@
 ---
 name: research-rebuttal
-description: Draft venue-aware academic rebuttals and author responses from reviewer comments, scores, and paper artifacts. Use when concrete reviewer comments already exist and Codex needs to analyze reviews, build a reviewer issue board, plan evidence or manuscript fixes, draft a rebuttal, respond to AC or meta-review feedback, manage multi-round author-reviewer discussion, or prepare a paste-ready response for conference or journal review systems. Prefer `research-paper-review` for initial manuscript diagnosis before reviews arrive, `research-review-loop` for internal tracked review without external reviewer comments, and `research-novelty-review` for prior-art positioning disputes.
+description: Draft venue-aware academic rebuttals and author responses from reviewer comments, scores, and paper artifacts. Use when concrete reviewer comments already exist and the agent needs to analyze reviews, build a reviewer issue board, plan evidence or manuscript fixes, draft a rebuttal, respond to AC or meta-review feedback, manage multi-round author-reviewer discussion, or prepare a paste-ready response for conference or journal review systems. Prefer `research-paper-review` for initial manuscript diagnosis before reviews arrive, `research-review-loop` for internal tracked review without external reviewer comments, and `research-novelty-review` for prior-art positioning disputes.
 ---
 
 # Research Rebuttal
@@ -9,7 +9,7 @@ description: Draft venue-aware academic rebuttals and author responses from revi
 
 1. Decide whether this stays standalone or becomes `./rebuttal/` inside an orchestrated research suite.
 2. Route the venue first with `references/venue_rule_matrix.md`; if dates, limits, or policy details are decision-critical, re-check the official venue source before finalizing.
-3. Initialize the rebuttal pack with `scripts/init_rebuttal_pack.py` unless usable artifacts already exist.
+3. Initialize the rebuttal pack with `scripts/init_rebuttal_pack.py` unless usable artifacts already exist. Save pasted reviews verbatim, one `## <reviewer handle>` block each, and pass the file with `--reviews` so it lands in `reviews-raw.md`.
 4. Build the review analysis and issue board before drafting prose.
 5. Convert major issues into concrete evidence or manuscript tasks, then draft the correct artifact shape and verify limits with `scripts/count_limits.sh`.
 
@@ -37,7 +37,7 @@ description: Draft venue-aware academic rebuttals and author responses from revi
 
 ## Handling review inputs
 
-- Pasted text: use directly, but check whether the paste is complete.
+- Pasted text: check whether the paste is complete, then keep it verbatim in `reviews-raw.md` under one `## <platform reviewer handle>` heading per review. Never edit that file; quote reviewers only from it.
 - PDF review bundles: extract all review text, scores, and confidence values before analysis.
 - Screenshots: transcribe visible review content and flag truncation or unreadable regions.
 - OpenReview or CMT links: treat raw platform access as unreliable; ask for pasted review text if needed.
@@ -65,6 +65,7 @@ description: Draft venue-aware academic rebuttals and author responses from revi
 ## Output contract
 
 - Primary files:
+  - `reviews-raw.md` (verbatim reviews; provenance source for reviewer quotes and scores)
   - `review-analysis.md`
   - `issue-board.md`
   - `task-list.md`
@@ -104,13 +105,14 @@ description: Draft venue-aware academic rebuttals and author responses from revi
   - Minor
   - Misunderstanding
 - Classify reviewer stance as Champion, Persuadable, or Entrenched using `references/writing_principles.md`.
-- Use an explicit issue-board shape rather than free-form notes. For example:
+- Record each reviewer's platform handle in the score matrix `Platform ID` column.
+- Use an explicit issue-board shape rather than free-form notes. Issue IDs are `EXT-<reviewer handle>-<n>` so they never collide with internal review IDs; link matching internal issues (from `REVIEW_STATE.json` or `final_issues.json`) in `internal_issue_ids`. For example:
 
 ```text
-issue_id | reviewer | severity          | category   | strategy | status | shared_with
-R1-1     | R1       | Major-Blocking    | baselines  | TBD      | open   |
-R2-1     | R2       | Misunderstanding  | novelty    | TBD      | open   |
-R3-1     | R3       | Major-Addressable | ablations  | TBD      | open   | R1-1
+issue_id    | reviewer | internal_issue_ids | severity          | category   | strategy | status | shared_with
+EXT-aB12-1  | aB12     | F3                 | Major-Blocking    | baselines  | TBD      | open   |
+EXT-Cd34-1  | Cd34     |                    | Misunderstanding  | novelty    | TBD      | open   |
+EXT-Ef56-1  | Ef56     | F3                 | Major-Addressable | ablations  | TBD      | open   | EXT-aB12-1
 ```
 
 - If the user asked only for triage or analysis, stop after the analysis and issue board.
@@ -174,11 +176,12 @@ Implication: This resolves the concern that our gains came only from benchmark s
 
 - Provenance gate:
   - every number, experimental result, section reference, and manuscript change must trace to a real source
+  - every reviewer quote or score must trace to `reviews-raw.md`
 - Commitment gate:
   - do not claim a manuscript change or experiment unless it already exists or is explicitly labeled as planned
 - Coverage gate:
   - every Major-Blocking and Major-Addressable issue must be closed, deferred with justification, or explicitly accepted as a risk
-- Verify size limits with `scripts/count_limits.sh <file> [--chars|--words|--pages] [--limit N]`.
+- Verify size limits with `scripts/count_limits.sh <file> [--chars|--words] [--limit N] [--per-section]`. It counts raw text, markup included, because platform limits apply to the pasted field. For per-review limits (one response per reviewer), put each response under its own `##` or `###` heading; the script counts each section and fails if any exceeds `--limit`. `--strip-markup` gives an estimate only and never confirms a limit. PDF page limits cannot be checked from text: compile the venue template and check the PDF.
 - If `paper-review/final_issues.json` or `review-loop/REVIEW_STATE.json` exists, cross-check that the rebuttal does not quietly contradict the internal diagnosis.
 
 ### 7) Handle follow-up rounds carefully
@@ -191,8 +194,8 @@ Implication: This resolves the concern that our gains came only from benchmark s
 
 ## Scripts
 
-- `scripts/init_rebuttal_pack.py`: create deterministic rebuttal scaffolds in a standalone directory or `./rebuttal/`.
-- `scripts/count_limits.sh`: measure chars, words, or rough page equivalents after stripping common markup.
+- `scripts/init_rebuttal_pack.py`: create deterministic rebuttal scaffolds, including `reviews-raw.md`, in a standalone directory or `./rebuttal/`. `--reviews <file>` copies a verbatim review file (one `## <reviewer handle>` block each) into `reviews-raw.md` and pre-fills one score-matrix row per block.
+- `scripts/count_limits.sh`: count raw characters or words per file or per `##`/`###` response section; exit 2 when any section exceeds `--limit`, exit 3 for `--pages` (PDF limits are unverifiable from text).
 
 ## References
 

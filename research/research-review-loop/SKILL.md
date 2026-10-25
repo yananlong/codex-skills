@@ -8,7 +8,7 @@ description: Run iterative adversarial review over research plans, experiment ou
 ## Quick start
 
 1. Identify the target artifact, stakes, intended audience, and requested evidence class.
-2. Initialize review state with `scripts/init_review_loop.py` unless a review pack already exists. Use `--from-paper-review <review_dir-or-final_issues.json>` when a first-pass paper-review bundle is available.
+2. Initialize review state with `scripts/init_review_loop.py` unless a review pack already exists. Use `--from-paper-review <review_dir-or-final_issues.json>` when a first-pass paper-review bundle is available. To start the next round of an existing loop, use `--from-state <round-N/REVIEW_STATE.json>`; it writes `round-<N+1>/` next to the prior round.
 3. Build a claim ledger and a predecessor-failure ledger before issuing conclusions.
 4. Review for internal consistency, evidence quality, external verifiability, provenance, non-vacuity, complete outcome accounting, and real rather than nominal independence.
 5. Preserve previous rounds and append or version new outputs instead of overwriting prior review artifacts.
@@ -67,7 +67,7 @@ description: Run iterative adversarial review over research plans, experiment ou
 - Never overwrite earlier round artifacts without first preserving them in a versioned or timestamped location.
 - Require each issue to have severity or impact rating, confidence, status, evidence, and a concrete fix or follow-up.
 - If `paper-review/final_issues.json` exists, initialize the first tracked issue set from that file instead of inventing a new initial ledger. Keep the paper-review issue title, quote, explanation, source section, and ratings traceable in the state.
-- Before deciding where to write the next round, inspect `metadata.json`, `artifact-index.md`, and existing `round-N/` folders. Continue the latest round number instead of flattening root paper-review files into a round folder.
+- Before deciding where to write the next round, inspect `metadata.json`, `artifact-index.md`, and existing `round-N/` folders. Continue the latest round number instead of flattening root paper-review files into a round folder. `init_review_loop.py --from-state` carries open, resolved, and accepted-risk entries unchanged, keeps their IDs, and sets `round` to prior + 1 (override with `--round N`).
 - Record which agent, model, prompt/context, code path, data access, and authority produced each stage-critical artifact when that provenance is available.
 
 ### 2) Build the claim and failure ledgers first
@@ -141,4 +141,4 @@ description: Run iterative adversarial review over research plans, experiment ou
 
 ## Script
 
-- `scripts/init_review_loop.py`: create deterministic state and report scaffolds for repeated review rounds; optionally seed open issues from `research-paper-review` output with `--from-paper-review`.
+- `scripts/init_review_loop.py`: create deterministic state and report scaffolds for repeated review rounds. `--from-paper-review` seeds open issues from `research-paper-review` output, keeping incoming issue `id`s (it mints `PR<n>` only when absent) and accepting `quote`/`source_quote`, `explanation`/`evidence`, `impact_rating`/`impact`, and `confidence_rating`/`confidence`; it exits non-zero and lists issue IDs when title, quote, evidence, or severity (or a 1-5 impact) resolves empty. `--from-state <REVIEW_STATE.json>` continues a loop into a sibling `round-<N+1>/`; `--round N` sets the round explicitly.

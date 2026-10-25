@@ -1,4 +1,4 @@
-# Codex Agent Orchestration
+# Agent Orchestration
 
 Use this reference for `research-paper-review` when the user explicitly asks for agents, subagents, parallel review, multi-agent review, or Claude-style review.
 
