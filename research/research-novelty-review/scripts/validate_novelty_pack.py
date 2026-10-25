@@ -31,10 +31,23 @@ RATING_FIELDS = (
 )
 
 RESEARCH_ROOT = Path(__file__).resolve().parents[2]
-SLR_SCRIPTS = RESEARCH_ROOT / "research-systematic-literature-review" / "scripts"
-if str(SLR_SCRIPTS) not in sys.path:
-    sys.path.insert(0, str(SLR_SCRIPTS))
-from review_pack_coverage import unresolved_high_priority_novelty_questions  # noqa: E402
+SLR_SKILL = "research-systematic-literature-review"
+SLR_SCRIPTS = RESEARCH_ROOT / SLR_SKILL / "scripts"
+
+
+def load_slr_coverage(errors: list[str]) -> Any:
+    """Import the sibling SLR coverage helper; only linked mode needs it."""
+    if str(SLR_SCRIPTS) not in sys.path:
+        sys.path.insert(0, str(SLR_SCRIPTS))
+    try:
+        from review_pack_coverage import unresolved_high_priority_novelty_questions
+    except ImportError:
+        errors.append(
+            f"linked mode requires the {SLR_SKILL} skill installed alongside research-novelty-review "
+            f"(expected {SLR_SCRIPTS / 'review_pack_coverage.py'}); structural mode does not need it"
+        )
+        return None
+    return unresolved_high_priority_novelty_questions
 
 
 def meaningful(value: Any) -> bool:
@@ -124,6 +137,12 @@ def validate_linked_literature(
     validator: Path,
     errors: list[str],
 ) -> None:
+    unresolved_high_priority_novelty_questions = load_slr_coverage(errors)
+    if unresolved_high_priority_novelty_questions is None:
+        return
+    if not validator.exists():
+        errors.append(f"linked mode requires the upstream literature validator: {validator}")
+        return
     if not isinstance(assurance, dict):
         errors.append("linked novelty validation requires literature_assurance object")
         return
@@ -271,9 +290,17 @@ def main() -> int:
         if status not in STATUSES:
             errors.append(f"novelty-decision.status must be one of {sorted(STATUSES)}")
         ratings: dict[str, int | None] = {}
+        unrated: set[str] = set()
         for field in RATING_FIELDS:
             value = decision.get(field)
-            if not isinstance(value, int) or isinstance(value, bool) or not 1 <= value <= 5:
+            if value is None and status != "complete":
+                # Draft scaffolds leave ratings null so an untouched pack never carries a rating.
+                ratings[field] = None
+                unrated.add(field)
+            elif value is None:
+                errors.append(f"novelty-decision.{field} must be an integer from 1 to 5 when status is complete (null is unrated)")
+                ratings[field] = None
+            elif not isinstance(value, int) or isinstance(value, bool) or not 1 <= value <= 5:
                 errors.append(f"novelty-decision.{field} must be an integer from 1 to 5")
                 ratings[field] = None
             else:
@@ -289,14 +316,17 @@ def main() -> int:
                 if not meaningful(decision.get(field)):
                     errors.append(f"complete novelty decision requires {field}")
         report_fields = {
-            "Novelty decision rating (1-5)": ratings.get("novelty_decision_rating"),
-            "Impact positioning rating (1-5)": ratings.get("impact_positioning_rating"),
-            "Decision confidence rating (1-5)": ratings.get("decision_confidence_rating"),
+            "Novelty decision rating (1-5)": "novelty_decision_rating",
+            "Impact positioning rating (1-5)": "impact_positioning_rating",
+            "Decision confidence rating (1-5)": "decision_confidence_rating",
         }
-        for label, expected in report_fields.items():
+        for label, field in report_fields.items():
+            expected = ratings.get(field)
             actual = report_value(report, label)
             if actual is None:
                 errors.append(f"novelty report missing {label}")
+            elif field in unrated and actual:
+                errors.append(f"novelty report {label} is set but novelty-decision.json leaves it null")
             elif expected is not None and actual != str(expected):
                 errors.append(f"novelty report {label} disagrees with novelty-decision.json")
 
@@ -348,6 +378,16 @@ def main() -> int:
         for error in errors:
             print(f"- {error}")
         return 1
+    if (
+        args.assurance_profile != "linked"
+        and isinstance(decision, dict)
+        and isinstance(decision.get("novelty_decision_rating"), int)
+        and decision.get("novelty_decision_rating", 0) >= 4
+    ):
+        print(
+            "WARNING: structural mode does not gate novelty ratings >= 4; bind a validated literature pack "
+            "and rerun with --assurance-profile linked before relying on this rating."
+        )
     if args.assurance_profile == "linked":
         print(
             "Validation passed: the exact bound literature pack was revalidated and the novelty rating, corpus "

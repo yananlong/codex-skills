@@ -49,8 +49,17 @@ Use when `research-paper-review` needs external context for one paper's novelty,
 - Inputs should come from `research-paper-review/summary.md` when available: title/domain, one-sentence contribution, novelty dimensions, cited closest prior work, benchmark context, and targeted context questions.
 - When invoked from a paper-review workspace, write outputs under `<review_dir>/context/`; otherwise use one explicit output directory.
 - Required outputs are `literature-context.md`, `literature-context-search-log.md`, `literature-context-evidence-table.md`, and `literature-context-decision.json`.
-- Use `scripts/paper_context_artifacts.py init` and `validate` when useful.
+- Use `scripts/paper_context_artifacts.py init` and `validate` when useful. `init` leaves ratings `null` and cells as `TODO`; `validate` rejects any remaining `TODO`, unset rating, non-list list field, or wrong `mode`. Pass `validate --draft` only to check an in-progress bundle.
 - Preserve original paths and provenance when later stages consume the context bundle.
+
+## Manuscript citation audit
+
+Use for the quick path on a draft: "what am I missing?" or "are my citations consistent?". Run it before any search so the cited set is the baseline.
+
+- Run `scripts/bib_inventory.py --tex <root.tex> --out-md citation-audit.md --out-json bib-inventory.json`. It follows `\input`, `\include`, and `\subfile`, reads the files named in `\bibliography{}` or `\addbibresource{}` (or `--bib`), and lists every cited key as `resolved`, `missing-entry`, or `unused`, with DOI, URL, or eprint where the entry has one.
+- Fix `missing-entry` keys and case mismatches first. Treat entries without DOI, URL, or eprint as unresolved citations.
+- Use the JSON `records` as visible seeds or candidate corpus-manifest records. Their `question_ids` are empty and `publication_status` is a heuristic, so link and verify them before they enter a validated manifest. Log the source in the search log's Zotero ledger with `access_mode` `local-bib`.
+- The audit checks consistency only. It does not show that the bibliography covers the relevant literature; use paper-context mode or a review profile for that.
 
 ## Relationship to sibling skills
 
@@ -116,7 +125,7 @@ Every included record must have a canonical publication URL and explicit publica
 ### 1) Define protocol and domain adapter
 
 - Record the review profile, research question, intended decision, inclusion/exclusion criteria, foundational horizon, current-evidence horizon, update horizon, language, publication types, outcomes or conceptual questions, and quality threshold.
-- Select an adapter: empirical intervention, methodological, theoretical/mathematical, benchmark/dataset, software/system, interdisciplinary conceptual, novelty/prior-art, or emerging-field.
+- Select an adapter from `references/domain-adapters.md`: `ai-ml`, `biomedical`, `social-science`, `policy-governance`, `theoretical-mathematical`, or `conceptual-interdisciplinary`. For benchmark/dataset, software/system, or emerging-field reviews, name the closest adapter and record the deviations.
 - Record defaults and deviations.
 - If `technical_exposition=detailed_math`, require formal definitions, notation, key equations/objectives, and theorem statements or proof sketches where relevant.
 
@@ -218,7 +227,8 @@ For major ML conferences hosted on OpenReview, use accepted venue records when v
 ## Scripts
 
 - `scripts/init_review_pack.py`: initialize a profile-aware review pack, recall audit, and corpus manifest while preserving the previous protocol-scope CLI inputs.
-- `scripts/paper_context_artifacts.py`: initialize and validate the four-file paper-context evidence-map exchange bundle.
+- `scripts/paper_context_artifacts.py`: initialize and validate the four-file paper-context evidence-map exchange bundle; `validate --draft` tolerates `TODO` cells and unset ratings.
+- `scripts/bib_inventory.py`: inventory a manuscript's cited keys against its `.bib` files and write `citation-audit.md` plus corpus-manifest-shaped JSON records (stdlib only).
 - `scripts/prisma_flow_md.py`: generate PRISMA flow accounting.
 - `scripts/review_pack_coverage.py`: validate coverage-question states and reciprocal question/search/record/amendment links; shared with novelty assurance.
 - `scripts/validate_review_pack.py`: validate headings, table fields, PRISMA consistency, canonical URLs, seed recovery, channel completion, coverage-question closure, corpus freeze, and verdict consistency without claiming actual completeness.

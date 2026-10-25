@@ -5,9 +5,17 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 
-from _zotero import api_get_json, api_get_text, build_items_path, default_user_library, resolve_api_key
+from _zotero import (
+    api_get_json_with_headers,
+    api_get_text_with_headers,
+    build_items_path,
+    default_user_library,
+    resolve_api_key,
+    total_results,
+)
 
 
 TEXT_EXPORTS = {"bibtex", "biblatex", "ris"}
@@ -24,8 +32,13 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--query", help="Free-text Zotero query")
     parser.add_argument("--item-type", help="Restrict by Zotero item type")
     parser.add_argument("--item-key", help="Comma-separated list of item keys")
-    parser.add_argument("--limit", type=int, default=100, help="Items per request (default: 100)")
-    parser.add_argument("--all", action="store_true", help="Paginate until exhausted")
+    parser.add_argument("--limit", type=int, default=100, help="Items per request (page size, default: 100)")
+    parser.add_argument(
+        "--all",
+        action="store_true",
+        help="Paginate until exhausted (the default; kept for compatibility)",
+    )
+    parser.add_argument("--max-items", type=int, help="Stop after this many items (truncated export, warned on stderr)")
     parser.add_argument("--format", required=True, choices=sorted(TEXT_EXPORTS | JSON_EXPORTS))
     parser.add_argument("--style", help="Citation style for formatted bibliography exports")
     parser.add_argument("--locale", help="Bibliography locale")
@@ -43,10 +56,10 @@ def resolve_library(args: argparse.Namespace, api_key: str):
     return library_type, library_id
 
 
-def build_params(args: argparse.Namespace, start: int) -> dict[str, str | list[str]]:
+def build_params(args: argparse.Namespace, start: int, limit: int | None = None) -> dict[str, str | list[str]]:
     params: dict[str, str | list[str]] = {
         "format": args.format,
-        "limit": str(args.limit),
+        "limit": str(args.limit if limit is None else limit),
         "start": str(start),
     }
     if args.tag:
@@ -70,29 +83,45 @@ def main() -> int:
     library_type, library_id = resolve_library(args, api_key)
     path = build_items_path(library_type, library_id, collection_key=args.collection_key)
 
+    if args.limit < 1:
+        raise SystemExit("--limit must be at least 1")
+    if args.max_items is not None and args.max_items < 1:
+        raise SystemExit("--max-items must be at least 1")
+
     start = 0
     text_parts: list[str] = []
     json_parts: list = []
+    total: int | None = None
+    exhausted = False
 
     while True:
-        params = build_params(args, start)
+        page_limit = args.limit if args.max_items is None else min(args.limit, args.max_items - start)
+        if page_limit <= 0:
+            break
+        params = build_params(args, start, limit=page_limit)
         if args.format in TEXT_EXPORTS:
-            page = api_get_text(path, api_key, params)
-            if page:
+            page, headers = api_get_text_with_headers(path, api_key, params)
+            if page.strip():
                 text_parts.append(page)
-            page_size = args.limit if args.all else 0
+            # Text pages cannot be counted reliably; rely on Total-Results and stop on an empty page.
+            page_size = page_limit if page.strip() else 0
         else:
-            page = api_get_json(path, api_key, params)
+            page, headers = api_get_json_with_headers(path, api_key, params)
             if isinstance(page, list):
                 json_parts.extend(page)
                 page_size = len(page)
             else:
                 json_parts.append(page)
                 page_size = 0
-
-        if not args.all or page_size < args.limit:
+        header_total = total_results(headers)
+        if header_total is not None:
+            total = header_total
+        start += page_limit
+        if page_size < page_limit or (total is not None and start >= total):
+            exhausted = True
             break
-        start += args.limit
+        if total is None and args.format in TEXT_EXPORTS and args.max_items is None and start >= 100000:
+            raise SystemExit("Stopping text export after 100000 items without a Total-Results header.")
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
     if args.format in TEXT_EXPORTS:
@@ -100,6 +129,13 @@ def main() -> int:
     else:
         args.out.write_text(json.dumps(json_parts, indent=2), encoding="utf-8")
     print(f"wrote {args.out}")
+    if not exhausted:
+        print(
+            f"WARNING: truncated export at {start} items"
+            + (f" of {total}" if total is not None else "")
+            + "; rerun without --max-items for the full slice",
+            file=sys.stderr,
+        )
     return 0
 
 

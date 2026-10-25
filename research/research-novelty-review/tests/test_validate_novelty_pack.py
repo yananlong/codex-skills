@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -15,8 +16,104 @@ NOVELTY_ROOT = Path(__file__).resolve().parents[1]
 NOVELTY_INIT = NOVELTY_ROOT / "scripts" / "init_novelty_pack.py"
 NOVELTY_VALIDATE = NOVELTY_ROOT / "scripts" / "validate_novelty_pack.py"
 LIT_INIT = RESEARCH_ROOT / "research-systematic-literature-review" / "scripts" / "init_review_pack.py"
+SLR_PRESENT = LIT_INIT.exists()
 
 
+def run_python(*args: str) -> subprocess.CompletedProcess[str]:
+    return subprocess.run([sys.executable, *args], text=True, capture_output=True)
+
+
+class StandaloneNoveltyTests(unittest.TestCase):
+    """Behaviour that must hold with only research-novelty-review installed (QI-03)."""
+
+    def setUp(self) -> None:
+        self.temp = tempfile.TemporaryDirectory()
+        self.root = Path(self.temp.name)
+        self.skill = self.root / "skills" / "research-novelty-review"
+        shutil.copytree(NOVELTY_ROOT, self.skill, ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
+        self.init = self.skill / "scripts" / "init_novelty_pack.py"
+        self.validator = self.skill / "scripts" / "validate_novelty_pack.py"
+        self.pack = self.root / "pack"
+        cp = run_python(str(self.init), str(self.pack))
+        self.assertEqual(cp.returncode, 0, cp.stdout + cp.stderr)
+        self.decision_path = self.pack / "novelty-decision.json"
+        self.report_path = self.pack / "novelty-report.md"
+
+    def tearDown(self) -> None:
+        self.temp.cleanup()
+
+    def validate(self, *extra: str) -> subprocess.CompletedProcess[str]:
+        return run_python(
+            str(self.validator),
+            "--decision", str(self.decision_path),
+            "--report", str(self.report_path),
+            "--prior-art-matrix", str(self.pack / "prior-art-matrix.md"),
+            "--search-log", str(self.pack / "search-log.md"),
+            *extra,
+        )
+
+    def complete(self, rating: int | None) -> None:
+        decision = json.loads(self.decision_path.read_text())
+        decision.update(
+            status="complete",
+            novelty_decision_rating=rating,
+            impact_positioning_rating=rating,
+            decision_confidence_rating=rating,
+            narrowest_defensible_positioning="A bounded synthetic contribution.",
+            what_would_change_the_decision="A closer synthetic prior method.",
+        )
+        self.decision_path.write_text(json.dumps(decision))
+        report = self.report_path.read_text()
+        value = "" if rating is None else f" {rating}"
+        for label in ("Novelty decision", "Impact positioning", "Decision confidence"):
+            report = report.replace(f"{label} rating (1-5):\n", f"{label} rating (1-5):{value}\n")
+        report = report.replace("- Narrowest defensible positioning:", "- Narrowest defensible positioning: A bounded synthetic contribution.")
+        report = report.replace("- What would change the decision:", "- What would change the decision: A closer synthetic prior method.")
+        self.report_path.write_text(report)
+
+    def test_help_runs_without_literature_review_sibling(self) -> None:
+        self.assertFalse((self.root / "skills" / "research-systematic-literature-review").exists())
+        cp = run_python(str(self.validator), "--help")
+        self.assertEqual(cp.returncode, 0, cp.stdout + cp.stderr)
+        self.assertIn("--assurance-profile", cp.stdout)
+
+    def test_structural_validation_runs_without_literature_review_sibling(self) -> None:
+        cp = self.validate()
+        self.assertEqual(cp.returncode, 0, cp.stdout + cp.stderr)
+        self.complete(3)
+        cp = self.validate()
+        self.assertEqual(cp.returncode, 0, cp.stdout + cp.stderr)
+
+    def test_linked_mode_names_missing_sibling_skill(self) -> None:
+        self.complete(3)
+        decision = json.loads(self.decision_path.read_text())
+        decision["literature_assurance"]["mode"] = "linked"
+        self.decision_path.write_text(json.dumps(decision))
+        cp = self.validate("--assurance-profile", "linked")
+        self.assertEqual(cp.returncode, 1, cp.stdout + cp.stderr)
+        self.assertIn("requires the research-systematic-literature-review skill installed alongside", cp.stdout)
+        self.assertNotIn("Traceback", cp.stderr)
+
+    def test_scaffold_ratings_start_null(self) -> None:
+        decision = json.loads(self.decision_path.read_text())
+        for field in ("novelty_decision_rating", "impact_positioning_rating", "decision_confidence_rating"):
+            self.assertIsNone(decision[field])
+        self.assertIn("- Novelty decision rating (1-5):\n", self.report_path.read_text())
+
+    def test_complete_status_rejects_null_ratings(self) -> None:
+        self.complete(None)
+        cp = self.validate()
+        self.assertEqual(cp.returncode, 1, cp.stdout + cp.stderr)
+        self.assertIn("novelty_decision_rating must be an integer from 1 to 5 when status is complete", cp.stdout)
+
+    def test_structural_mode_warns_that_strong_ratings_are_ungated(self) -> None:
+        self.complete(4)
+        cp = self.validate()
+        self.assertEqual(cp.returncode, 0, cp.stdout + cp.stderr)
+        self.assertIn("WARNING: structural mode does not gate novelty ratings >= 4", cp.stdout)
+
+
+@unittest.skipUnless(SLR_PRESENT, "research-systematic-literature-review sibling not installed")
 class NoveltyPackTests(unittest.TestCase):
     def setUp(self) -> None:
         self.temp = tempfile.TemporaryDirectory()
@@ -161,7 +258,9 @@ class NoveltyPackTests(unittest.TestCase):
         }
         self.write_decision()
         report = self.report_path.read_text()
-        report = report.replace("Novelty decision rating (1-5): 3", f"Novelty decision rating (1-5): {rating}")
+        report = report.replace("Novelty decision rating (1-5):\n", f"Novelty decision rating (1-5): {rating}\n")
+        report = report.replace("Impact positioning rating (1-5):\n", "Impact positioning rating (1-5): 3\n")
+        report = report.replace("Decision confidence rating (1-5):\n", "Decision confidence rating (1-5): 3\n")
         report = report.replace("- Narrowest defensible positioning:", f"- Narrowest defensible positioning: {self.decision['narrowest_defensible_positioning']}")
         report = report.replace("- What would change the decision:", f"- What would change the decision: {self.decision['what_would_change_the_decision']}")
         report = report.replace("- Literature assurance mode: unlinked", "- Literature assurance mode: linked")

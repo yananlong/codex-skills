@@ -28,9 +28,11 @@ Use this template to document reproducible evidence discovery.
 
 Document Zotero ingestion here when the review uses a Zotero user library, group library, collection, tags, or saved search as a curated source.
 
+Use `access_mode` `local-bib` with `library_type` `local` when the curated source is a manuscript's own `.bib` files read by `scripts/bib_inventory.py`; put the bib file paths in `library_id` and the resolved-entry count in `items_retrieved`.
+
 | sync_id | date | access_mode | library_type | library_id | collection_key | tags | query | items_retrieved | notes |
 | --- | --- | --- | --- | --- | --- | --- | --- | ---: | --- |
-| zot-001 | YYYY-MM-DD | api-key / oauth-key / mcp | user / group | | | | | 0 | |
+| zot-001 | YYYY-MM-DD | api-key / oauth-key / mcp / local-bib | user / group / local | | | | | 0 | |
 
 ## Version resolution ledger (preprint -> published/venue record)
 

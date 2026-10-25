@@ -39,9 +39,9 @@ NOVELTY_REPORT = """# Novelty Report
 
 ## Decision
 
-- Novelty decision rating (1-5): 3
-- Impact positioning rating (1-5): 3
-- Decision confidence rating (1-5): 3
+- Novelty decision rating (1-5):
+- Impact positioning rating (1-5):
+- Decision confidence rating (1-5):
 - Narrowest defensible positioning:
 - What would change the decision:
 - Literature assurance mode: unlinked
@@ -74,9 +74,9 @@ def decision_template() -> dict:
     return {
         "schema_version": "1.1",
         "status": "draft",
-        "novelty_decision_rating": 3,
-        "impact_positioning_rating": 3,
-        "decision_confidence_rating": 3,
+        "novelty_decision_rating": None,
+        "impact_positioning_rating": None,
+        "decision_confidence_rating": None,
         "narrowest_defensible_positioning": "",
         "what_would_change_the_decision": "",
         "top_kill_shot_objections": [],

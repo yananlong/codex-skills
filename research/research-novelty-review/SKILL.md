@@ -41,6 +41,7 @@ description: Run a stringent, adversarial novelty review over a concrete researc
   - the paper's cited closest prior work from `summary.md` or the full text
 - Do not re-run broad literature discovery if a fresh paper-context evidence map already exists and is adequate. Instead, search only the remaining kill-shot gaps.
 - Output a bottom-line `novelty-context.md` or copy the key decision into `<review_dir>/context/novelty-context.md` for the paper-review bundle.
+- Treat `novelty-context.md` as a projection of `novelty-report.md` for the paper-review bundle. The canonical pack is still the four primary files below, and `scripts/validate_novelty_pack.py` reads `novelty-report.md`, never `novelty-context.md`. Regenerate the projection whenever the report changes.
 - Rate novelty and impact separately: a paper can be useful or important while still not being novel.
 
 ## Relationship to sibling skills
@@ -142,7 +143,7 @@ description: Run a stringent, adversarial novelty review over a concrete researc
 - End with:
   - `novelty_decision_rating` on a 1-5 scale
   - `decision_confidence_rating` on a 1-5 scale
-- Offer the narrowest defensible positioning that survives the objections.
+- Offer the narrowest defensible positioning that survives the objections, and also state the strongest supportable positioning the evidence allows, so narrowing stops where the overlaps stop.
 - Use this interpretation:
   - `1`: abandon; the core claim is effectively killed by overlap
   - `2`: major reframe required before proceeding
@@ -186,5 +187,6 @@ description: Run a stringent, adversarial novelty review over a concrete researc
 
 ## Scripts
 
-- `scripts/init_novelty_pack.py`: create `novelty-report.md`, `prior-art-matrix.md`, `search-log.md`, and schema-versioned `novelty-decision.json` in a standalone directory or the suite's `novelty-review/` directory.
-- `scripts/validate_novelty_pack.py`: validate report/JSON reciprocity and, in linked mode, rerun the exact literature pack before enforcing rating gates.
+- `scripts/init_novelty_pack.py`: create `novelty-report.md`, `prior-art-matrix.md`, `search-log.md`, and schema-versioned `novelty-decision.json` in a standalone directory or the suite's `novelty-review/` directory. Ratings start as `null` and blank report lines; fill them only after the review.
+- `scripts/validate_novelty_pack.py`: validate report/JSON reciprocity and, in linked mode, rerun the exact literature pack before enforcing rating gates. A `draft` decision may leave ratings `null`; `status: complete` requires all three ratings. Structural mode prints a warning for ratings of 4 or 5 because it does not gate them.
+- Dependency: `--help` and structural mode need only this skill. Linked mode (`--assurance-profile linked`) imports `review_pack_coverage.py` and runs `validate_review_pack.py` from `research-systematic-literature-review`, which must be installed as a sibling folder (`<skills>/research-systematic-literature-review/`). Without it, linked validation fails with an error naming that skill.

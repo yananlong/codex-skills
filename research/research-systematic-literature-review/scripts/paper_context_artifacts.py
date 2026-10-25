@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from datetime import date
 from pathlib import Path
@@ -38,6 +39,16 @@ REQUIRED_CONTEXT_HEADINGS = [
     "## Claims That Need Qualification",
     "## Confidence and Limitations",
 ]
+
+LIST_DECISION_FIELDS = [
+    "closest_prior_work",
+    "related_work_omissions",
+    "benchmark_context_gaps",
+    "limits_of_search",
+]
+RATING_DECISION_FIELDS = ["contextualization_rating", "impact_evidence_rating", "coverage_confidence_rating"]
+DECISION_MODE = "paper_context_evidence_map"
+TODO_PATTERN = re.compile(r"\bTODO\b")
 
 REQUIRED_EVIDENCE_HEADERS = ["Citation", "Publication URL", "Publication status"]
 REQUIRED_VERSION_HEADERS = ["canonical_publication_url"]
@@ -137,7 +148,7 @@ Summarize exact sources, queries, filters, retrieval dates, and inclusion decisi
 
 | claim_id | Required qualification | Evidence basis | Confidence (1-5) |
 | --- | --- | --- | ---: |
-| C1 | TODO | TODO | 3 |
+| C1 | TODO | TODO | TODO |
 
 ## Confidence and Limitations
 
@@ -184,13 +195,14 @@ def _evidence_table_md(args: argparse.Namespace) -> str:
 
 def _decision_json(args: argparse.Namespace, out_dir: Path, summary_path: str, context_plan_path: str) -> str:
     payload: dict[str, Any] = {
-        "mode": "paper_context_evidence_map",
+        "mode": DECISION_MODE,
         "target_paper": args.target_paper,
         "domain": args.domain,
         "target_community": args.target_community,
-        "contextualization_rating": 3,
-        "impact_evidence_rating": 3,
-        "coverage_confidence_rating": 3,
+        # Ratings start unset so an untouched scaffold never carries a rating.
+        "contextualization_rating": None,
+        "impact_evidence_rating": None,
+        "coverage_confidence_rating": None,
         "closest_prior_work": [],
         "related_work_omissions": [],
         "benchmark_context_gaps": [],
@@ -223,7 +235,28 @@ def init_artifacts(args: argparse.Namespace) -> int:
 
 
 def _is_rating(value: Any) -> bool:
-    return isinstance(value, int) and 1 <= value <= 5
+    return isinstance(value, int) and not isinstance(value, bool) and 1 <= value <= 5
+
+
+def _todo_lines(text: str) -> list[int]:
+    return [number for number, line in enumerate(text.splitlines(), 1) if TODO_PATTERN.search(line)]
+
+
+def _json_todo_paths(value: Any, path: str = "$") -> list[str]:
+    if isinstance(value, str):
+        return [path] if TODO_PATTERN.search(value) else []
+    if isinstance(value, list):
+        return [found for index, item in enumerate(value) for found in _json_todo_paths(item, f"{path}[{index}]")]
+    if isinstance(value, dict):
+        return [found for key, item in value.items() for found in _json_todo_paths(item, f"{path}.{key}")]
+    return []
+
+
+def _check_todos(name: str, text: str, errors: list[str]) -> None:
+    lines = _todo_lines(text)
+    if lines:
+        shown = ", ".join(str(number) for number in lines[:10]) + (", ..." if len(lines) > 10 else "")
+        errors.append(f"{name} still has {len(lines)} TODO placeholder line(s) (lines {shown}); fill them or pass --draft")
 
 
 def _load_json(path: Path, errors: list[str]) -> dict[str, Any]:
@@ -258,6 +291,7 @@ def _section_table_header(markdown: str, section_heading: str) -> list[str]:
 
 def validate_artifacts(args: argparse.Namespace) -> int:
     out_dir = _resolve_out_dir(args)
+    draft = bool(getattr(args, "draft", False))
     errors: list[str] = []
     for name in REQUIRED_FILES:
         if not (out_dir / name).exists():
@@ -265,6 +299,8 @@ def validate_artifacts(args: argparse.Namespace) -> int:
     context_path = out_dir / "literature-context.md"
     if context_path.exists():
         context_md = context_path.read_text(encoding="utf-8")
+        if not draft:
+            _check_todos("literature-context.md", context_md, errors)
         for heading in REQUIRED_CONTEXT_HEADINGS:
             if heading not in context_md:
                 errors.append(f"literature-context.md missing heading: {heading}")
@@ -276,13 +312,19 @@ def validate_artifacts(args: argparse.Namespace) -> int:
                 errors.append(f"literature-context.md Closest Prior Work table missing column: {required}")
     search_log_path = out_dir / "literature-context-search-log.md"
     if search_log_path.exists():
-        version_header = _section_table_header(search_log_path.read_text(encoding="utf-8"), "## Version Resolution")
+        search_log_md = search_log_path.read_text(encoding="utf-8")
+        if not draft:
+            _check_todos("literature-context-search-log.md", search_log_md, errors)
+        version_header = _section_table_header(search_log_md, "## Version Resolution")
         for required in REQUIRED_VERSION_HEADERS:
             if required not in version_header:
                 errors.append(f"literature-context-search-log.md Version Resolution table missing column: {required}")
     evidence_path = out_dir / "literature-context-evidence-table.md"
     if evidence_path.exists():
-        evidence_header = _first_table_header(evidence_path.read_text(encoding="utf-8"))
+        evidence_md = evidence_path.read_text(encoding="utf-8")
+        if not draft:
+            _check_todos("literature-context-evidence-table.md", evidence_md, errors)
+        evidence_header = _first_table_header(evidence_md)
         for required in REQUIRED_EVIDENCE_HEADERS:
             if required not in evidence_header:
                 errors.append(f"literature-context-evidence-table.md missing column: {required}")
@@ -292,9 +334,23 @@ def validate_artifacts(args: argparse.Namespace) -> int:
         for field in REQUIRED_DECISION_FIELDS:
             if field not in decision:
                 errors.append(f"literature-context-decision.json missing field: {field}")
-        for field in ["contextualization_rating", "impact_evidence_rating", "coverage_confidence_rating"]:
-            if field in decision and not _is_rating(decision[field]):
+        if decision and decision.get("mode") != DECISION_MODE:
+            errors.append(f"literature-context-decision.json field mode must equal {DECISION_MODE}")
+        for field in RATING_DECISION_FIELDS:
+            if field not in decision:
+                continue
+            if decision[field] is None and draft:
+                continue
+            if decision[field] is None:
+                errors.append(f"literature-context-decision.json field {field} is unset (null); rate it 1-5 or pass --draft")
+            elif not _is_rating(decision[field]):
                 errors.append(f"literature-context-decision.json field {field} must be an integer from 1 to 5")
+        for field in LIST_DECISION_FIELDS:
+            if field in decision and not isinstance(decision[field], list):
+                errors.append(f"literature-context-decision.json field {field} must be a list")
+        if not draft:
+            for found in _json_todo_paths(decision):
+                errors.append(f"literature-context-decision.json value {found} still contains TODO; fill it or pass --draft")
     if errors:
         print("Paper-context validation failed:")
         for error in errors:
@@ -325,6 +381,11 @@ def _build_parser() -> argparse.ArgumentParser:
     init_parser.set_defaults(func=init_artifacts)
     validate_parser = subparsers.add_parser("validate", help="Validate completed paper-context artifacts")
     add_common(validate_parser)
+    validate_parser.add_argument(
+        "--draft",
+        action="store_true",
+        help="Allow TODO placeholders and unset (null) ratings in an in-progress bundle",
+    )
     validate_parser.set_defaults(func=validate_artifacts)
     return parser
 

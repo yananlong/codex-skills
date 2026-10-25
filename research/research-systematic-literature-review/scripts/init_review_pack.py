@@ -73,7 +73,7 @@ def resolve(args: argparse.Namespace) -> Inputs:
         "population_context": "Broad context implied by the topic and domain unless explicitly narrowed",
         "outcomes": "Adapter-appropriate outcomes, propositions, mechanisms, comparisons, criticisms, and negative evidence",
         "quality_threshold": "Retain records with enough methodological, formal, or argumentative detail for evidence extraction",
-        "domain_adapter": "TODO select an empirical, methodological, theoretical, benchmark, interdisciplinary, novelty, or emerging-field adapter",
+        "domain_adapter": "TODO select an adapter from references/domain-adapters.md: ai-ml, biomedical, social-science, policy-governance, theoretical-mathematical, or conceptual-interdisciplinary",
         "intended_decision": "TODO state the decision this review will support",
     }
 
@@ -215,7 +215,7 @@ def search_log(i: Inputs) -> str:
 
 | sync_id | date | access_mode | library_type | library_id | collection_key | tags | query | items_retrieved | notes |
 | --- | --- | --- | --- | --- | --- | --- | --- | ---: | --- |
-| zot-001 | {i.today} | api-key / oauth-key / mcp | user / group | | | | | 0 | |
+| zot-001 | {i.today} | api-key / oauth-key / mcp / local-bib | user / group / local | | | | | 0 | |
 
 ## Version resolution ledger
 

@@ -7,7 +7,9 @@ import argparse
 import json
 from pathlib import Path
 
-from _zotero import default_user_library, fetch_paginated_items, resolve_api_key
+import sys
+
+from _zotero import default_user_library, fetch_items_with_total, resolve_api_key
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -19,8 +21,17 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--tag", action="append", default=[], help="Tag filter (repeatable)")
     parser.add_argument("--query", help="Free-text Zotero query")
     parser.add_argument("--item-type", help="Restrict by Zotero item type")
-    parser.add_argument("--limit", type=int, default=100, help="Items per request (default: 100)")
-    parser.add_argument("--all", action="store_true", help="Paginate until exhausted")
+    parser.add_argument("--limit", type=int, default=100, help="Items per request (page size, default: 100)")
+    parser.add_argument(
+        "--all",
+        action="store_true",
+        help="Paginate until exhausted (the default; kept for compatibility)",
+    )
+    parser.add_argument(
+        "--max-items",
+        type=int,
+        help="Stop after this many items; the output then records partial=true when the slice holds more",
+    )
     parser.add_argument("--api-key", help="Zotero API key; defaults to $ZOTERO_API_KEY")
     parser.add_argument("--out", type=Path, required=True, help="Output JSON path")
     parser.add_argument("--sync-note", type=Path, help="Optional Markdown sync note path")
@@ -36,7 +47,7 @@ def resolve_library(args: argparse.Namespace, api_key: str):
     return library_type, library_id, "api-key-default"
 
 
-def write_sync_note(path: Path, *, library_type: str, library_id: str, collection_key: str | None, query: str | None, tags: list[str], item_type: str | None, item_count: int, resolved_via: str) -> None:
+def write_sync_note(path: Path, *, library_type: str, library_id: str, collection_key: str | None, query: str | None, tags: list[str], item_type: str | None, item_count: int, resolved_via: str, total_results: int | None = None, partial: bool = False) -> None:
     text = f"""# Zotero Sync
 
 - Library type: {library_type}
@@ -47,6 +58,8 @@ def write_sync_note(path: Path, *, library_type: str, library_id: str, collectio
 - Tags: {", ".join(tags)}
 - Item type: {item_type or ""}
 - Items retrieved: {item_count}
+- Total results reported by Zotero: {"" if total_results is None else total_results}
+- Partial sync: {"yes" if partial else "no"}
 """
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(text, encoding="utf-8")
@@ -57,7 +70,11 @@ def main() -> int:
     api_key = resolve_api_key(args.api_key)
     library_type, library_id, resolved_via = resolve_library(args, api_key)
 
-    items = fetch_paginated_items(
+    if args.limit < 1:
+        raise SystemExit("--limit must be at least 1")
+    if args.max_items is not None and args.max_items < 1:
+        raise SystemExit("--max-items must be at least 1")
+    items, total_results, partial = fetch_items_with_total(
         api_key=api_key,
         library_type=library_type,
         library_id=library_id,
@@ -66,7 +83,7 @@ def main() -> int:
         query=args.query,
         item_type=args.item_type,
         limit=args.limit,
-        all_pages=args.all,
+        max_items=args.max_items,
     )
 
     payload = {
@@ -78,12 +95,20 @@ def main() -> int:
         "tags": args.tag,
         "item_type": args.item_type,
         "item_count": len(items),
+        "total_results": total_results,
+        "partial": partial,
         "items": items,
     }
 
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(payload, indent=2), encoding="utf-8")
     print(f"wrote {args.out} ({len(items)} items)")
+    if partial:
+        print(
+            f"WARNING: partial sync, {len(items)} of {total_results if total_results is not None else 'an unknown number of'} "
+            "items written; rerun without --max-items for the full slice",
+            file=sys.stderr,
+        )
 
     if args.sync_note:
         write_sync_note(
@@ -96,6 +121,8 @@ def main() -> int:
             item_type=args.item_type,
             item_count=len(items),
             resolved_via=resolved_via,
+            total_results=total_results,
+            partial=partial,
         )
         print(f"wrote {args.sync_note}")
     return 0
