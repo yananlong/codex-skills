@@ -1334,6 +1334,7 @@
           "references/terminology-conversion.md"
         ],
         "scripts": [
+          "scripts/latex_visible_diff.py",
           "scripts/prose_tells.py"
         ]
       },

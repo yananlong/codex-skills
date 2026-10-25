@@ -166,7 +166,7 @@ Run an adversarial final audit after merging:
 - Check every weakened sentence the same way: name the support gap or critique item that requires the weakening, or restore the source wording.
 - Compare the revised abstract, contribution list, and conclusion with the source versions. If the stated contribution became smaller, list the change for the author in the claim-change note rather than shipping it silently.
 - Restore any source caveat, negative result, uncertainty, baseline condition, or scope limit that a local rewrite softened. A source caveat that carries scope (what the evidence does not cover) is kept and restated positively as scope plus consequence. Delete only rejected propositions that the source invented to sound cautious; this precedence resolves the apparent conflict with the negation scan below.
-- For marked-up sources, compare the visible text before and after (comments stripped) and confirm that no macro, citation, label, or comment moved or vanished.
+- For marked-up sources, compare the visible text before and after (comments stripped) and confirm that no macro, citation, label, or comment moved or vanished. For LaTeX, `scripts/latex_visible_diff.py before.tex after.tex` does this: it names every citation key, label, ref target, or user macro that disappeared, flags a comment-terminated line that was joined, and prints the visible-text diff.
 - Run `scripts/prose_tells.py` on the revision against the source. No tell category may rise without a reason in the claim-change note, and the total density should fall. Then read the result as a reader would: a revision can score zero on the scanner and still be bland, choppy, or stripped of a real list, and that is a failed revision.
 - Check for definitional drift, inconsistent terminology, unsupported causal language, and conclusions that no longer follow from the revised paragraph.
 - Verify that cross-section transitions do not imply evidence, chronology, deployment status, or novelty that the source did not establish.
@@ -195,6 +195,7 @@ Read [references/technical-writing-patterns.md](references/technical-writing-pat
 
 ## Scripts
 
+- `scripts/latex_visible_diff.py before.tex after.tex [--format json] [--allow-dropped-comments]`: the merge audit's survival check for LaTeX sources; exit 1 when a citation key, label, ref target, or user-defined macro present before is missing after, or when a `%`-terminated line was joined.
 - `scripts/prose_tells.py`: count machine-prose tells per category with density per thousand words and located examples; `--baseline` compares a revision with its source, `--fail-if-worse` exits non-zero when the density rose, `--max-density N` exits non-zero when a new draft exceeds N per thousand words (the ceiling `technical-writing-drafter` applies before handoff), `--format json` for tooling. Handles Markdown and LaTeX by stripping comments, math, code, and citation commands first. It never rewrites.
 
 ## Final Pass
