@@ -1,12 +1,13 @@
 # Machine-Readable Results Audit Schema
 
-`results-audit.json` is an object with `schema_version`, `paper_id`, `identity_version`, `status`, and `audits`.
+`results-audit.json` is an object with `schema_version`, `paper_id`, `identity_version`, `status`, and `audits`, plus optional `source_revision`.
 
 - `schema_version`: currently `1.0`.
-- `paper_id`: stable commitment paper ID; required when complete.
+- `paper_id`: stable commitment paper ID; required when complete, unless every audit is `source_mode: standalone` with `requested_assurance_class: exploratory`.
 - `identity_version`: positive integer.
 - `status`: `draft`, `complete`, or `superseded`.
-- `audits`: list of audit records.
+- `audits`: list of audit records. A draft with no records validates as `Draft: 0 audits`, not as a pass.
+- `source_revision` (optional): the git commit at which the evidence digests were recorded. With `--root`, a digest mismatch is an error when this is absent or equals the root's `HEAD`, and a warning naming the revision when it differs.
 
 ## Audit record
 
@@ -65,4 +66,4 @@ Every run whose experiment binding has the same `paper_id`, `identity_version`, 
 - `snapshot_continuity`
 - `independence`
 
-Each uses `pass`, `fail`, `inconclusive`, or `not_assessed`, with a rationale and declared evidence paths. Operational/high-stakes support requires every check to pass. Independent support additionally requires actual separation and no self-review.
+Each uses `pass`, `fail`, `inconclusive`, or `not_assessed`, with a rationale and declared evidence paths. In a standalone audit that requests only exploratory assurance, omitted `snapshot_continuity` and `independence` checks default to `not_assessed`. Operational/high-stakes support requires every check to pass. Independent support additionally requires actual separation and no self-review.

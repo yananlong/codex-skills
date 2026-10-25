@@ -1,6 +1,6 @@
 ---
 name: research-results-auditor
-description: Audit ML/statistics experiment outputs for validity, confounds, statistical support, calibration, and mismatch between measured results and claimed conclusions. Use when asked to interpret results, sanity-check benchmarks, review ablations, assess robustness claims, decide whether an experiment supports a paper claim, or produce a machine-readable result-audit record for downstream paper planning.
+description: Audit ML/statistics experiment outputs for validity, confounds, statistical support, calibration, and mismatch between measured results and claimed conclusions. Use when asked to interpret results, sanity-check benchmarks, review ablations, assess robustness claims, decide whether an experiment supports a paper claim, or produce a machine-readable result-audit record for downstream paper planning. Not for formatting or summarizing results without a claim to test.
 ---
 
 # Research Results Auditor
@@ -24,6 +24,8 @@ description: Audit ML/statistics experiment outputs for validity, confounds, sta
 - Work from the prompt plus concrete local result files, tables, plots, logs, or reported numbers.
 - Do not require a suite root or experiment harness.
 - Use `source_mode=standalone`; retain exact artifact paths and bounded caveats.
+- For a sanity check with no downstream paper binding, answer in chat with: the claim, the artifacts read (paths), a bounded verdict, the strongest evidence against, and the runs not inspected. Write `results-audit.json` only when the result feeds `research-paper-plan` or a tracked gate.
+- A standalone audit that requests only exploratory assurance may omit `paper_id`; omitted `snapshot_continuity` and `independence` checks default to `not_assessed`.
 - If the request is really project sequencing or cross-stage coordination, invoke `research-pipeline-planner` first.
 
 ### Orchestrated mode
@@ -185,8 +187,11 @@ Structural validation:
 ```bash
 python scripts/validate_results_audit.py \
   --audit results-audit.json \
-  --narrative results-audit.md
+  --narrative results-audit.md \
+  --root .
 ```
+
+`--root` makes every `evidence_artifacts[].path` resolve to an existing file under the root and every experiment digest match the file's SHA-256. Without it the pass message says digests were not checked against files. Set top-level `source_revision` to the commit the digests were recorded at; when it differs from the root's current git `HEAD`, digest mismatches become warnings that name the revision. An empty draft (`audits: []`) reports `Draft: 0 audits`, not a pass.
 
 Orchestrated linked validation:
 
@@ -215,4 +220,4 @@ A passing validator establishes declared repository consistency, not scientific 
 ## Scripts
 
 - `scripts/init_results_audit.py`: initialize `results-audit.json` and `results-audit.md` without overwriting existing work unless `--force` is supplied.
-- `scripts/validate_results_audit.py`: validate audit structure, verdict preconditions, narrative anchors, and optional commitment/claim/run/verifier/evidence bindings.
+- `scripts/validate_results_audit.py`: validate audit structure, verdict preconditions, narrative anchors, and optional commitment/claim/run/verifier/evidence bindings; `--root` also checks evidence paths and experiment digests against the files.

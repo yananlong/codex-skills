@@ -6,6 +6,7 @@ import argparse
 import copy
 import json
 import os
+import sys
 from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
@@ -1232,7 +1233,7 @@ def command_pause_resume(args: argparse.Namespace, event_type: str) -> None:
 
 
 def command_status(args: argparse.Namespace) -> None:
-    state, items = replay(args.root.resolve(), write=True)
+    state, items = replay(args.root.resolve(), write=False)
     print(json.dumps({"state": state, "work_items": items}, indent=2, sort_keys=True))
 
 
@@ -1372,9 +1373,24 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+READ_ONLY_COMMANDS = {"status", "experiment-lineage"}
+EXISTING_SUITE_COMMANDS = READ_ONLY_COMMANDS | {"replay"}
+
+
 def main() -> int:
     args = build_parser().parse_args()
-    with runtime_lock(args.root.resolve()):
+    root = args.root.resolve()
+    if args.command in EXISTING_SUITE_COMMANDS and not (root / "harness-events.jsonl").is_file():
+        print(
+            f"error: no harness-events.jsonl at {root}; not a harness suite. "
+            "Locate the suite root that holds harness-events.jsonl before running runtime commands.",
+            file=sys.stderr,
+        )
+        return 1
+    if args.command in READ_ONLY_COMMANDS:
+        args.func(args)
+        return 0
+    with runtime_lock(root):
         args.func(args)
     return 0
 

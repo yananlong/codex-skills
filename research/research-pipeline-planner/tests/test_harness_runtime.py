@@ -88,6 +88,38 @@ class HarnessRuntimeTests(unittest.TestCase):
         self.assertEqual(before, json.loads((self.root / "work-items.json").read_text()))
         self.assertEqual(before["items"][0]["state"], "completed")
 
+    def snapshot(self) -> dict[str, bytes]:
+        return {
+            str(path.relative_to(self.root)): path.read_bytes()
+            for path in sorted(self.root.rglob("*")) if path.is_file()
+        }
+
+    def test_inspection_commands_refuse_root_without_event_log(self):
+        missing = self.root / "not-a-suite"
+        for command in ("status", "replay", "experiment-lineage"):
+            result = subprocess.run(
+                [sys.executable, str(SCRIPT), "--root", str(missing), command],
+                text=True, capture_output=True, check=False, env=self.env,
+            )
+            self.assertNotEqual(result.returncode, 0, msg=command)
+            self.assertIn("no harness-events.jsonl", result.stderr)
+            self.assertFalse(missing.exists(), msg=f"{command} created a phantom suite")
+            result = self.run_cli(command, expect=1)
+            self.assertIn("not a harness suite", result.stderr)
+            self.assertEqual(list(self.root.iterdir()), [], msg=f"{command} wrote files")
+
+    def test_status_and_lineage_are_read_only_on_existing_suite(self):
+        self.add(); self.start(); ep = self.write_episode(); self.submit(ep)
+        (self.root / ".harness.lock").unlink()
+        (self.root / "HARNESS_STATE.json").write_text("{}\n", encoding="utf-8")
+        before = self.snapshot()
+        status = json.loads(self.run_cli("status").stdout)
+        self.assertEqual(status["work_items"]["items"][0]["state"], "awaiting_verification")
+        self.run_cli("experiment-lineage")
+        self.assertEqual(before, self.snapshot())
+        self.run_cli("replay")
+        self.assertNotEqual(json.loads((self.root / "HARNESS_STATE.json").read_text()), {})
+
     def test_invalid_start_does_not_poison_log(self):
         self.add(); self.start()
         lines = (self.root / "harness-events.jsonl").read_text().splitlines()

@@ -1,6 +1,6 @@
 ---
 name: research-experiment-plan
-description: Convert a concrete research claim into a tracked, decisive experiment plan that works either as a standalone planning artifact or as the experiment stage inside a coordinated research workflow. Use when asked to design experiments, define baselines or ablations, decide run order, separate must-run from nice-to-have evidence, or turn a claim plus evaluation goal into a validation plan.
+description: Convert a concrete research claim into a tracked, decisive experiment plan that works either as a standalone planning artifact or as the experiment stage inside a coordinated research workflow. Use when asked to design experiments, define baselines or ablations, decide run order, separate must-run from nice-to-have evidence, or turn a claim plus evaluation goal into a validation plan. When existing results bear on the decision, run research-results-auditor first.
 ---
 
 # Research Experiment Plan
@@ -248,7 +248,9 @@ Record the result in `decision-gates.md` and in each affected block's `non_vacui
 - If existing results already exist, pull in `research-results-auditor`.
 - If the plan will later feed a draft or response to reviewers, keep outputs legible to `research-paper-plan` and `research-review-loop`.
 - Validate tracked packs with `scripts/validate_experiment_pack.py` before treating them as stable stage artifacts.
-- The default validator profile remains structural for backward compatibility. For confirmatory or high-stakes promotion, run it with `--assurance-profile confirmatory`; even that checks field presence, links, and internal consistency, not whether the declared controls actually held.
+- For a standalone plan, validate with `--assurance-profile exploratory`: it rejects placeholder or empty `claim`, `falsifier`, `metrics`, and `success_criterion` fields and empty decision-gate cells, so an untouched scaffold cannot pass.
+- The default validator profile remains structural for backward compatibility; it checks links only and passes an empty scaffold. For confirmatory or high-stakes promotion, run it with `--assurance-profile confirmatory`; even that checks field presence, links, and internal consistency, not whether the declared controls actually held.
+- `claim-map.json` and `run-blocks.json` may be bare arrays or versioned envelopes (`{"schema_version": ..., "plan_version": ..., "claims": [...]}` and `{..., "blocks": [...]}`). Under each table heading the validator parses only the first table whose header row starts with the canonical column (`Run ID`, `Gate ID`, `Order`), so append-only history tables below it are ignored. Experiment binding through `harness_runtime.py` and the linked results-audit and paper-plan profiles still require bare arrays.
 
 ## References
 
@@ -267,4 +269,4 @@ Record the result in `decision-gates.md` and in each affected block's `non_vacui
 ## Scripts
 
 - `scripts/init_experiment_pack.py`: create the full experiment-planning pack in a standalone directory or the suite's `experiment-plan/` directory, including execution and lineage scaffolds.
-- `scripts/validate_experiment_pack.py`: validate required headings, JSON structure, reciprocal claim/block links, gate bindings, execution declarations, lineage policy, tracker states, and confirmatory assurance fields without claiming executor isolation or scientific validity.
+- `scripts/validate_experiment_pack.py`: validate required headings, JSON structure (bare arrays or versioned envelopes), reciprocal claim/block links, gate bindings, execution declarations, lineage policy, tracker states, and profile-specific fields (`structural`, `exploratory`, `confirmatory`) without claiming executor isolation or scientific validity.

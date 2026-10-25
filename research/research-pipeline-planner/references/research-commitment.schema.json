@@ -79,13 +79,37 @@
           "decision": {"type": "string", "minLength": 1},
           "rationale": {"type": "string", "minLength": 1},
           "timestamp": {"type": "string"},
-          "evidence": {"type": "array"}
+          "evidence": {"type": "array"},
+          "to_identity_version": {"type": "integer", "minimum": 1},
+          "to_paper_id": {"type": "string"}
         }
       }
     },
     "predecessor_failures": {"type": "array"},
     "last_change_class": {"enum": ["D0", "D1", "D2", "D3", "D4"]},
-    "last_change_rationale": {"type": "string", "minLength": 1}
+    "last_change_rationale": {"type": "string", "minLength": 1},
+    "identity_anchors": {
+      "type": "object",
+      "description": "Optional digest-bound anchors used by the semantic-assurance transition ledger; definition_digest is the canonical digest of {id, definition}.",
+      "required": ["question", "central_object", "evidence_obligation"],
+      "additionalProperties": {"$ref": "#/$defs/identity_anchor"},
+      "properties": {
+        "question": {"$ref": "#/$defs/identity_anchor"},
+        "central_object": {"$ref": "#/$defs/identity_anchor"},
+        "evidence_obligation": {"$ref": "#/$defs/identity_anchor"}
+      }
+    }
+  },
+  "$defs": {
+    "identity_anchor": {
+      "type": "object",
+      "required": ["id", "definition", "definition_digest"],
+      "properties": {
+        "id": {"type": "string", "minLength": 1},
+        "definition": {"type": "string", "minLength": 1},
+        "definition_digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+      }
+    }
   },
   "allOf": [
     {

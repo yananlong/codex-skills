@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any
@@ -73,6 +75,8 @@ INDEPENDENCE_DIMENSIONS = {
     "evaluation",
     "advancement_authority",
 }
+# Checks that default to not_assessed when omitted from a standalone exploratory audit.
+LIGHTWEIGHT_DEFAULT_CHECKS = ("snapshot_continuity", "independence")
 FAILURE_STATUSES = {"open", "resolved", "accepted_with_narrowing"}
 IDENTIFIER_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,191}$")
 DIGEST_RE = re.compile(r"^[0-9a-f]{64}$")
@@ -121,7 +125,18 @@ def validate_identifier(value: Any, label: str, errors: list[str]) -> str:
     return str(value)
 
 
-def validate_checks(audit: dict[str, Any], label: str, complete: bool, errors: list[str]) -> dict[str, str]:
+def is_lightweight(audit: Any) -> bool:
+    """A standalone audit that requests only exploratory assurance."""
+    return (
+        isinstance(audit, dict)
+        and audit.get("source_mode") == "standalone"
+        and audit.get("requested_assurance_class") == "exploratory"
+    )
+
+
+def validate_checks(
+    audit: dict[str, Any], label: str, complete: bool, errors: list[str], lightweight: bool = False
+) -> dict[str, str]:
     entries = audit.get("check_results")
     if not isinstance(entries, list):
         errors.append(f"{label}.check_results must be a list")
@@ -148,6 +163,9 @@ def validate_checks(audit: dict[str, Any], label: str, complete: bool, errors: l
         evidence_paths = entry.get("evidence_paths", [])
         if not isinstance(evidence_paths, list) or any(not meaningful(path) for path in evidence_paths):
             errors.append(f"{item_label}.evidence_paths must be a list of substantive paths")
+    if lightweight:
+        for check_id in LIGHTWEIGHT_DEFAULT_CHECKS:
+            checks.setdefault(check_id, "not_assessed")
     if complete:
         missing = sorted(REQUIRED_CHECKS - set(checks))
         if missing:
@@ -458,7 +476,7 @@ def validate_audits(data: dict[str, Any], complete: bool, narrative: str, errors
         runs = validate_source_runs(audit, label, complete, str(source_mode), errors)
         validate_run_selection(audit, label, complete, errors)
         artifacts = validate_evidence_artifacts(audit, label, complete, errors)
-        checks = validate_checks(audit, label, complete, errors)
+        checks = validate_checks(audit, label, complete, errors, is_lightweight(audit))
         validate_independence(audit, label, complete, str(attained), checks, errors)
         validate_failure_dispositions(audit, label, errors)
         limitations = audit.get("limitations")
@@ -674,6 +692,77 @@ def validate_linked(
                 errors.append(f"audit {audit_id} experiment evidence digest mismatch for {path}")
 
 
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def git_head(root: Path) -> str | None:
+    try:
+        cp = subprocess.run(
+            ["git", "-C", str(root), "rev-parse", "HEAD"], text=True, capture_output=True, check=False
+        )
+    except OSError:
+        return None
+    return cp.stdout.strip() if cp.returncode == 0 and cp.stdout.strip() else None
+
+
+def resolve_revision(root: Path, revision: str) -> str:
+    try:
+        cp = subprocess.run(
+            ["git", "-C", str(root), "rev-parse", "--verify", "--quiet", f"{revision}^{{commit}}"],
+            text=True, capture_output=True, check=False,
+        )
+    except OSError:
+        return revision
+    return cp.stdout.strip() if cp.returncode == 0 and cp.stdout.strip() else revision
+
+
+def validate_evidence_files(
+    data: dict[str, Any], audits: list[dict[str, Any]], root: Path, errors: list[str], warnings: list[str]
+) -> None:
+    """Check that evidence paths exist under root and experiment digests match the bytes."""
+    root = root.resolve()
+    if not root.is_dir():
+        errors.append(f"--root is not a directory: {root}")
+        return
+    revision = data.get("source_revision")
+    stale_revision = False
+    if meaningful(revision):
+        head = git_head(root)
+        if head is not None:
+            stale_revision = resolve_revision(root, str(revision)) != head
+    for audit in audits:
+        audit_id = audit.get("audit_id", "<unknown>")
+        for artifact in audit.get("evidence_artifacts", []):
+            if not isinstance(artifact, dict) or not meaningful(artifact.get("path")):
+                continue
+            path = str(artifact["path"])
+            target = (root / path).resolve()
+            if root != target and root not in target.parents:
+                errors.append(f"audit {audit_id} evidence path escapes --root: {path}")
+                continue
+            if not target.is_file():
+                errors.append(f"audit {audit_id} evidence path does not exist under --root: {path}")
+                continue
+            digest = artifact.get("digest")
+            if artifact.get("source") != "experiment" or not meaningful(digest):
+                continue
+            actual = sha256_file(target)
+            if actual == digest:
+                continue
+            message = f"audit {audit_id} experiment evidence digest does not match file bytes for {path}"
+            if stale_revision:
+                warnings.append(
+                    f"{message}; digests were recorded at source_revision {revision}, which differs from HEAD"
+                )
+            else:
+                errors.append(message)
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--audit", required=True, type=Path)
@@ -682,12 +771,18 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--commitment", type=Path)
     parser.add_argument("--claim-map", type=Path)
     parser.add_argument("--work-items", type=Path)
+    parser.add_argument(
+        "--root",
+        type=Path,
+        help="Repository or suite root; when given, evidence paths must exist under it and experiment digests must match the files.",
+    )
     return parser.parse_args()
 
 
 def main() -> int:
     args = parse_args()
     errors: list[str] = []
+    warnings: list[str] = []
     data = read_json(args.audit, "results-audit JSON", errors)
     narrative = read_text(args.narrative, "results-audit narrative", errors)
     if not isinstance(data, dict):
@@ -703,9 +798,17 @@ def main() -> int:
         if not isinstance(data.get("identity_version"), int) or data.get("identity_version", 0) < 1:
             errors.append("results-audit.identity_version must be a positive integer")
         complete = status == "complete"
-        if complete and not meaningful(data.get("paper_id")):
+        raw_audits = data.get("audits")
+        paper_id_optional = (
+            isinstance(raw_audits, list) and bool(raw_audits) and all(is_lightweight(audit) for audit in raw_audits)
+        )
+        if complete and not meaningful(data.get("paper_id")) and not paper_id_optional:
             errors.append("complete results-audit requires substantive paper_id")
+        if "source_revision" in data and not meaningful(data.get("source_revision")):
+            errors.append("results-audit.source_revision must be a substantive string when present")
         audits = validate_audits(data, complete, narrative, errors)
+        if args.root is not None:
+            validate_evidence_files(data, audits, args.root, errors, warnings)
         if args.assurance_profile == "linked":
             if status != "complete":
                 errors.append("linked assurance profile requires results-audit.status=complete")
@@ -716,22 +819,37 @@ def main() -> int:
                 claim_map = read_json(args.claim_map, "claim-map", errors)
                 work_items = read_json(args.work_items, "work-items", errors)
                 validate_linked(data, audits, commitment, claim_map, work_items, errors)
+    for warning in warnings:
+        print(f"warning: {warning}")
     if errors:
         print("Validation failed:")
         for error in errors:
             print(f"- {error}")
         return 1
+    file_note = (
+        f" Evidence paths and experiment digests were checked against files under {args.root}."
+        if args.root is not None
+        else " Evidence digests not checked against files (pass --root to check them)."
+    )
+    if isinstance(data, dict) and isinstance(data.get("audits"), list) and not data["audits"]:
+        print(
+            f"Draft: 0 audits (status {data.get('status')}). Nothing was validated beyond the empty scaffold; "
+            "do not report this as a passing audit."
+        )
+        return 0
     if args.assurance_profile == "linked":
         print(
             "Validation passed: machine-readable result audits, narrative anchors, claim IDs, source runs, "
             "episode digests, submitted and verified run metadata, run-selection accounting, and experiment evidence digests are internally linked. "
             "This establishes repository-local consistency only; it does not establish executor isolation, "
             "external immutability, scientific validity, or independent verification beyond the recorded evidence."
+            + file_note
         )
     else:
         print(
             "Validation passed: the result-audit pack is structurally consistent. This does not establish "
             "semantic validity, source-run authenticity, scientific support, or independent verification."
+            + file_note
         )
     return 0
 

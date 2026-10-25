@@ -7,16 +7,25 @@ description: Coordinate research as either a standalone staged planning pass or 
 
 ## Quick start
 
-1. Inspect the current project, harness state, and `research-commitment.json` before asking broad reset questions.
-2. Use this skill as the default first pass for project-level sequencing, persistent coordination, or work spanning two or more research stages.
-3. Stay standalone for a direct one-stage task; use orchestrated mode when work must survive context loss, retries, sessions, tools, or agent handoffs.
-4. In orchestrated mode, initialize the suite with `scripts/init_research_pack.py`, then use `scripts/harness_runtime.py` as the only writer for work-item and run state.
-5. Freeze one paper identity before moving from exploration into a paper-bearing route; keep one active paper identity and one active work item by default.
-6. Freeze each work item with explicit inputs, outputs, acceptance checks, permissions, budgets, dependencies, predecessor failures, evidence class, and relation to the commitment contract.
-7. For experiment execution, bind the work item to one frozen claim map, run block, decision gate, and declared snapshot set using `references/experiment-execution-binding.md`.
-8. Run the assigned stage skill as a bounded worker, require an episode package, and authorize transition only after verifier inspection.
-9. Apply `references/epistemic-assurance-contract.md`, `references/agentic-harness-contract.md`, `references/stage-gates.md`, and `references/research-commitment-contract.md` as appropriate.
-10. Treat D3-D4 identity changes as pivot requests, not ordinary revisions.
+Choose the mode first. Use orchestrated mode only when the project already has a `harness-events.jsonl` (see workflow step 1 to locate it) or the user explicitly asks for durable state. Otherwise stay standalone.
+
+### Standalone (default)
+
+1. Read the project's current-status documents and any `research-commitment.json`; do not initialize a harness or require a suite root.
+2. Produce the requested brief, phase plan, milestones, or next decision directly.
+3. Route the next piece of work to one stage skill.
+4. Treat a proposed D3-D4 identity change as a question for the user, not an ordinary revision.
+
+### Orchestrated
+
+1. Locate the suite root that holds `harness-events.jsonl`, then inspect harness state and `research-commitment.json` before asking broad reset questions.
+2. Initialize a new suite with `scripts/init_research_pack.py` (`--adopt` for an existing project), then use `scripts/harness_runtime.py` as the only writer for work-item and run state.
+3. Freeze one paper identity before moving from exploration into a paper-bearing route; keep one active paper identity and one active work item by default.
+4. Freeze each work item with explicit inputs, outputs, acceptance checks, permissions, budgets, dependencies, predecessor failures, evidence class, and relation to the commitment contract.
+5. For experiment execution, bind the work item to one frozen claim map, run block, decision gate, and declared snapshot set using `references/experiment-execution-binding.md`.
+6. Run the assigned stage skill as a bounded worker, require an episode package, and authorize transition only after verifier inspection.
+7. Apply `references/epistemic-assurance-contract.md`, `references/agentic-harness-contract.md`, `references/stage-gates.md`, and `references/research-commitment-contract.md` as appropriate.
+8. Treat D3-D4 identity changes as pivot requests, not ordinary revisions.
 
 ## Routing triggers
 
@@ -52,30 +61,33 @@ Do not force this skill for a clear one-stage request unless the user asks for p
 
 ## Hard stops
 
-- Stop if the objective is too vague to define a verifier-readable work item.
-- Stop if critical constraints, permissions, or acceptance criteria are missing and execution could cause substantial waste or consequential side effects.
-- Stop a committed route if `research-commitment.json` is missing or invalid.
-- Do not advance from prose, file presence, a worker's self-report, or a validator pass alone.
-- Do not let a worker change its frozen objective, acceptance checks, selection rule, metric, gate, or paper identity after starting; create or revise the work item and record an event.
-- Do not treat technical experiment completion as scientific gate success.
-- Do not unlock a downstream experiment solely because its predecessor completed; require its declared activation gate when one exists.
-- Do not authorize conceptual reconsideration before the declared next mandatory evidence artifact unless a recorded pivot trigger or kill condition has fired.
-- Do not enact D3-D4 changes without an explicit pivot request and planner authorization.
-- Do not retry an unchanged failed action without a documented changed hypothesis or transient-failure basis.
-- Do not call same-process verification independent; disclose self-review.
-- Do not promote exploratory or outcome-informed evidence because the artifact is polished, internally consistent, structurally valid, or harness-complete.
-- Stop confirmatory or high-stakes promotion when the decision contract is incomplete, failure states are omitted, hidden truth leaks, independence is nominal, or predecessor failures lack evidence-backed disposition.
+- Orchestrated: stop if the objective is too vague to define a verifier-readable work item.
+- Both modes: stop if critical constraints, permissions, or acceptance criteria are missing and execution could cause substantial waste or consequential side effects.
+- Orchestrated: stop a committed route if `research-commitment.json` is missing or invalid.
+- Orchestrated: never run `harness_runtime.py` at a root without `harness-events.jsonl`.
+- Both modes: do not advance from prose, file presence, a worker's self-report, or a validator pass alone.
+- Orchestrated: do not let a worker change its frozen objective, acceptance checks, selection rule, metric, gate, or paper identity after starting; create or revise the work item and record an event.
+- Both modes: do not treat technical experiment completion as scientific gate success.
+- Orchestrated: do not unlock a downstream experiment solely because its predecessor completed; require its declared activation gate when one exists.
+- Both modes: do not authorize conceptual reconsideration before the declared next mandatory evidence artifact unless a recorded pivot trigger or kill condition has fired.
+- Both modes: do not enact D3-D4 changes without an explicit pivot request and authorization (planner authorization in orchestrated mode, the user's in standalone mode).
+- Both modes: do not retry an unchanged failed action without a documented changed hypothesis or transient-failure basis.
+- Both modes: do not call same-process verification independent; disclose self-review.
+- Both modes: do not promote exploratory or outcome-informed evidence because the artifact is polished, internally consistent, structurally valid, or harness-complete.
+- Both modes: stop confirmatory or high-stakes promotion when the decision contract is incomplete, failure states are omitted, hidden truth leaks, independence is nominal, or predecessor failures lack evidence-backed disposition.
 
 ## Workflow
 
 ### 1) Inspect and reconstruct state
 
 - Distinguish no structured artifacts, legacy suite, harness-backed suite, and standalone stage artifacts.
+- Locate suites before running anything: suites are often nested below the repo root (for example `projects/*/`, `plan/*/`, `experiments/*/`). Find them with `find . -path ./.git -prune -o \( -name harness-events.jsonl -o -name research-commitment.json \) -print`.
+- Never run runtime commands at a root without `harness-events.jsonl`. `status` and `experiment-lineage` are read-only and refuse such a root; `replay` is the only command that rewrites projections.
 - For a harness suite, run:
 
 ```bash
-python scripts/harness_runtime.py --root <suite> replay
 python scripts/harness_runtime.py --root <suite> status
+python scripts/harness_runtime.py --root <suite> replay   # only to rewrite drifted projections
 ```
 
 - Identify the active paper identity, active work, blocked items, attempts, latest checkpoint, unverified episodes, unresolved predecessor failures, projection drift, and any apparent D0-D4 identity change.
@@ -83,9 +95,9 @@ python scripts/harness_runtime.py --root <suite> status
 
 ### 2) Choose the operating mode and establish paper identity
 
-- Stay standalone for a direct answer or one-off stage.
-- Initialize orchestrated mode when multiple stages need stable handoffs, long-running execution, resumability, traceability, retries, approvals, or agent delegation.
-- Create new harness packs by default; use `--legacy` only for compatibility testing.
+- Stay standalone by default, including for milestone plans, phase plans, and next-step decisions.
+- Use orchestrated mode only for an existing `harness-events.jsonl` or an explicit user request for durable state, such as resumable multi-stage execution, retries, approvals, or agent delegation. Spanning several sessions alone is not a reason to initialize a harness.
+- Create new harness packs by default; use `--adopt` for an existing project and `--legacy` only for compatibility testing.
 - During exploration, preserve candidate, rejection, and selection history without prematurely freezing a paper.
 - Before moving to `committed`, populate the main question, central object or phenomenon, contribution class, minimum publishable claim, primary evidence obligation, next mandatory evidence artifact, permitted refinements, pivot triggers, kill conditions, successor policy, and reconsideration gate.
 - Require literature assurance proportionate to any novelty or priority claim used to justify commitment.
@@ -192,6 +204,9 @@ Run recurring entropy-audit work items to remove stale instructions, duplicate s
 - `references/suite-contract.md`
 - `references/stage-gates.md`
 - `references/review-stage-contract.md`
+- `references/result-audit-paper-binding-contract.md`: authority map when audited results move into paper claims; read for a results-to-paper handoff.
+- `references/semantic-assurance-contract.md`: commitment-transition ledger and identity anchors; read when recording D0-D4 transitions in `commitment-transitions.json`.
+- `references/prospective-evaluation-contract.md`: maintainer study protocol for evaluating the suite itself; not needed for project work.
 - `references/research-brief-template.md`
 - `references/task-board-template.md`
 - `references/decision-log-template.md`
@@ -199,8 +214,10 @@ Run recurring entropy-audit work items to remove stale instructions, duplicate s
 
 ## Scripts
 
-- `scripts/init_research_pack.py`: initialize a harness-backed suite and an exploring paper-commitment artifact by default; `--legacy` creates the compatibility layout. `--force` preserves stage outputs and the existing commitment, while `--force --reset-stage-artifacts` or `--force --reset-commitment` explicitly resets those scopes.
+- `scripts/init_research_pack.py`: initialize a harness-backed suite and an exploring paper-commitment artifact in a new directory; `--legacy` creates the compatibility layout. For an existing project without `harness-events.jsonl`, use `--adopt`: it creates only missing control files and directories, deletes and overwrites nothing, refuses if an event log exists, and records one `legacy_import` observation listing pre-existing stage directories with file digests. `--force` deletes and regenerates `task-board.md`, `artifact-index.md`, `HARNESS_STATE.json`, `work-items.json`, `harness-events.jsonl`, `episodes/`, `checkpoints/`, and `.harness.lock`; it refuses when the event log holds more than one event unless `--discard-event-history` is also passed. `--force` never deletes `research-brief.md` or `decision-log.md`; it writes `research-brief.template.md` and `decision-log.template.md` beside them. `--force --reset-stage-artifacts` also deletes every stage-output directory, and `--force --reset-commitment` also deletes `research-commitment.json`.
 - `scripts/init_research_commitment.py`: initialize or explicitly replace `research-commitment.json`.
-- `scripts/validate_research_commitment.py`: validate commitment structure and D3-D4 authorization records without claiming scientific validity.
-- `scripts/harness_runtime.py`: single-writer event-sourced runtime for work items, experiment bindings, lineage, gate-conditioned activation, episodes, verification, checkpoints, pause/resume, retries, replay, and status.
+- `scripts/validate_research_commitment.py`: validate commitment structure, optional `identity_anchors`, and D3-D4 authorization records (which must name the current `to_identity_version`; legacy unversioned entries pass with a warning) without claiming scientific validity.
+- `scripts/harness_runtime.py`: single-writer event-sourced runtime for work items, experiment bindings, lineage, gate-conditioned activation, episodes, verification, checkpoints, pause/resume, retries, replay, and status. `status` and `experiment-lineage` are read-only; `replay` is the only command that rewrites projections; all three refuse a root without `harness-events.jsonl`.
+- `scripts/validate_semantic_assurance.py`: validate the commitment-transition ledger, literature semantics, and evidence semantics against `references/semantic-assurance-contract.md`.
+- `scripts/init_prospective_evaluation.py` and `scripts/validate_prospective_evaluation.py`: maintainer tooling for prospective studies of the suite under `references/prospective-evaluation-contract.md`; not used in project work.
 - `scripts/validate_research_pack.py`: validate legacy or harness profiles, commitment structure, event-chain integrity, replayed projection consistency, experiment bindings, submission snapshots, and gate/lineage references.

@@ -55,7 +55,9 @@ Each entry is an object with at least:
 }
 ```
 
-D3 and D4 states outside exploration require an entry whose decision is `authorize-D3` or `close-and-create-D4`.
+D3 and D4 states outside exploration require an entry whose decision is `authorize-D3` (for D3) or `close-and-create-D4` (for D4) and that names the identity it authorizes with `to_identity_version` (and optionally `to_paper_id`), for example `{"decision": "authorize-D3", "to_identity_version": 4, "rationale": "..."}`. The named version must equal the current `identity_version`, so an old authorization cannot cover a later pivot. Entries without `to_identity_version` are accepted as legacy authorizations with a validator warning.
+
+`identity_anchors` is optional. When present it must hold digest-bound `question`, `central_object`, and `evidence_obligation` anchors, checked exactly as the semantic-assurance transition ledger checks them.
 
 ## Identity-change classes
 
@@ -75,7 +77,7 @@ D3 and D4 states outside exploration require an entry whose decision is `authori
 6. A new attractive idea defaults to the successor policy. It does not replace the active paper merely because it scores better after later information became available.
 7. Conceptual reconsideration is blocked until `next_mandatory_evidence_artifact` exists and passes its declared gate, unless a recorded pivot trigger or kill condition has fired.
 8. Reframing, renaming, deleting a claim, or changing contribution class does not resolve predecessor failures. Preserve their dispositions explicitly.
-9. `scripts/init_research_pack.py --force` preserves an existing commitment. Reset it only with the explicit `--reset-commitment` flag or `init_research_commitment.py --force`.
+9. `scripts/init_research_pack.py --force` and `--adopt` preserve an existing commitment. Reset it only with the explicit `--reset-commitment` flag or `init_research_commitment.py --force`.
 
 ## Pivot request
 

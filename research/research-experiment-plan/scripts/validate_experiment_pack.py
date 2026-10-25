@@ -63,32 +63,74 @@ def require_list(entry: dict, field: str, label: str, errors: list[str], *, none
     return value
 
 
-def table_rows(markdown: str, heading: str) -> list[list[str]]:
+def _split_cells(line: str) -> list[str]:
+    return [cell.strip() for cell in line.strip().strip("|").split("|")]
+
+
+def table_rows(markdown: str, heading: str, header_first_cell: str | None = None) -> list[list[str]]:
+    """Return data rows under a heading.
+
+    When ``header_first_cell`` is given, only the first table whose header row starts with that
+    canonical column is parsed, so appended history tables under the same heading are ignored.
+    Without a matching header, every table row under the heading is parsed (legacy behaviour).
+    """
     start = markdown.find(heading)
     if start < 0:
         return []
     tail = markdown[start + len(heading):]
     next_heading = tail.find("\n#")
     section = tail if next_heading < 0 else tail[:next_heading]
-    rows: list[list[str]] = []
+    tables: list[list[list[str]]] = []
+    current: list[list[str]] = []
     for line in section.splitlines():
         stripped = line.strip()
         if not stripped.startswith("|"):
+            if current:
+                tables.append(current)
+                current = []
             continue
-        cells = [cell.strip() for cell in stripped.strip("|").split("|")]
-        if not cells or all(set(cell) <= {"-", ":"} for cell in cells):
-            continue
-        if cells[0].lower() in {"run id", "gate id", "order", "claim id", "block"}:
-            continue
-        rows.append(cells)
+        current.append(_split_cells(stripped))
+    if current:
+        tables.append(current)
+    if header_first_cell is not None:
+        for table in tables:
+            if table and table[0] and table[0][0].lower() == header_first_cell:
+                tables = [table[1:]]
+                break
+    rows: list[list[str]] = []
+    for table in tables:
+        for cells in table:
+            if not cells or all(set(cell) <= {"-", ":"} for cell in cells):
+                continue
+            if cells[0].lower() in {"run id", "gate id", "order", "claim id", "block"}:
+                continue
+            rows.append(cells)
     return rows
+
+
+ENVELOPE_KEYS = {"claim-map.json": "claims", "run-blocks.json": "blocks"}
+
+
+def unwrap_envelope(data: Any, label: str, errors: list[str]) -> Any:
+    """Accept a bare array or a versioned envelope {schema_version, plan_version, claims|blocks: [...]}."""
+    if not isinstance(data, dict):
+        return data
+    key = ENVELOPE_KEYS[label]
+    entries = data.get(key)
+    if not isinstance(entries, list):
+        errors.append(f"{label} envelope must contain a '{key}' array")
+        return None
+    for field in ("schema_version", "plan_version"):
+        if field in data and not isinstance(data[field], (str, int)):
+            errors.append(f"{label}.{field} must be a string or integer")
+    return entries
 
 
 def validate_claims(data, errors: list[str], confirmatory: bool) -> tuple[dict[str, dict], dict[str, set[str]]]:
     claims: dict[str, dict] = {}
     links: dict[str, set[str]] = {}
     if not isinstance(data, list) or not data:
-        errors.append("claim-map.json must be a non-empty JSON array")
+        errors.append("claim-map.json must be a non-empty JSON array or a {schema_version, plan_version, claims: [...]} envelope")
         return claims, links
     for index, entry in enumerate(data, 1):
         label = f"claim-map.json[{index}]"
@@ -215,7 +257,7 @@ def validate_blocks(data, claims: dict[str, dict], errors: list[str], confirmato
     blocks: dict[str, dict] = {}
     links: dict[str, set[str]] = {}
     if not isinstance(data, list) or not data:
-        errors.append("run-blocks.json must be a non-empty JSON array")
+        errors.append("run-blocks.json must be a non-empty JSON array or a {schema_version, plan_version, blocks: [...]} envelope")
         return blocks, links
     for index, entry in enumerate(data, 1):
         label = f"run-blocks.json[{index}]"
@@ -328,8 +370,24 @@ def validate_links(claims: dict[str, dict], claim_links: dict[str, set[str]], bl
                 errors.append(f"claim/block links are not reciprocal: {block_id} -> {claim_id}")
 
 
+def validate_exploratory_content(claim_map: Any, run_blocks: Any, errors: list[str]) -> None:
+    """Reject the untouched init scaffold: claims, falsifiers, metrics, and success criteria must be real."""
+    for index, entry in enumerate(claim_map if isinstance(claim_map, list) else [], 1):
+        if isinstance(entry, dict):
+            for field in ("claim", "falsifier"):
+                require_string(entry, field, f"claim-map.json[{index}]", errors)
+    for index, entry in enumerate(run_blocks if isinstance(run_blocks, list) else [], 1):
+        if not isinstance(entry, dict):
+            continue
+        label = f"run-blocks.json[{index}]"
+        require_string(entry, "success_criterion", label, errors)
+        metrics = entry.get("metrics")
+        if not isinstance(metrics, list) or not metrics or any(not meaningful(value) for value in metrics):
+            errors.append(f"{label}.metrics must be a non-empty list of substantive metric names")
+
+
 def validate_gates(markdown: str, block_ids: set[str], errors: list[str], confirmatory: bool) -> dict[str, str]:
-    rows = table_rows(markdown, "# Decision Gates")
+    rows = table_rows(markdown, "# Decision Gates", "gate id")
     if not rows:
         errors.append("decision-gates.md has no gate rows")
         return {}
@@ -368,7 +426,7 @@ def validate_block_gate_links(blocks: dict[str, dict], gate_map: dict[str, str],
 
 
 def validate_tracker(markdown: str, block_ids: set[str], gate_ids: set[str], errors: list[str]) -> None:
-    rows = table_rows(markdown, "# Experiment Tracker")
+    rows = table_rows(markdown, "# Experiment Tracker", "run id")
     if not rows:
         errors.append("experiment-tracker.md has no tracker rows")
         return
@@ -387,7 +445,7 @@ def validate_tracker(markdown: str, block_ids: set[str], gate_ids: set[str], err
 
 
 def validate_run_order(plan: str, block_ids: set[str], gate_ids: set[str], errors: list[str]) -> None:
-    rows = table_rows(plan, "## Run Order")
+    rows = table_rows(plan, "## Run Order", "order")
     if not rows:
         errors.append("experiment-plan.md has no run-order rows")
         return
@@ -443,7 +501,13 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ("plan", "tracker", "claim-map", "run-blocks", "decision-gates", "bridge"):
         parser.add_argument(f"--{name}", required=True)
-    parser.add_argument("--assurance-profile", choices=("structural", "confirmatory"), default="structural")
+    parser.add_argument(
+        "--assurance-profile",
+        choices=("structural", "exploratory", "confirmatory"),
+        default="structural",
+        help="structural: links only; exploratory: also rejects placeholder claims, falsifiers, metrics, "
+        "success criteria, and gate cells; confirmatory: full class-specific assurance fields.",
+    )
     return parser
 
 
@@ -464,13 +528,18 @@ def main() -> int:
     for heading in REQUIRED_PLAN_HEADINGS:
         if heading not in plan:
             errors.append(f"plan: missing required heading '{heading}'")
+    claim_map = unwrap_envelope(claim_map, "claim-map.json", errors)
+    run_blocks = unwrap_envelope(run_blocks, "run-blocks.json", errors)
     if "# Experiment Tracker" not in tracker:
         errors.append("tracker: missing '# Experiment Tracker' heading")
     confirmatory = args.assurance_profile == "confirmatory"
+    exploratory = args.assurance_profile == "exploratory"
+    if exploratory:
+        validate_exploratory_content(claim_map, run_blocks, errors)
     claims, claim_links = validate_claims(claim_map, errors, confirmatory)
     blocks, block_links = validate_blocks(run_blocks, claims, errors, confirmatory)
     validate_links(claims, claim_links, blocks, block_links, errors, confirmatory)
-    gate_map = validate_gates(gates, set(blocks), errors, confirmatory)
+    gate_map = validate_gates(gates, set(blocks), errors, confirmatory or exploratory)
     validate_block_gate_links(blocks, gate_map, errors, confirmatory)
     validate_tracker(tracker, set(blocks), set(gate_map), errors)
     validate_run_order(plan, set(blocks), set(gate_map), errors)
@@ -487,6 +556,12 @@ def main() -> int:
             "class-specific assurance fields are structurally present and internally consistent. "
             "This does not establish executor isolation, immutable inputs, scientific validity, or "
             "independent verification."
+        )
+    elif exploratory:
+        print(
+            "Validation passed: claims, falsifiers, metrics, success criteria, and decision-gate cells are "
+            "filled in, and claim/block/gate/tracker links are consistent. This does not certify semantic "
+            "validity, non-vacuity, or evidential sufficiency."
         )
     else:
         print(

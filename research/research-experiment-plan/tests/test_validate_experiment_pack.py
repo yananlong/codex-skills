@@ -244,5 +244,53 @@ x
         self.assertIn("unsupported relations", cp.stdout)
 
 
+    def init_args(self, init_root: Path, profile: str) -> list[str]:
+        args = [sys.executable, str(SCRIPT)]
+        for name in self.paths:
+            args += [f"--{name}", str(init_root / self.paths[name].name)]
+        return args + ["--assurance-profile", profile]
+
+    def test_exploratory_profile_rejects_untouched_init_pack(self):
+        init_root = self.root / "fresh"
+        cp = subprocess.run([sys.executable, str(INIT), str(init_root)], text=True, capture_output=True)
+        self.assertEqual(cp.returncode, 0, cp.stderr)
+        cp = subprocess.run(self.init_args(init_root, "exploratory"), text=True, capture_output=True)
+        self.assertEqual(cp.returncode, 1, msg=cp.stdout + cp.stderr)
+        for text in (".claim must be", ".falsifier must be", ".success_criterion must be", ".metrics must be", "proceed if must be substantive"):
+            self.assertIn(text, cp.stdout)
+
+    def test_exploratory_profile_accepts_filled_pack(self):
+        self.claims[0]["evidence_class"] = "exploratory"
+        self.blocks[0]["evidence_class"] = "exploratory"
+        self.write_all()
+        cp = self.run_validator(profile="exploratory")
+        self.assertIn("are filled in", cp.stdout)
+
+    def test_exploratory_profile_rejects_empty_gate_cell(self):
+        text = self.paths["decision-gates"].read_text().replace("| criterion fails |", "| |")
+        self.paths["decision-gates"].write_text(text)
+        cp = self.run_validator(profile="exploratory", expect=1)
+        self.assertIn("stop if must be substantive", cp.stdout)
+
+    def test_versioned_envelopes_are_accepted(self):
+        self.paths["claim-map"].write_text(json.dumps({"schema_version": "1.0", "plan_version": "v2", "claims": self.claims}))
+        self.paths["run-blocks"].write_text(json.dumps({"schema_version": "1.0", "plan_version": "v2", "blocks": self.blocks}))
+        self.run_validator()
+        self.paths["run-blocks"].write_text(json.dumps({"schema_version": "1.0", "items": self.blocks}))
+        cp = self.run_validator(expect=1)
+        self.assertIn("envelope must contain a 'blocks' array", cp.stdout)
+
+    def test_history_table_under_tracker_heading_is_ignored(self):
+        text = self.paths["tracker"].read_text() + """
+Superseded rows (append-only history):
+
+| Run ID | Block ID | Status |
+| --- | --- | --- |
+| R0 | B0 | dropped |
+"""
+        self.paths["tracker"].write_text(text)
+        self.run_validator()
+
+
 if __name__ == "__main__":
     unittest.main()
