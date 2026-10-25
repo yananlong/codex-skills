@@ -8,6 +8,14 @@
     "should_trigger": true
   },
   {
+    "query": "before we write anything, outline the ICLR paper from paper-plan/ and the audits, one line per paragraph, I want to edit it first",
+    "should_trigger": true
+  },
+  {
+    "query": "we have the data and the lit review but no claims decided yet, what would the paper's skeleton look like? check with me before drafting",
+    "should_trigger": true
+  },
+  {
     "query": "the paper plan and claim-evidence bindings are validated, start drafting the paper, methods and results first",
     "should_trigger": true
   },

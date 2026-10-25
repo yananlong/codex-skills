@@ -1209,13 +1209,14 @@
     {
       "agent_metadata": {},
       "capabilities": [
+        "interactive",
         "technical-writing",
         "validation"
       ],
-      "description": "Kickstart the writing of a manuscript section, abstract, technical report, or rebuttal response from its supporting artifacts (result audits, data tables and figures, experiment plans, literature reviews and evidence tables, novelty decisions, paper plans and claim-evidence bindings, rebuttal issue boards, author notes). Inventories the artifacts, builds a claim ledger that says what the draft may assert and at what strength, writes a one-page brief, drafts evidence-bearing sections before framing sections under the drafting contract, and gates the draft (every number traced to a source, machine-prose tells under a ceiling, claims matched to the ledger) before handing it to technical-writing-reviser. Use when there is no draft yet, or a section must be written from scratch, or a results folder and literature review need turning into prose, or the first draft of a reviewer response is needed from a decided issue board. Do not use to revise prose that exists (technical-writing-reviser), to smooth flow (prose-flow-improver), to decide the manuscript's claims and exhibits (research-paper-plan), to audit results (research-results-auditor), to decide what a rebuttal concedes (research-rebuttal), or to write claims no artifact supports.",
+      "description": "Kickstart the writing of a manuscript section, abstract, technical report, or rebuttal response from its supporting artifacts (result audits, data tables and figures, experiment plans, literature reviews and evidence tables, novelty decisions, paper plans and claim-evidence bindings, rebuttal issue boards, author notes), working with the author at checkpoints. Inventories the artifacts, builds a claim ledger that says what the draft may assert and at what strength, produces a paragraph-level outline for the author to edit before any prose is written, then drafts section by section under the drafting contract, evidence-bearing sections first, showing each section with its gates (every number traced to a source, machine-prose tells under a ceiling, claims matched to the ledger) before handing the whole to technical-writing-reviser. Use when there is no draft yet, when the author wants an outline before committing to prose, when a results folder and literature review need turning into a paper or report, or when the first draft of a reviewer response is needed from a decided issue board. Do not use to revise prose that exists (technical-writing-reviser), to smooth flow (prose-flow-improver), to decide the manuscript's claims and exhibits (research-paper-plan), to audit results (research-results-auditor), to decide what a rebuttal concedes (research-rebuttal), or to write claims no artifact supports.",
       "domain": "writing",
       "frontmatter": {
-        "description": "Kickstart the writing of a manuscript section, abstract, technical report, or rebuttal response from its supporting artifacts (result audits, data tables and figures, experiment plans, literature reviews and evidence tables, novelty decisions, paper plans and claim-evidence bindings, rebuttal issue boards, author notes). Inventories the artifacts, builds a claim ledger that says what the draft may assert and at what strength, writes a one-page brief, drafts evidence-bearing sections before framing sections under the drafting contract, and gates the draft (every number traced to a source, machine-prose tells under a ceiling, claims matched to the ledger) before handing it to technical-writing-reviser. Use when there is no draft yet, or a section must be written from scratch, or a results folder and literature review need turning into prose, or the first draft of a reviewer response is needed from a decided issue board. Do not use to revise prose that exists (technical-writing-reviser), to smooth flow (prose-flow-improver), to decide the manuscript's claims and exhibits (research-paper-plan), to audit results (research-results-auditor), to decide what a rebuttal concedes (research-rebuttal), or to write claims no artifact supports.",
+        "description": "Kickstart the writing of a manuscript section, abstract, technical report, or rebuttal response from its supporting artifacts (result audits, data tables and figures, experiment plans, literature reviews and evidence tables, novelty decisions, paper plans and claim-evidence bindings, rebuttal issue boards, author notes), working with the author at checkpoints. Inventories the artifacts, builds a claim ledger that says what the draft may assert and at what strength, produces a paragraph-level outline for the author to edit before any prose is written, then drafts section by section under the drafting contract, evidence-bearing sections first, showing each section with its gates (every number traced to a source, machine-prose tells under a ceiling, claims matched to the ledger) before handing the whole to technical-writing-reviser. Use when there is no draft yet, when the author wants an outline before committing to prose, when a results folder and literature review need turning into a paper or report, or when the first draft of a reviewer response is needed from a decided issue board. Do not use to revise prose that exists (technical-writing-reviser), to smooth flow (prose-flow-improver), to decide the manuscript's claims and exhibits (research-paper-plan), to audit results (research-results-auditor), to decide what a rebuttal concedes (research-rebuttal), or to write claims no artifact supports.",
         "name": "technical-writing-drafter"
       },
       "inputs": [
@@ -1225,10 +1226,11 @@
       ],
       "name": "technical-writing-drafter",
       "outputs": [
-        "a one-page writing brief with skeleton, drafting order, and gates",
-        "check_draft_numbers.py and prose_tells.py summary lines for the handoff",
+        "a short writing brief with job, reader, register, sources, and gates",
+        "check_draft_numbers.py, outline check, and prose_tells.py summary lines for the handoff",
         "claim-ledger.md and claim-ledger.json with ready, careful, blocked, excluded, and proposed claims",
-        "first-draft prose in the source format with [EVIDENCE NEEDED] and [CITATION NEEDED] markers and ledger source comments",
+        "first-draft prose, section by section in the source format, with [EVIDENCE NEEDED] and [CITATION NEEDED] markers and ledger source comments",
+        "outline.md: one line per paragraph with its claims and exhibits, edited and approved by the author before any prose",
         "writing-intake.md and writing-intake.json listing what the draft can lean on and the gaps"
       ],
       "path": "writing/technical-writing-drafter",
@@ -1250,6 +1252,7 @@
         "prompts": [],
         "references": [
           "references/artifact-intake.md",
+          "references/checkpoints.md",
           "references/claim-ledger.md",
           "references/drafting-contract.md",
           "references/section-sources.md",
@@ -1258,7 +1261,8 @@
         "scripts": [
           "scripts/build_claim_ledger.py",
           "scripts/check_draft_numbers.py",
-          "scripts/inventory_artifacts.py"
+          "scripts/inventory_artifacts.py",
+          "scripts/outline_from_ledger.py"
         ]
       },
       "skill_file": "writing/technical-writing-drafter/SKILL.md"

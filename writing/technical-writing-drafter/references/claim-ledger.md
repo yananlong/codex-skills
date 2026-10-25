@@ -48,6 +48,14 @@ follows the same shape.
 When bindings exist they are authoritative. An audit or claim-map entry whose ID a binding also
 carries is kept for its evidence paths but is asserted through the binding, never on its own.
 
+## From ledger to outline
+
+`outline_from_ledger.py` places each `ready`, `careful`, `blocked`, and `proposed` entry in the
+sections it names, one outline line per entry, and lists entries that name no section for the
+author to place or drop. The author edits the outline, and `--check` confirms afterwards that
+every ready and careful claim still has a paragraph, no ID outside the ledger appears, and blocked
+claims appear only as markers.
+
 ## Using the ledger while drafting
 
 - Each sentence that asserts a result, a positioning claim, a theorem, or a concession is written

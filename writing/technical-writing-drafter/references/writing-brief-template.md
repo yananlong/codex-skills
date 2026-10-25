@@ -1,8 +1,8 @@
 # Writing Brief
 
-One page written before the first sentence of prose. It fixes what the draft is for, what it may
-say, and in what order it is written. Fill it from the intake and the ledger; keep it beside the
-draft and hand it on with the draft.
+Half a page written before the first sentence of prose. It fixes what the draft is for and what
+it may say; the paragraph-level skeleton and the drafting order live in `outline.md`. Fill it from
+the intake and the ledger at checkpoints 1 and 2, keep it beside the draft, and hand it on.
 
 ```markdown
 # Writing brief: <artifact> (<date>)
@@ -35,15 +35,10 @@ draft and hand it on with the draft.
 - Coined terms kept and glossed on first use: <...>
 - Defined terms used exactly: <...>
 
-## Skeleton and drafting order
-| Order | Section | Job | Ledger entries | Budget |
-| --- | --- | --- | --- | --- |
-| 1 | Method | what was done, bounded to the protocol | <IDs> | <words> |
-| 2 | Results | what was measured, numbers from <sources> | <IDs> | <words> |
-| 3 | Limitations | what the audits and partial claims say | <IDs> | <words> |
-| 4 | Related work | positioning from the novelty decision, one sentence per read source | <IDs> | <words> |
-| 5 | Introduction | motivation and contributions as the results sections state them | <IDs> | <words> |
-| 6 | Abstract | one sentence per primary ready claim | <IDs> | <words> |
+## Outline
+- `outline.md`, built by `outline_from_ledger.py` and edited by the author at checkpoint 3
+- Approved on: <date, or "drafting without review at the author's request">
+- Drafting order: <sections as the outline lists them>
 
 ## Gates before handoff
 - `check_draft_numbers.py <draft> --source <...>`: <result>
@@ -55,8 +50,9 @@ draft and hand it on with the draft.
 - To: technical-writing-reviser (revision), then prose-flow-improver if asked, then <review stage>
 - Markers left in the draft: <count and list>
 - Not drafted: <sections and why>
+- Checkpoint defaults taken without an answer: <list, or none>
 ```
 
-The evidence-bearing sections come first because the framing sections are written from what they
-actually say. An abstract drafted before the results section describes the paper the author
-hoped to write.
+The evidence-bearing sections come first in the outline because the framing sections are written
+from what they actually say. An abstract drafted before the results section describes the paper
+the author hoped to write.

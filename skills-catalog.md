@@ -26,7 +26,7 @@ Generated from `**/SKILL.md`. This is an open catalog: new skills are included b
 | research | `research-systematic-literature-review` | review | literature-review, novelty-review, validation | `research/research-systematic-literature-review` |
 | research | `research-zotero` | execution | literature-review, novelty-review, zotero | `research/research-zotero` |
 | writing | `prose-flow-improver` | revision | multi-agent, technical-writing | `writing/prose-flow-improver` |
-| writing | `technical-writing-drafter` | execution | technical-writing, validation | `writing/technical-writing-drafter` |
+| writing | `technical-writing-drafter` | execution | interactive, technical-writing, validation | `writing/technical-writing-drafter` |
 | writing | `technical-writing-reviser` | revision | multi-agent, technical-writing | `writing/technical-writing-reviser` |
 
 ## Extension Points

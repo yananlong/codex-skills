@@ -27,6 +27,9 @@ drafting agent reads when the case calls for them.
 4. Fix the terminology: defined terms are used exactly and consistently, internal labels are
    translated once (`terminology-conversion.md`), coined terms are kept and glossed.
 5. Note any length budget and what the budget may not cut (claims, caveats, results).
+6. Put the plan in front of the author as an outline (one line per paragraph with its claims and
+   exhibits) and get it approved before writing prose. A wrong claim costs a line to fix in an
+   outline and a rewrite to fix in a draft (`checkpoints.md`).
 
 ## While writing
 
