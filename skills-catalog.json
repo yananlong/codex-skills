@@ -367,10 +367,10 @@
         "results-audit",
         "stage-routing"
       ],
-      "description": "Convert a concrete research claim into a tracked, decisive experiment plan that works either as a standalone planning artifact or as the experiment stage inside a coordinated research workflow. Use when asked to design experiments, define baselines or ablations, decide run order, separate must-run from nice-to-have evidence, or turn a claim plus evaluation goal into a validation plan. When existing results bear on the decision, run research-results-auditor first.",
+      "description": "Convert a concrete research claim into a tracked, decisive experiment plan that works either as a standalone planning artifact or as the experiment stage inside a coordinated research workflow. Use when asked to design experiments, define baselines or ablations, decide run order, separate must-run from nice-to-have evidence, turn a claim plus evaluation goal into a validation plan, or set up an autonomous keep-or-revert optimization loop on one frozen metric (autoresearch-style). When existing results bear on the decision, run research-results-auditor first.",
       "domain": "research",
       "frontmatter": {
-        "description": "Convert a concrete research claim into a tracked, decisive experiment plan that works either as a standalone planning artifact or as the experiment stage inside a coordinated research workflow. Use when asked to design experiments, define baselines or ablations, decide run order, separate must-run from nice-to-have evidence, or turn a claim plus evaluation goal into a validation plan. When existing results bear on the decision, run research-results-auditor first.",
+        "description": "Convert a concrete research claim into a tracked, decisive experiment plan that works either as a standalone planning artifact or as the experiment stage inside a coordinated research workflow. Use when asked to design experiments, define baselines or ablations, decide run order, separate must-run from nice-to-have evidence, turn a claim plus evaluation goal into a validation plan, or set up an autonomous keep-or-revert optimization loop on one frozen metric (autoresearch-style). When existing results bear on the decision, run research-results-auditor first.",
         "name": "research-experiment-plan"
       },
       "inputs": [],
@@ -383,7 +383,11 @@
         "execution-bridge.md",
         "experiment-plan.md",
         "experiment-tracker.md",
+        "experiments.md",
+        "ideas.md",
+        "program.md",
         "research-brief.md",
+        "results.tsv",
         "run-blocks.json"
       ],
       "path": "research/research-experiment-plan",
@@ -409,13 +413,16 @@
           "references/execution-bridge-template.md",
           "references/experiment-block-schema.md",
           "references/experiment-plan-template.md",
+          "references/iteration-loop-contract.md",
           "references/risk-confound-checklist.md",
           "references/run-order-template.md",
           "references/tabmol-ddi-ood-adapter.md"
         ],
         "scripts": [
           "scripts/init_experiment_pack.py",
-          "scripts/validate_experiment_pack.py"
+          "scripts/init_iteration_loop.py",
+          "scripts/validate_experiment_pack.py",
+          "scripts/validate_iteration_ledger.py"
         ]
       },
       "skill_file": "research/research-experiment-plan/SKILL.md"
@@ -667,6 +674,7 @@
       "name": "research-paper-review",
       "outputs": [
         "PASS_PLAN.md",
+        "REVIEW_STATE.json",
         "_skill.json",
         "artifact-index.md",
         "criteria.md",
@@ -765,6 +773,7 @@
       "path": "research/research-pipeline-planner",
       "primary_intent": "orchestration",
       "related_skills": [
+        "research-experiment-plan",
         "research-results-auditor"
       ],
       "resources": {
@@ -1057,6 +1066,7 @@
         "prompts": [],
         "references": [
           "references/adversarial-literature-checklist.md",
+          "references/claim-cards-and-source-ladder.md",
           "references/domain-adapters.md",
           "references/evidence-table-template.md",
           "references/paper-context-template.md",

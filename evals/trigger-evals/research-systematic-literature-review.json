@@ -1,0 +1,34 @@
+[
+  {
+    "query": "find prior art I'm missing in this draft; the bib is manuscript_refs.bib and the tex is main.tex",
+    "should_trigger": true
+  },
+  {
+    "query": "check every cited key in the manuscript resolves to a real entry in the bib and flag unused entries",
+    "should_trigger": true
+  },
+  {
+    "query": "do a PRISMA-style systematic review of LLM-as-judge reliability studies since 2024",
+    "should_trigger": true
+  },
+  {
+    "query": "is the core idea of this draft novel?",
+    "should_trigger": false,
+    "expected_skill": "research-novelty-review"
+  },
+  {
+    "query": "this new arXiv paper just came out, does it scoop us?",
+    "should_trigger": false,
+    "expected_skill": "research-novelty-review"
+  },
+  {
+    "query": "write the related-work section",
+    "should_trigger": false,
+    "expected_skill": "research-paper-plan"
+  },
+  {
+    "query": "export my Zotero collection to bibtex for the paper",
+    "should_trigger": false,
+    "expected_skill": "research-zotero"
+  }
+]

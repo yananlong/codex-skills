@@ -165,6 +165,16 @@ Trigger near-miss lines in every description (all clusters list them), catalog s
 research skill, runtime-neutral `agents/` metadata, and removing the remaining project-specific
 debris.
 
+## Borrowed designs
+
+`borrowed-ideas.md` records the public skill designs read for this overhaul (the autoresearch loop
+and its forks, Anthropic's skill-creator, Superpowers, the agentskills.io specification, and four
+research-writing skills) and where each borrowing landed. It fixes the designs for D10 (review
+evidence notes), D15 (numeric-evidence selectors as value slots), and D18 (claim cards and fetch
+status in the search log), and adds an iteration-loop mode to the experiment-plan skill, route
+tables to the two largest skills, trigger-evaluation sets under `evals/`, and three style rules for
+how the remaining skill text should be rewritten.
+
 ## Acceptance tests for the overhaul
 
 The existing suites are green and fast but exercise none of the defects above. The overhaul is

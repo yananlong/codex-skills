@@ -75,6 +75,13 @@ Separate technical evidence from positioning. State the observed capability, tes
 Transitions:
 Use transitions to make the research logic explicit. A transition should explain why the next section, experiment, or comparison follows from the previous one, not merely announce that it comes next.
 
+## Consistency Checks
+
+Technical readers treat a changed term as a changed object. Run two checks on any multi-section revision and flag rather than fix what they find:
+
+- **Term consistency.** Extract the defined terms from the methods or definitions (condition names, variable names, technique names, acronyms) and confirm the same term is used in results, discussion, tables, and captions. Do not vary a defined term to avoid repetition; a synonym for a defined term reads as a new category. Every acronym is defined at first use in the abstract, the main text, and each table or figure legend, because readers do not read linearly.
+- **Number consistency.** Confirm that sample sizes, counts, and headline values agree between the abstract, the text, and the tables, that percentages match their denominators, and that figures match the table values they illustrate. The reviser never changes a number; it reports the mismatch to the author as an evidence conflict.
+
 ## Style Corrections
 
 Prefer concrete nouns and verbs over inflated academic filler.

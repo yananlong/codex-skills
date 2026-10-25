@@ -5,6 +5,20 @@ description: Run a first-pass academic review of one manuscript (LaTeX source tr
 
 # Research Paper Review
 
+## Route the task
+
+Choose the smallest route that covers the request, and load only the listed files first.
+
+| Request | Route | Load first |
+| --- | --- | --- |
+| "Review this draft" with no prior review workspace | Native first-pass review: summary, pass plan, quote-anchored issues, validated bundle | `references/chatgpt-native-review.md`, `references/rating-rubric.md` |
+| "Review the revised draft" and a review workspace or `REVIEW_STATE.json` exists | Not this skill: `research-review-loop` | |
+| Reviewer comments already exist and the user wants a response | Not this skill: `research-rebuttal` | |
+| "Is this novel" or "what prior work am I missing" | Contextualized review, or `research-novelty-review` / `research-systematic-literature-review` standalone | `references/criteria.md`, the SLR interface section below |
+| Extract text from a PDF, serve the viz UI, or run the upstream provider-backed engine | CLI mirror mode (optional engine) | `references/engine-usage.md` |
+| A LaTeX source tree | Native review after `scripts/flatten_latex.py` | the LaTeX source subsection below |
+| Validate or continue an existing bundle of unknown provenance | `scripts/validate_review_bundle.py` first, then the provenance section below | |
+
 ## Quick start
 
 1. Decide whether the user needs:

@@ -1,6 +1,6 @@
 ---
 name: research-experiment-plan
-description: Convert a concrete research claim into a tracked, decisive experiment plan that works either as a standalone planning artifact or as the experiment stage inside a coordinated research workflow. Use when asked to design experiments, define baselines or ablations, decide run order, separate must-run from nice-to-have evidence, or turn a claim plus evaluation goal into a validation plan. When existing results bear on the decision, run research-results-auditor first.
+description: Convert a concrete research claim into a tracked, decisive experiment plan that works either as a standalone planning artifact or as the experiment stage inside a coordinated research workflow. Use when asked to design experiments, define baselines or ablations, decide run order, separate must-run from nice-to-have evidence, turn a claim plus evaluation goal into a validation plan, or set up an autonomous keep-or-revert optimization loop on one frozen metric (autoresearch-style). When existing results bear on the decision, run research-results-auditor first.
 ---
 
 # Research Experiment Plan
@@ -32,6 +32,14 @@ description: Convert a concrete research claim into a tracked, decisive experime
 - If the user asks for project-level sequencing, current-state inspection, or coordination across multiple research stages, invoke `research-pipeline-planner` first instead of treating experiment planning as the whole task.
 - If the user asks what idea to pursue, or the claim is still only a broad research direction, invoke `research-idea-discovery` before experiment planning.
 - Collaboration is still allowed: if novelty review, results audit, or review-loop artifacts exist, use them; if one of those skills would materially improve the plan, recommend or invoke it.
+
+### Iteration loop mode
+
+- Use when the question is "how good can this get under a fixed budget" rather than "is this claim true": hyperparameter or architecture search, prompt optimization against a frozen test suite, or any hill-climb on one metric.
+- Follow `references/iteration-loop-contract.md`: declare the frozen exam (evaluator, metric, direction, budget) and the mutable set in `program.md`, run the baseline first, keep a change only when the metric improves, revert otherwise, append every run to `results.tsv`, and write a notebook entry per run before and after it.
+- Scaffold with `scripts/init_iteration_loop.py` and check the ledger with `scripts/validate_iteration_ledger.py`.
+- Do not pause to ask whether to continue before the stop criterion in `program.md`. Do not edit the frozen set during the loop; changing the exam ends the loop and starts a new ledger.
+- A loop result is exploratory evidence. Hand the ledger and notebook to `research-results-auditor` as the complete run accounting before any claim leaves the loop.
 
 ### Orchestrated mode
 
@@ -254,6 +262,7 @@ Record the result in `decision-gates.md` and in each affected block's `non_vacui
 
 ## References
 
+- `references/iteration-loop-contract.md`: the autonomous keep-or-revert loop (frozen exam, mutable set, ledger, notebook, idea queue, handoff to the auditor).
 - `references/experiment-plan-template.md`
 - `references/claim-evidence-map-template.md`
 - `references/experiment-block-schema.md`
@@ -269,4 +278,6 @@ Record the result in `decision-gates.md` and in each affected block's `non_vacui
 ## Scripts
 
 - `scripts/init_experiment_pack.py`: create the full experiment-planning pack in a standalone directory or the suite's `experiment-plan/` directory, including execution and lineage scaffolds.
+- `scripts/init_iteration_loop.py`: create `program.md`, an empty `results.tsv` ledger, `experiments.md`, and `ideas.md` for an autonomous iteration loop.
+- `scripts/validate_iteration_ledger.py`: check a loop ledger (header, hashes, statuses, baseline row, keep rows improve in the declared direction) and cross-check notebook entries with `--notebook`.
 - `scripts/validate_experiment_pack.py`: validate required headings, JSON structure (bare arrays or versioned envelopes), reciprocal claim/block links, gate bindings, execution declarations, lineage policy, tracker states, and profile-specific fields (`structural`, `exploratory`, `confirmatory`) without claiming executor isolation or scientific validity.

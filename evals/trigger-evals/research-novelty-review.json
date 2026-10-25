@@ -1,0 +1,25 @@
+[
+  {
+    "query": "is the central idea in sedimented_use-main.tex novel, or has someone done this?",
+    "should_trigger": true
+  },
+  {
+    "query": "this new arXiv paper looks close to our project, does it scoop us and what would make us still novel?",
+    "should_trigger": true
+  },
+  {
+    "query": "find prior art I'm missing in this draft",
+    "should_trigger": false,
+    "expected_skill": "research-systematic-literature-review"
+  },
+  {
+    "query": "which pivot route should we take now?",
+    "should_trigger": false,
+    "expected_skill": "research-pipeline-planner"
+  },
+  {
+    "query": "rewrite the related-work paragraph to state our difference clearly",
+    "should_trigger": false,
+    "expected_skill": "technical-writing-reviser"
+  }
+]

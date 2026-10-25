@@ -5,6 +5,20 @@ description: Coordinate research as either a standalone staged planning pass or 
 
 # Research Pipeline Planner
 
+## Route the task
+
+Choose the smallest route that covers the request, and load only the listed files first. The rest of this skill and its references are read on demand.
+
+| Request | Route | Load first |
+| --- | --- | --- |
+| "What should I do next", a milestone list, a phase plan, notes to a plan | Standalone: read the project's current-status documents, write a brief or phase plan, route to one stage skill | `references/research-brief-template.md` |
+| Inspect an existing suite's state | Read-only: locate `harness-events.jsonl`, run `status`, report | `references/suite-contract.md` |
+| Start or continue durable multi-stage work the user asked to make resumable | Orchestrated: commitment, work items, verifier transitions | `references/agentic-harness-contract.md`, `references/research-commitment-contract.md`, `references/stage-gates.md` |
+| Bind an experiment to the harness | Orchestrated, experiment stage | `references/experiment-execution-binding.md` |
+| Audit results and hand to paper planning | Orchestrated, results stage | `references/result-audit-paper-binding-contract.md` |
+| A pivot, park, or paper-identity change | Orchestrated, pivot request | `references/research-commitment-contract.md` (D-classes) |
+| Hill-climb one metric under a fixed budget | Not this skill: `research-experiment-plan` iteration loop mode | |
+
 ## Quick start
 
 Choose the mode first. Use orchestrated mode only when the project already has a `harness-events.jsonl` (see workflow step 1 to locate it) or the user explicitly asks for durable state. Otherwise stay standalone.

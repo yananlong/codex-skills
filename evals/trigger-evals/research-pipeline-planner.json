@@ -1,0 +1,33 @@
+[
+  {
+    "query": "what should I do next on the frontier project? here's the repo, there are plans in experiment-plan/ and results from last week",
+    "should_trigger": true
+  },
+  {
+    "query": "turn these notes into a phase plan with milestones for the next two months",
+    "should_trigger": true
+  },
+  {
+    "query": "we need this multi-stage work to survive context resets and multiple sessions, set up the durable suite",
+    "should_trigger": true
+  },
+  {
+    "query": "the negative result means route B is dead; record a pivot request and figure out whether the paper identity changes",
+    "should_trigger": true
+  },
+  {
+    "query": "design the experiments for claim C2",
+    "should_trigger": false,
+    "expected_skill": "research-experiment-plan"
+  },
+  {
+    "query": "run a hill-climb on the training script overnight",
+    "should_trigger": false,
+    "expected_skill": "research-experiment-plan"
+  },
+  {
+    "query": "review this paper draft",
+    "should_trigger": false,
+    "expected_skill": "research-paper-review"
+  }
+]

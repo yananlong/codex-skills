@@ -1,0 +1,35 @@
+[
+  {
+    "query": "give the ICLR draft in iclr/ a first-pass review, it's a LaTeX tree with main.tex and sections/",
+    "should_trigger": true
+  },
+  {
+    "query": "review this arxiv paper https://arxiv.org/abs/xxxx.xxxxx as a skeptical reviewer would",
+    "should_trigger": true
+  },
+  {
+    "query": "review the revised draft; review_results/main_review from last month is still there",
+    "should_trigger": false,
+    "expected_skill": "research-review-loop"
+  },
+  {
+    "query": "is my rebuttal too long or too defensive?",
+    "should_trigger": false,
+    "expected_skill": "research-rebuttal"
+  },
+  {
+    "query": "make the ICML version fit 8 pages",
+    "should_trigger": false,
+    "expected_skill": "research-paper-plan"
+  },
+  {
+    "query": "reviewer 2 wants a new baseline; what should I run?",
+    "should_trigger": false,
+    "expected_skill": "research-experiment-plan"
+  },
+  {
+    "query": "outline the related-work section",
+    "should_trigger": false,
+    "expected_skill": "research-paper-plan"
+  }
+]

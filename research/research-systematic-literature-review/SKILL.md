@@ -218,6 +218,7 @@ For major ML conferences hosted on OpenReview, use accepted venue records when v
 - `references/search-strategy-template.md`
 - `references/screening-template.md`
 - `references/evidence-table-template.md`
+- `references/claim-cards-and-source-ladder.md`: fetch status per source, source ladder, claim cards with verbatim quotes, synthesis bins, and derived confidence; read before any model-performed search pass.
 - `references/adversarial-literature-checklist.md`
 - `references/domain-adapters.md`
 - `references/report-template.md`

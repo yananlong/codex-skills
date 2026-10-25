@@ -1,0 +1,48 @@
+[
+  {
+    "query": "Reviewer 2 says our contribution paragraph overclaims. Can you rewrite the intro of sections/intro.tex so it states what we actually show without adding a bunch of disclaimers?",
+    "should_trigger": true
+  },
+  {
+    "query": "The related work in the iclr/ folder needs to lose a third of its length to get the main text back onto page 9, keep every citation attached to the right claim",
+    "should_trigger": true
+  },
+  {
+    "query": "this methods paragraph is full of our internal names (the 'ladder', 'bucket B'); make it readable for an outside reviewer",
+    "should_trigger": true
+  },
+  {
+    "query": "tighten the limitations paragraph in the ACL draft, it currently apologizes for three things nobody asked about",
+    "should_trigger": true
+  },
+  {
+    "query": "turn these bullet notes from the lab meeting into a flowing paragraph for the status update, don't change any facts",
+    "should_trigger": false,
+    "expected_skill": "prose-flow-improver"
+  },
+  {
+    "query": "write the rebuttal response to reviewer 2 who says the contribution is overclaimed, we have 5000 characters on openreview",
+    "should_trigger": false,
+    "expected_skill": "research-rebuttal"
+  },
+  {
+    "query": "restructure the introduction so each contribution bullet maps onto a section and an experiment",
+    "should_trigger": false,
+    "expected_skill": "research-paper-plan"
+  },
+  {
+    "query": "does our limitations section undersell the paper? give me an honest read before we revise it",
+    "should_trigger": false,
+    "expected_skill": "research-review-loop"
+  },
+  {
+    "query": "is our positioning against the two closest prior papers defensible?",
+    "should_trigger": false,
+    "expected_skill": "research-novelty-review"
+  },
+  {
+    "query": "fix the LaTeX overfull hbox warnings and the typos in sections/results.tex",
+    "should_trigger": false,
+    "expected_skill": null
+  }
+]

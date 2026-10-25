@@ -1,0 +1,29 @@
+[
+  {
+    "query": "this status update is six one-line bullets, make it read like two short paragraphs without dropping the dates and ticket numbers",
+    "should_trigger": true
+  },
+  {
+    "query": "the discussion section reads choppy, lots of three-word sentences, smooth it out but keep every claim exactly as strong as it is",
+    "should_trigger": true
+  },
+  {
+    "query": "merge these two thin paragraphs in the README into one, they say the same thing twice",
+    "should_trigger": true
+  },
+  {
+    "query": "rewrite the results paragraph so the claims match what table 2 actually supports",
+    "should_trigger": false,
+    "expected_skill": "technical-writing-reviser"
+  },
+  {
+    "query": "convert this findings list into prose",
+    "should_trigger": false,
+    "expected_skill": null
+  },
+  {
+    "query": "draft the methods section from the experiment plan",
+    "should_trigger": false,
+    "expected_skill": "research-paper-plan"
+  }
+]
