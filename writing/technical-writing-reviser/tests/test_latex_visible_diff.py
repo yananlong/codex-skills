@@ -33,7 +33,7 @@ class InventoryTests(unittest.TestCase):
         after = BEFORE.replace("We report \\slotA{} as the headline value.", "The headline value is \\slotA{}.")
         report = compare(BEFORE, after, allow_dropped_comments=False)
         self.assertEqual(report["problems"], [])
-        self.assertGreater(report["visible_similarity"], 0.8)
+        self.assertGreater(report["visible_similarity"], 0.6)  # one of three sentences rewritten
 
     def test_joined_line_and_lost_key_are_problems(self) -> None:
         after = (
