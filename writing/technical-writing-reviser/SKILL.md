@@ -1,6 +1,6 @@
 ---
 name: technical-writing-reviser
-description: Revise existing technical writing into clear, audience-facing prose while preserving evidence, technical meaning, uncertainty, and scope, including planned multi-agent section or issue-cluster revision for substantial artifacts when workers are available. Use for academic manuscripts, industrial technical reports, whitepapers, evaluation summaries, methods/results/limitations prose, technical claims, contribution or decision framing, and terminology conversion from internal shorthand to reader-facing language. Use after critique from research-paper-review or research-review-loop when the task is to revise the artifact's prose and claims, not to re-review it, and when a manuscript must be compressed to a page or word budget while preserving its claims. Do not use when the main task is generic prose flow, citation work, paper planning, novelty review, experiment design, market strategy, drafting new sections from a plan, writing a reviewer response (use research-rebuttal), or writing unsupported claims.
+description: Revise existing technical writing into clear, audience-facing prose while preserving evidence, technical meaning, uncertainty, and scope, including planned multi-agent section or issue-cluster revision for substantial artifacts when workers are available. Use for academic manuscripts, industrial technical reports, whitepapers, evaluation summaries, methods/results/limitations prose, technical claims, contribution or decision framing, terminology conversion from internal shorthand to reader-facing language, and removing the habits that make text read as model-written (dash habits, deny-then-claim contrasts, signpost adverbs, significance inflation, participial tails, kickers, uniform rhythm). Use after critique from research-paper-review or research-review-loop when the task is to revise the artifact's prose and claims, not to re-review it, and when a manuscript must be compressed to a page or word budget while preserving its claims. Do not use when the main task is generic prose flow, citation work, paper planning, novelty review, experiment design, market strategy, drafting new sections from a plan, writing a reviewer response (use research-rebuttal), or writing unsupported claims.
 ---
 
 # Technical Writing Reviser
@@ -49,7 +49,7 @@ Then mark any internal language that will confuse an outside reader on first pas
 
 Next identify the support level of each sentence. Separate what the text actually shows from why it matters, and keep that boundary visible in the rewrite. Use qualifiers when they are needed to keep a claim within the source's support, but do not add precautionary qualification to claims that are already appropriately scoped. For a formal statement such as a definition, proposition, theorem, or lemma, the support is its stated hypotheses. Do not add scope qualifiers or empirical hedges that restate or weaken them. For an argumentative claim, the support is the argument, so write "we argue" and make the premise visible rather than hedging the conclusion.
 
-Finally tighten the prose into reader-facing technical form. Replace lab-log narration, internal memo phrasing, procedural diary language, and unsupported promotional language with sentences that foreground the technical object, method, evidence, result, decision, limitation, or implication. Join closely related sentences aggressively when a conjunction, relative clause, appositive, or subordinate clause can make the technical relationship clearer without changing the claim. Lean toward relative pronouns such as "that," "which," and "who" when they attach constraints, assumptions, mechanisms, or consequences to the specific technical object they modify. Make paragraphs do one clear job each and end with the practical inference when that helps the reader.
+Finally tighten the prose into reader-facing technical form. Replace lab-log narration, internal memo phrasing, procedural diary language, and unsupported promotional language with sentences that foreground the technical object, method, evidence, result, decision, limitation, or implication. Join closely related sentences when a conjunction, relative clause, appositive, or subordinate clause makes the technical relationship clearer without changing the claim, and leave a sentence short when it carries one fact. Lean toward relative pronouns such as "that," "which," and "who" when they attach constraints, assumptions, mechanisms, or consequences to the specific technical object they modify. Make paragraphs do one clear job each and let their length follow the argument. End a paragraph on its evidence or on the consequence the reader needs, not on a flourish, and do not give every paragraph the same arc.
 
 ### Prefer Direct Positive Framing
 
@@ -64,6 +64,12 @@ Defensive narrowing is not only negation-shaped. Also watch for concessive prior
 Do not manufacture caution by naming claims the author supposedly is not making. Preserve genuine qualifications, but express the intended claim positively whenever its evidential boundary can be conveyed through precise scope, conditions, nouns, and verbs.
 
 Read [references/claim-discipline.md](references/claim-discipline.md) when the draft mixes claims, interpretation, speculation, and missing evidence.
+
+### Remove Machine-Prose Tells
+
+Model-written prose carries habits readers now recognize: em dashes as the default joint, sentences that deny an invented position before stating the real one, signpost adverbs (Importantly, Notably, Crucially), significance adjectives (crucial, robust, nuanced, pivotal), participial tails that announce importance (", highlighting the need for"), tricolons where the content has two items, summary chains ("This suggests", "This means"), short kicker sentences closing paragraphs, paragraphs of identical shape, and bolded lead-ins. Each is a shaping habit, so remove it by writing what the sentence should be rather than by deleting a word: the measurement in place of the adjective, the fact in place of the announcing tail, one interpretation next to its evidence, a paragraph that ends on its evidence.
+
+Run `python3 scripts/prose_tells.py <source>` before editing to get the baseline density, and `python3 scripts/prose_tells.py <revision> --baseline <source> --fail-if-worse` after. The scanner measures tells, not quality; read [references/machine-prose-tells.md](references/machine-prose-tells.md) for each tell's recipe and its legitimate uses, and do not strip terms of art, real contrasts, or real lists.
 
 ## Agent Orchestration
 
@@ -146,6 +152,7 @@ Run an adversarial final audit after merging:
 - Compare the revised abstract, contribution list, and conclusion with the source versions. If the stated contribution became smaller, list the change for the author in the claim-change note rather than shipping it silently.
 - Restore any source caveat, negative result, uncertainty, baseline condition, or scope limit that a local rewrite softened. A source caveat that carries scope (what the evidence does not cover) is kept and restated positively as scope plus consequence. Delete only rejected propositions that the source invented to sound cautious; this precedence resolves the apparent conflict with the negation scan below.
 - For marked-up sources, compare the visible text before and after (comments stripped) and confirm that no macro, citation, label, or comment moved or vanished.
+- Run `scripts/prose_tells.py` on the revision against the source. No tell category may rise without a reason in the claim-change note, and the total density should fall. Then read the result as a reader would: a revision can score zero on the scanner and still be bland, choppy, or stripped of a real list, and that is a failed revision.
 - Check for definitional drift, inconsistent terminology, unsupported causal language, and conclusions that no longer follow from the revised paragraph.
 - Verify that cross-section transitions do not imply evidence, chronology, deployment status, or novelty that the source did not establish.
 - Scan for corrective negation, anticipatory disclaimers, and objection-answering language that the source did not motivate. For each occurrence, ask whether the rejected interpretation is already salient or materially necessary. If not, delete the rejected proposition and state the supported proposition directly.
@@ -170,6 +177,10 @@ Keep contribution and value framing specific and proportional to the evidence. S
 Use section-appropriate prose. Methods and technical approach sections should foreground design choices, controls, data, assumptions, architecture, and procedures. Results and evaluation sections should foreground findings at the scope supported by the evidence. Reports and whitepapers should distinguish measured behavior from interpretation, recommendation, and positioning. Limitations should state material constraints and their consequences without adding hypothetical objections.
 
 Read [references/technical-writing-patterns.md](references/technical-writing-patterns.md) when the draft reads like a lab report, project memo, internal research note, engineering status update, or under-supported whitepaper. Read [references/rewrite-examples.md](references/rewrite-examples.md) when a concrete before-and-after pattern will help.
+
+## Scripts
+
+- `scripts/prose_tells.py`: count machine-prose tells per category with density per thousand words and located examples; `--baseline` compares a revision with its source, `--fail-if-worse` exits non-zero when the density rose, `--format json` for tooling. Handles Markdown and LaTeX by stripping comments, math, code, and citation commands first. It never rewrites.
 
 ## Final Pass
 

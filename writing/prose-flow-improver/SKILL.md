@@ -45,15 +45,19 @@ Use subordinate clauses or participial phrases when they make the relation clear
 
 Avoid semicolons by default. Use one only when it is clearly cleaner than a period, conjunction, relative clause, or subordinate clause, and do not use semicolons as the main mechanism for tightening prose.
 
-When using em dashes, put a space before and after each dash.
+Avoid em dashes by default as well. They are the most recognizable habit of model-written prose. Use a comma for an aside, a period for a new thought, parentheses for a true parenthetical, and a colon for one specification. If a dash is the only mark that can hold an interruption, use one pair at most per page, spaced on both sides.
 
 Expand or compress as needed. Add missing connective tissue when the reader would otherwise have to infer what happened, why it matters, what it changes, or what constraint it implies. Remove redundant framing when the prose already carries the meaning.
 
-Keep paragraphs compact. A good default is 2 to 4 sentences per paragraph with one clear job per paragraph.
+Give each paragraph one clear job and let its length follow that job. Paragraphs of identical length and identical shape (topic sentence, two supports, implication) read as tiled machine prose; a one-sentence paragraph and a long one are both fine when the content has that shape.
 
-When two short sentences are really one thought, prefer one stronger sentence over two thin ones.
+When two short sentences are really one thought, prefer one stronger sentence over two thin ones. Keep a short sentence when it carries one fact; vary the rhythm rather than levelling it.
 
-End with the implication when helpful. If the paragraph explains a decision, result, or concern, make clear what follows from it.
+End a paragraph on its evidence or on the consequence the reader needs. Do not end every paragraph with an implication, and do not close with a short sentence that lands a point; a flourish at the end of each paragraph is a tell, not a style.
+
+### Machine-Prose Tells
+
+Smoothing prose must not introduce the habits that make text read as model-written: em dashes as the default joint, deny-then-claim contrasts ("not X but Y"), signpost adverbs (Importantly, Notably), significance adjectives (crucial, robust, nuanced), participial tails that announce importance (", highlighting the need for"), tricolons where the content has two items, summary chains ("This means", "This suggests"), and paragraph kickers. A flow pass that joins sentences with these devices has made the text worse while making it smoother. When `technical-writing-reviser` is installed beside this skill, run its `scripts/prose_tells.py` on the source and the revision (`--baseline <source> --fail-if-worse`) and read its `references/machine-prose-tells.md` for the recipe behind each tell. Without it, apply the list in `references/rewrite-patterns.md`.
 
 ## Agent Orchestration
 

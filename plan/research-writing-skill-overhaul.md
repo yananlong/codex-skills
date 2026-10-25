@@ -98,6 +98,7 @@ Writing skills (done in this branch):
 - Length-budget trigger, rebuttal routing, near-miss routing table (writing F-9).
 - Catalog sidecars for both writing skills; the generator now lets an explicit sidecar list replace lexical inference (writing F-10, QI-02).
 - Runtime-neutral wording; serial when running inside a subagent (writing F-11).
+- Machine-prose tells: a shared catalogue with a recipe and the legitimate use for each habit (dashes, deny-then-claim contrasts, signpost adverbs, significance inflation, participial tails, tricolons, summary chains, kickers, uniform rhythm, meta-commentary, hedge stacks, bolded lead-ins, tone), a stdlib scanner that reports density per thousand words and compares a revision with its source, a workflow step and an audit requirement in both writing skills, and removal of the two rules in our own skills that prescribed the pattern ("end with the implication" and "2 to 4 sentences per paragraph").
 
 Discovery skills:
 - Novelty validator runs standalone; sibling import is lazy with a clear error; CI installs the skill alone and runs it (discovery F-3, QI-03).

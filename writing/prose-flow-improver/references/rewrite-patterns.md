@@ -77,8 +77,8 @@ When the actor is clear and the second sentence names a direct result, condition
 Expand only where the reader would otherwise have to infer:
 Do not add padding, scene-setting, or generic transitions that say little.
 
-End with the practical implication:
-If the paragraph explains a decision or result, finish by stating what follows from it.
+End on the evidence or the consequence:
+If the paragraph explains a decision or result, make what follows from it clear, in a sentence of ordinary length. Do not end every paragraph this way, and do not close on a short sentence that lands a point.
 
 Keep one sharp list when it earns its place:
 If a short list materially improves scanning, keep it and write a paragraph around it instead of flattening everything.
@@ -143,6 +143,23 @@ Before:
 
 After:
 Revenue increased, and margin improved after the pricing changes took effect. SMB churn remains elevated, however, so the improvement still depends on fixing retention.
+
+## Machine-Prose Tells to Avoid While Smoothing
+
+Joining sentences is where these habits enter. Each line names the habit and the plain alternative:
+
+- Em dash as the joint: comma, period, parentheses, or colon instead; one dash pair per page at most.
+- "Not X but Y", "not just X", "rather than X, Y": state Y precisely; keep the contrast only when X is a real position the reader holds.
+- Sentence-opening Importantly, Notably, Crucially, Interestingly, Ultimately, Moreover, Furthermore, Additionally: delete, or use "and", a new sentence, or a real ordinal.
+- Crucial, robust, nuanced, pivotal, comprehensive, seamless, leverage, landscape, underscore, delve, foster: the measurement or mechanism the word stands in for, or nothing.
+- ", highlighting / underscoring / suggesting / enabling / paving the way for ..." tails: end at the fact; a real implication gets its own sentence and its own support.
+- Three parallel items for two-item content; three short parallel sentences; antithesis for effect: write the number of items the content has.
+- "This suggests / This means / This highlights" chains: one interpretation per piece of evidence, next to it.
+- A short closing sentence after long ones, and one-sentence drumbeat paragraphs: end on the evidence, vary paragraph endings.
+- Paragraphs all of the same length and shape: let length follow the argument.
+- "It is worth noting", "it is important to note", "the key insight is": delete the frame.
+- Rhetorical questions and "Let's": ask the question of yourself, write the answer.
+- Bolded lead-ins and bullets for argument: prose for argument, lists for list-shaped content.
 
 ## Default Heuristics
 

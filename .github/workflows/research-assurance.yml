@@ -4,12 +4,14 @@ on:
   pull_request:
     paths:
       - "research/**"
+      - "writing/**"
       - "documents/adversarial-doc-review/**"
       - ".github/workflows/research-assurance.yml"
   push:
     branches: [main]
     paths:
       - "research/**"
+      - "writing/**"
       - "documents/adversarial-doc-review/**"
       - ".github/workflows/research-assurance.yml"
 
@@ -27,12 +29,12 @@ jobs:
           python-version: "3.12"
       - name: Compile every skill script
         run: |
-          find research documents -path '*/scripts/*' -name '*.py' -not -path '*/__pycache__/*' -print0 \
+          find research documents writing -path '*/scripts/*' -name '*.py' -not -path '*/__pycache__/*' -print0 \
             | xargs -0 python -m py_compile
       - name: Run every skill test suite
         run: |
           status=0
-          for tests_dir in $(find research documents -type d -name tests -not -path '*/__pycache__/*' | sort); do
+          for tests_dir in $(find research documents writing -type d -name tests -not -path '*/__pycache__/*' | sort); do
             echo "::group::$tests_dir"
             if ! python -m unittest discover -s "$tests_dir" -p 'test_*.py' -v; then
               status=1

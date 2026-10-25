@@ -1206,10 +1206,10 @@
         "multi-agent",
         "technical-writing"
       ],
-      "description": "Revise existing technical writing into clear, audience-facing prose while preserving evidence, technical meaning, uncertainty, and scope, including planned multi-agent section or issue-cluster revision for substantial artifacts when workers are available. Use for academic manuscripts, industrial technical reports, whitepapers, evaluation summaries, methods/results/limitations prose, technical claims, contribution or decision framing, and terminology conversion from internal shorthand to reader-facing language. Use after critique from research-paper-review or research-review-loop when the task is to revise the artifact's prose and claims, not to re-review it, and when a manuscript must be compressed to a page or word budget while preserving its claims. Do not use when the main task is generic prose flow, citation work, paper planning, novelty review, experiment design, market strategy, drafting new sections from a plan, writing a reviewer response (use research-rebuttal), or writing unsupported claims.",
+      "description": "Revise existing technical writing into clear, audience-facing prose while preserving evidence, technical meaning, uncertainty, and scope, including planned multi-agent section or issue-cluster revision for substantial artifacts when workers are available. Use for academic manuscripts, industrial technical reports, whitepapers, evaluation summaries, methods/results/limitations prose, technical claims, contribution or decision framing, terminology conversion from internal shorthand to reader-facing language, and removing the habits that make text read as model-written (dash habits, deny-then-claim contrasts, signpost adverbs, significance inflation, participial tails, kickers, uniform rhythm). Use after critique from research-paper-review or research-review-loop when the task is to revise the artifact's prose and claims, not to re-review it, and when a manuscript must be compressed to a page or word budget while preserving its claims. Do not use when the main task is generic prose flow, citation work, paper planning, novelty review, experiment design, market strategy, drafting new sections from a plan, writing a reviewer response (use research-rebuttal), or writing unsupported claims.",
       "domain": "writing",
       "frontmatter": {
-        "description": "Revise existing technical writing into clear, audience-facing prose while preserving evidence, technical meaning, uncertainty, and scope, including planned multi-agent section or issue-cluster revision for substantial artifacts when workers are available. Use for academic manuscripts, industrial technical reports, whitepapers, evaluation summaries, methods/results/limitations prose, technical claims, contribution or decision framing, and terminology conversion from internal shorthand to reader-facing language. Use after critique from research-paper-review or research-review-loop when the task is to revise the artifact's prose and claims, not to re-review it, and when a manuscript must be compressed to a page or word budget while preserving its claims. Do not use when the main task is generic prose flow, citation work, paper planning, novelty review, experiment design, market strategy, drafting new sections from a plan, writing a reviewer response (use research-rebuttal), or writing unsupported claims.",
+        "description": "Revise existing technical writing into clear, audience-facing prose while preserving evidence, technical meaning, uncertainty, and scope, including planned multi-agent section or issue-cluster revision for substantial artifacts when workers are available. Use for academic manuscripts, industrial technical reports, whitepapers, evaluation summaries, methods/results/limitations prose, technical claims, contribution or decision framing, terminology conversion from internal shorthand to reader-facing language, and removing the habits that make text read as model-written (dash habits, deny-then-claim contrasts, signpost adverbs, significance inflation, participial tails, kickers, uniform rhythm). Use after critique from research-paper-review or research-review-loop when the task is to revise the artifact's prose and claims, not to re-review it, and when a manuscript must be compressed to a page or word budget while preserving its claims. Do not use when the main task is generic prose flow, citation work, paper planning, novelty review, experiment design, market strategy, drafting new sections from a plan, writing a reviewer response (use research-rebuttal), or writing unsupported claims.",
         "name": "technical-writing-reviser"
       },
       "inputs": [
@@ -1243,12 +1243,15 @@
         "prompts": [],
         "references": [
           "references/claim-discipline.md",
+          "references/machine-prose-tells.md",
           "references/register-and-format.md",
           "references/rewrite-examples.md",
           "references/technical-writing-patterns.md",
           "references/terminology-conversion.md"
         ],
-        "scripts": []
+        "scripts": [
+          "scripts/prose_tells.py"
+        ]
       },
       "skill_file": "writing/technical-writing-reviser/SKILL.md"
     }
