@@ -215,8 +215,12 @@ def skill_record(root: Path, skill_file: Path, all_skill_names: set[str]) -> dic
         "domain": sidecar.get("domain", domain),
         "description": description,
         "primary_intent": sidecar.get("primary_intent", infer_intent(name, summary_text)),
+        # An explicit sidecar list replaces lexical inference, so a skill can correct
+        # a keyword-driven mislabel instead of only adding to it.
         "capabilities": sorted(
-            dict.fromkeys(sidecar.get("capabilities", []) + infer_capabilities(summary_text))
+            dict.fromkeys(
+                sidecar["capabilities"] if "capabilities" in sidecar else infer_capabilities(summary_text)
+            )
         ),
         "inputs": sidecar.get("inputs", []),
         "outputs": sorted(
@@ -274,7 +278,7 @@ def build_catalog(root: Path) -> dict[str, Any]:
         "notes": [
             "This catalog is generated from all SKILL.md files under the repository.",
             "Add new skills by adding a skill folder with SKILL.md; no central list edit is required.",
-            "Optional per-skill catalog.json sidecars may add or override structured metadata.",
+            "Optional per-skill catalog.json sidecars may add or override structured metadata; an explicit capabilities, inputs, or outputs list replaces the inferred one.",
         ],
         "skill_count": len(skills),
         "domains": domains,

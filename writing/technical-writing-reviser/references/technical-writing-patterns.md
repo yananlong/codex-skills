@@ -42,7 +42,7 @@ Prefer "The contribution is an evaluation framework for retrieval behavior" over
 
 Prefer "The results support the mechanism under the evaluated settings" over "The results do not establish universal validity; rather, they support the mechanism under the evaluated settings" unless universal validity has actually been asserted or is central to the argument.
 
-Keep negation when an absence, exclusion, correction, or ruled-out alternative is itself part of the technical content.
+Keep negation when an absence, exclusion, correction, counterexample, converse failure, impossibility result, or ruled-out alternative is itself part of the technical content. In argumentative registers, a position from the literature that the author's thesis is being distinguished from counts as salient.
 
 Do not treat every `not only ... but also` construction as defensive negation. It is an additive emphasis construction and may be appropriate when both elements matter. Because repeated use can make prose formulaic, simplify it when the emphasis is unnecessary or the pattern recurs, but do not remove it solely because it contains `not`.
 
@@ -86,3 +86,5 @@ Prefer calibrated precision over reflexive modesty. Keep conditional or local co
 Cut meta-commentary such as "it is worth noting," "the key thing here is," or "what we are trying to show." Replace it with the actual claim and its support.
 
 Scan for repeated defensive patterns such as "not X but Y," "this does not mean X," "we are not claiming X," "this does not establish X," and "rather than X, Y." Keep them only when X is already salient or the negation carries substantive technical information. Treat additive `not only ... but also` separately: reduce repetitive or ornamental use, not legitimate emphasis.
+
+Scan as well for narrowing that is not negation-shaped: concessive priority clauses ("each of these has close precedents, and ..."), self-minimizing scope labels ("the claim is deliberately narrow", "in a limited, operational sense"), and the same scope restated at the opening and closing of one section. State the real scope once, as what the work covers, and remove the apology.

@@ -3,27 +3,13 @@ name: Research assurance regression tests
 on:
   pull_request:
     paths:
-      - "research/research-pipeline-planner/**"
-      - "research/research-systematic-literature-review/**"
-      - "research/research-experiment-plan/**"
-      - "research/research-idea-discovery/**"
-      - "research/research-novelty-review/**"
-      - "research/research-results-auditor/**"
-      - "research/research-paper-plan/**"
-      - "research/research-review-loop/**"
+      - "research/**"
       - "documents/adversarial-doc-review/**"
       - ".github/workflows/research-assurance.yml"
   push:
     branches: [main]
     paths:
-      - "research/research-pipeline-planner/**"
-      - "research/research-systematic-literature-review/**"
-      - "research/research-experiment-plan/**"
-      - "research/research-idea-discovery/**"
-      - "research/research-novelty-review/**"
-      - "research/research-results-auditor/**"
-      - "research/research-paper-plan/**"
-      - "research/research-review-loop/**"
+      - "research/**"
       - "documents/adversarial-doc-review/**"
       - ".github/workflows/research-assurance.yml"
 
@@ -39,56 +25,26 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - name: Compile changed Python entrypoints
+      - name: Compile every skill script
         run: |
-          python -m py_compile \
-            research/research-pipeline-planner/scripts/harness_runtime.py \
-            research/research-pipeline-planner/scripts/init_research_pack.py \
-            research/research-pipeline-planner/scripts/validate_research_pack.py \
-            research/research-pipeline-planner/scripts/init_research_commitment.py \
-            research/research-pipeline-planner/scripts/validate_research_commitment.py \
-            research/research-pipeline-planner/scripts/validate_semantic_assurance.py \
-            research/research-pipeline-planner/scripts/semantic_assurance/__init__.py \
-            research/research-pipeline-planner/scripts/semantic_assurance/common.py \
-            research/research-pipeline-planner/scripts/semantic_assurance/transitions.py \
-            research/research-pipeline-planner/scripts/semantic_assurance/literature.py \
-            research/research-pipeline-planner/scripts/semantic_assurance/evidence.py \
-            research/research-pipeline-planner/scripts/semantic_assurance/fixtures.py \
-            research/research-pipeline-planner/scripts/init_prospective_evaluation.py \
-            research/research-pipeline-planner/scripts/validate_prospective_evaluation.py \
-            research/research-pipeline-planner/scripts/prospective_evaluation/__init__.py \
-            research/research-pipeline-planner/scripts/prospective_evaluation/common.py \
-            research/research-pipeline-planner/scripts/prospective_evaluation/protocol.py \
-            research/research-pipeline-planner/scripts/prospective_evaluation/observations.py \
-            research/research-pipeline-planner/scripts/prospective_evaluation/summary.py \
-            research/research-pipeline-planner/tests/test_bounded_ct_ml_route.py \
-            research/research-systematic-literature-review/scripts/init_review_pack.py \
-            research/research-systematic-literature-review/scripts/review_pack_coverage.py \
-            research/research-systematic-literature-review/scripts/validate_review_pack.py \
-            research/research-experiment-plan/scripts/init_experiment_pack.py \
-            research/research-experiment-plan/scripts/validate_experiment_pack.py \
-            research/research-results-auditor/scripts/init_results_audit.py \
-            research/research-results-auditor/scripts/validate_results_audit.py \
-            research/research-paper-plan/scripts/init_paper_pack.py \
-            research/research-paper-plan/scripts/validate_paper_pack.py \
-            research/research-novelty-review/scripts/init_novelty_pack.py \
-            research/research-novelty-review/scripts/validate_novelty_pack.py
-      - name: Run harness runtime tests
-        run: python -m unittest discover -s research/research-pipeline-planner/tests -p 'test_harness_runtime.py' -v
-      - name: Run experiment runtime tests
-        run: python -m unittest discover -s research/research-pipeline-planner/tests -p 'test_experiment_runtime.py' -v
-      - name: Run experiment pack integration tests
-        run: python -m unittest discover -s research/research-pipeline-planner/tests -p 'test_experiment_pack_integration.py' -v
-      - name: Run result-audit to paper-binding integration tests
-        run: python -m unittest discover -s research/research-pipeline-planner/tests -p 'test_result_audit_paper_binding_integration.py' -v
-      - name: Run literature-to-novelty integration tests
-        run: python -m unittest discover -s research/research-pipeline-planner/tests -p 'test_literature_novelty_integration.py' -v
-      - name: Run PR15 semantic assurance and real-project regressions
-        run: python -m unittest discover -s research/research-pipeline-planner/tests -p 'test_semantic_assurance.py' -v
-      - name: Run prospective evaluation instrumentation tests
-        run: python -m unittest discover -s research/research-pipeline-planner/tests -p 'test_prospective_evaluation.py' -v
-      - name: Run bounded CT-ML ideation-to-novelty acceptance test
-        run: python -m unittest discover -s research/research-pipeline-planner/tests -p 'test_bounded_ct_ml_route.py' -v
+          find research documents -path '*/scripts/*' -name '*.py' -not -path '*/__pycache__/*' -print0 \
+            | xargs -0 python -m py_compile
+      - name: Run every skill test suite
+        run: |
+          status=0
+          for tests_dir in $(find research documents -type d -name tests -not -path '*/__pycache__/*' | sort); do
+            echo "::group::$tests_dir"
+            if ! python -m unittest discover -s "$tests_dir" -p 'test_*.py' -v; then
+              status=1
+            fi
+            echo "::endgroup::"
+          done
+          exit $status
+      - name: Standalone novelty-review install must work without the literature-review sibling
+        run: |
+          tmp="$(mktemp -d)"
+          cp -R research/research-novelty-review "$tmp/"
+          python "$tmp/research-novelty-review/scripts/validate_novelty_pack.py" --help
       - name: Validate Study 001 draft pack
         run: |
           python research/research-pipeline-planner/scripts/validate_prospective_evaluation.py \
@@ -96,20 +52,6 @@ jobs:
             --observations research/research-pipeline-planner/prospective-studies/study-001-category-theory/prospective-observations.json \
             --summary research/research-pipeline-planner/prospective-studies/study-001-category-theory/prospective-summary.json \
             --assurance-profile structural
-      - name: Run research-pack tests
-        run: python -m unittest discover -s research/research-pipeline-planner/tests -p 'test_research_pack.py' -v
-      - name: Run research-commitment tests
-        run: python -m unittest discover -s research/research-pipeline-planner/tests -p 'test_research_commitment.py' -v
-      - name: Run literature recall-assurance tests
-        run: python -m unittest discover -s research/research-systematic-literature-review/tests -p 'test_review_pack.py' -v
-      - name: Run novelty literature-assurance tests
-        run: python -m unittest discover -s research/research-novelty-review/tests -p 'test_validate_novelty_pack.py' -v
-      - name: Run experiment assurance tests
-        run: python -m unittest discover -s research/research-experiment-plan/tests -p 'test_validate_experiment_pack.py' -v
-      - name: Run machine-readable results-audit tests
-        run: python -m unittest discover -s research/research-results-auditor/tests -p 'test_results_audit.py' -v
-      - name: Run paper claim-evidence binding tests
-        run: python -m unittest discover -s research/research-paper-plan/tests -p 'test_paper_pack.py' -v
       # Archives are release artifacts; generated Python bytecode is forbidden.
       - name: Archive changed skills
         run: |
@@ -122,18 +64,14 @@ jobs:
             (
               cd "$parent_dir"
               zip -qr "$GITHUB_WORKSPACE/packaged-skills/${skill_name}.zip" "$base_name" \
-                -x "*/__pycache__/*" "*.pyc" "*.pyo"
+                -x "*/__pycache__/*" "*.pyc" "*.pyo" "*/tests/*"
             )
           }
           package_skill documents/adversarial-doc-review adversarial-doc-review
-          package_skill research/research-experiment-plan research-experiment-plan
-          package_skill research/research-idea-discovery research-idea-discovery
-          package_skill research/research-novelty-review research-novelty-review
-          package_skill research/research-paper-plan research-paper-plan
-          package_skill research/research-pipeline-planner research-pipeline-planner
-          package_skill research/research-results-auditor research-results-auditor
-          package_skill research/research-review-loop research-review-loop
-          package_skill research/research-systematic-literature-review research-systematic-literature-review
+          for skill_dir in research/*/; do
+            skill_dir="${skill_dir%/}"
+            package_skill "$skill_dir" "$(basename "$skill_dir")"
+          done
 
           for archive in packaged-skills/*.zip; do
             if unzip -Z1 "$archive" | grep -Eq '(^|/)__pycache__/|\.py[co]$'; then

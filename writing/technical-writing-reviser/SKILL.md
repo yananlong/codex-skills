@@ -1,6 +1,6 @@
 ---
 name: technical-writing-reviser
-description: Revise existing technical writing into clear, audience-facing prose while preserving evidence, technical meaning, uncertainty, and scope, including planned multi-agent section or issue-cluster revision for substantial artifacts when workers are available. Use for academic manuscripts, industrial technical reports, whitepapers, evaluation summaries, methods/results/limitations prose, technical claims, contribution or decision framing, and terminology conversion from internal shorthand to reader-facing language. Use after critique from research-paper-review or research-review-loop when the task is to revise the artifact's prose and claims, not to re-review it. Do not use when the main task is generic prose flow, citation work, paper planning, novelty review, experiment design, market strategy, or writing unsupported claims.
+description: Revise existing technical writing into clear, audience-facing prose while preserving evidence, technical meaning, uncertainty, and scope, including planned multi-agent section or issue-cluster revision for substantial artifacts when workers are available. Use for academic manuscripts, industrial technical reports, whitepapers, evaluation summaries, methods/results/limitations prose, technical claims, contribution or decision framing, and terminology conversion from internal shorthand to reader-facing language. Use after critique from research-paper-review or research-review-loop when the task is to revise the artifact's prose and claims, not to re-review it, and when a manuscript must be compressed to a page or word budget while preserving its claims. Do not use when the main task is generic prose flow, citation work, paper planning, novelty review, experiment design, market strategy, drafting new sections from a plan, writing a reviewer response (use research-rebuttal), or writing unsupported claims.
 ---
 
 # Technical Writing Reviser
@@ -19,9 +19,21 @@ When the source is fragmentary, preserve the author's meaning and produce the mo
 
 Treat this skill as a revision skill, not a planning, review, or evidence-generation skill. Improve wording, terminology, sentence shape, paragraph logic, claim framing, and limitation language, but do not invent citations, experiments, metrics, benchmarks, customer evidence, deployment details, product capabilities, novelty, or venue-specific requirements.
 
-Preserve numbers, methods, caveats, uncertainty, negative results, and justified confidence. If a source claim exceeds its available support, weaken or flag that specific claim, but do not turn every bounded claim into a disclaimer about a stronger proposition the source never made.
+Preserve numbers, methods, caveats, uncertainty, negative results, and justified confidence. If a source claim exceeds its available support, weaken or flag that specific claim, but do not turn every bounded claim into a disclaimer about a stronger proposition the source never made. If the source's own evidence contradicts a sentence rather than under-supporting it, do not weaken the sentence into something still false. Flag it as an evidence conflict for the author.
 
-Use `research-paper-plan` when the real need is manuscript structure, claim-to-evidence mapping, or figure planning. Use `research-paper-review` or `research-review-loop` when the real need is critique. Use `research-novelty-review` when the real need is positioning against prior work. Use `commercialize-academic-research` when the real need is buyer, budget, or commercialization analysis. Use `prose-flow-improver` alongside this skill when the draft is also too choppy, list-heavy, or note-like.
+Preserve the source format as well as the content. For LaTeX, Markdown, and other marked-up sources, keep macros, citation keys and their attachment to the clause they support, labels, cross-references, comments, and code spans intact. Read [references/register-and-format.md](references/register-and-format.md) before editing any LaTeX source or any manuscript outside empirical machine learning.
+
+Use `research-paper-plan` when the real need is manuscript structure, claim-to-evidence mapping, or figure planning. Use `research-paper-review` or `research-review-loop` when the real need is critique. Use `research-novelty-review` when the real need is positioning against prior work. Use `commercialize-academic-research` when the real need is buyer, budget, or commercialization analysis. Use `research-rebuttal` when the output is a response to reviewers rather than revised manuscript text. Use `prose-flow-improver` when the draft is also too choppy, list-heavy, or note-like. When both writing skills apply, run this skill first and treat `prose-flow-improver` as a constrained final pass that may not change causal, evidential, or contrastive connectives, or run one combined pass under this skill's brief.
+
+### Routing near misses
+
+- "Make the results section read less like a wall of numbers": this skill if claims or connectives change, otherwise `prose-flow-improver`.
+- "Reviewer 2 says the contribution is overclaimed; fix the intro": this skill for the manuscript text, `research-rebuttal` for the response.
+- "Does our limitations section undersell the paper?": `research-review-loop` or `research-paper-review` for the judgment, then this skill for the text.
+- "Restructure the intro so contributions map to sections": `research-paper-plan`.
+- "Is our positioning against prior work defensible?": `research-novelty-review`. "Rewrite the related-work paragraph to state our difference clearly": this skill.
+- "Cut related work by a third to fit the page limit": this skill, with the budget in the brief.
+- "Fix typos and LaTeX warnings": neither writing skill.
 
 ## Calibrate the Revision
 
@@ -35,7 +47,7 @@ First identify the job of the passage: motivation, technical background, contrib
 
 Then mark any internal language that will confuse an outside reader on first pass: project nicknames, code names, lab shorthand, implementation labels, and locally meaningful terms. Replace them with reader-facing terminology when the mapping is obvious, and preserve the meaning rather than the local wording.
 
-Next identify the support level of each sentence. Separate what the text actually shows from why it matters, and keep that boundary visible in the rewrite. Use qualifiers when they are needed to keep a claim within the source's support, but do not add precautionary qualification to claims that are already appropriately scoped.
+Next identify the support level of each sentence. Separate what the text actually shows from why it matters, and keep that boundary visible in the rewrite. Use qualifiers when they are needed to keep a claim within the source's support, but do not add precautionary qualification to claims that are already appropriately scoped. For a formal statement such as a definition, proposition, theorem, or lemma, the support is its stated hypotheses. Do not add scope qualifiers or empirical hedges that restate or weaken them. For an argumentative claim, the support is the argument, so write "we argue" and make the premise visible rather than hedging the conclusion.
 
 Finally tighten the prose into reader-facing technical form. Replace lab-log narration, internal memo phrasing, procedural diary language, and unsupported promotional language with sentences that foreground the technical object, method, evidence, result, decision, limitation, or implication. Join closely related sentences aggressively when a conjunction, relative clause, appositive, or subordinate clause can make the technical relationship clearer without changing the claim. Lean toward relative pronouns such as "that," "which," and "who" when they attach constraints, assumptions, mechanisms, or consequences to the specific technical object they modify. Make paragraphs do one clear job each and end with the practical inference when that helps the reader.
 
@@ -45,7 +57,9 @@ State the supported proposition directly instead of first denying an adjacent st
 
 Rewrite constructions such as "X is not A. X is B," "the point is not A but B," "this does not mean A," "we are not claiming A," "rather than A, this shows B," and "not merely A but B" as direct affirmative statements when A is not already salient in the source or necessary to the argument.
 
-Use corrective negation only when the source is explicitly correcting a misconception, distinguishing genuinely confusable concepts, reporting an absence or exclusion that is itself a technical fact, answering a live objection, or ruling out an alternative explanation. When the rejected proposition is doing no real argumentative work, lead with the supported proposition and omit the invented contrast.
+Use corrective negation only when the source is explicitly correcting a misconception, distinguishing genuinely confusable concepts, reporting an absence or exclusion that is itself a technical fact, stating a counterexample, converse failure, or impossibility result, answering a live objection raised by a named reviewer or position, or ruling out an alternative explanation. When the rejected proposition is doing no real argumentative work, lead with the supported proposition and omit the invented contrast.
+
+Defensive narrowing is not only negation-shaped. Also watch for concessive priority clauses ("each component has close precedents, and ..."), self-minimizing scope labels ("the claim is deliberately narrow", "in a limited sense"), and scope restatements repeated at the opening and closing of one section. Keep the scope the evidence requires, state it once, and state it as what the work covers rather than as an apology.
 
 Do not manufacture caution by naming claims the author supposedly is not making. Preserve genuine qualifications, but express the intended claim positively whenever its evidential boundary can be conveyed through precise scope, conditions, nouns, and verbs.
 
@@ -53,9 +67,9 @@ Read [references/claim-discipline.md](references/claim-discipline.md) when the d
 
 ## Agent Orchestration
 
-Default to multi-agent orchestration for substantial document-level technical revision when the runtime supports subagents. Use it when the artifact has multiple sections, repeated terminology, high claim-risk, reviewer comments, or enough length that local edits could create inconsistent voice or scope. Use a quick single-pass rewrite for short passages, isolated paragraphs, or low-risk copy.
+Default to a serial single-agent pass whenever the whole artifact fits comfortably in context, which covers a conference paper of up to roughly thirty pages. A serial pass still builds the revision brief below and still runs the merge audit on its own output. Fan out to workers only for longer artifacts, for several independent documents, or when the user asks for parallel revision. If this skill is itself running inside a subagent, run serially.
 
-Use serial single-agent execution only when subagents are unavailable, disabled, blocked by the runtime, clearly disproportionate for the artifact, or explicitly overridden by a quick request. Execute the same revision plan serially and state the fallback when it matters.
+When workers are used, keep the plan small. Assign at most one worker per major section or reviewer-issue cluster, and make any cross-cutting pass (claim discipline, terminology, limitation language) comment-only: it returns findings to the parent and never edits text, so worker ownership stays disjoint. When `prose-flow-improver` also applies, use one parent plan and one set of workers under this skill's brief rather than two orchestrations.
 
 ### Parent Brief Before Workers
 
@@ -68,19 +82,32 @@ Build a short revision brief before launching workers. Include:
 - Key claims with source locations and support level.
 - Important caveats, negative results, uncertainty, scope limits, and justified confidence that must survive revision.
 - Terminology map for internal labels, symbols, acronyms, product names, and reader-facing replacements.
-- Known critique items or reviewer issues to resolve.
+- Register and venue (empirical ML, ML theory, vision or systems, NLP or position paper, HCI or social science, technical report), inferred from the artifact or supplied by the user, with the conventions it implies for hedging, contrast, and terminology (see `references/register-and-format.md`).
+- Source format and the elements that must survive byte-for-byte (macros, citation keys, labels, comments).
+- Any page or word budget, and what may be cut to meet it.
+- Known critique items or reviewer issues to resolve, taken through the critique intake below.
 - Claims that genuinely require verification when verification is part of the task.
 
 Do not launch section workers until the brief is strong enough that another agent can revise locally without guessing the document's global meaning.
 
+### Critique Intake
+
+When the request follows a review, read the critique artifacts read-only: `final_issues.json` (quote, source section, impact rating) from `research-paper-review`, or `REVIEW_STATE.json` (open issues, required action, route effect, accepted risks) from `research-review-loop`, or the user's pasted reviewer comments.
+
+Check staleness first. Compare the critique's recorded source head or date with the current source, and compare the paper identity it reviewed with the current title, abstract, and contribution list. List issues that predate a paper-identity change or a major revision as possibly stale and do not apply them silently.
+
+Translate each issue into an edit, not a disclaimer. An issue whose effect is "blocks claim X" means the revision must not assert X; it does not license a sentence announcing that X is not claimed unless the reviewer explicitly asked for that statement or the venue requires a scope statement. An issue that narrows a claim means stating the narrower claim directly at the strength the evidence supports.
+
+Record every issue-driven weakening in a short claim-change note (original wording, revised wording, the issue that forced it) so the owning review or planning stage can see the cumulative scope loss. Do not let several locally reasonable narrowings shrink the contribution without the author seeing the total.
+
 ### Revision Pass Plan
 
-Build a concrete pass plan before spawning or running workers. For a substantial document, aim for 4-8 passes:
+Build a concrete pass plan before spawning or running workers:
 
-- 2-6 section or claim-cluster passes that cover the document's major sections, logical units, or reviewer-issue clusters.
-- 1-3 cross-cutting passes for claim discipline, terminology consistency, reader-facing flow, limitation language, notation, or evidence-to-conclusion fit.
+- one section or claim-cluster pass per major section, logical unit, or reviewer-issue cluster, grouping small or tightly coupled sections rather than creating trivial one-paragraph passes;
+- at most one comment-only cross-cutting pass, chosen from the artifact's actual risks (claim discipline, terminology consistency, limitation language, notation, evidence-to-conclusion fit), and only when the parent's own merge audit would not cover it.
 
-Group small or tightly coupled sections rather than creating trivial one-paragraph passes. Choose cross-cutting passes from the artifact's actual risks; do not run generic style passes that have no claim or reader-value target.
+Do not run generic style passes that have no claim or reader-value target.
 
 Each pass plan entry should include:
 
@@ -98,10 +125,9 @@ Use one worker per planned pass when workers are available. Worker ownership mus
 
 Each worker prompt should:
 
-- State that the worker is not alone in the workspace.
+- State that the worker writes only to its assigned output and that the parent alone edits the source.
 - State the worker's assigned scope and owned output target.
-- State that the worker must not edit shared files or other workers' outputs.
-- Provide the revision brief, audience, terminology map, claim constraints, and relevant critique notes.
+- Provide the revision brief, audience, register, source-format rules, terminology map, claim constraints, and relevant critique notes.
 - Require revised prose plus brief notes on any material claim-strength changes, preserved caveats, unresolved terminology, and missing support.
 - Require an empty but explicit result if no safe revision is possible.
 
@@ -116,7 +142,10 @@ After all passes complete, merge in the parent. The parent must harmonize termin
 Run an adversarial final audit after merging:
 
 - Check that every strengthened sentence is supported by the source, critique artifacts, or provided evidence.
-- Restore any source caveat, negative result, uncertainty, baseline condition, or scope limit that a local rewrite softened.
+- Check every weakened sentence the same way: name the support gap or critique item that requires the weakening, or restore the source wording.
+- Compare the revised abstract, contribution list, and conclusion with the source versions. If the stated contribution became smaller, list the change for the author in the claim-change note rather than shipping it silently.
+- Restore any source caveat, negative result, uncertainty, baseline condition, or scope limit that a local rewrite softened. A source caveat that carries scope (what the evidence does not cover) is kept and restated positively as scope plus consequence. Delete only rejected propositions that the source invented to sound cautious; this precedence resolves the apparent conflict with the negation scan below.
+- For marked-up sources, compare the visible text before and after (comments stripped) and confirm that no macro, citation, label, or comment moved or vanished.
 - Check for definitional drift, inconsistent terminology, unsupported causal language, and conclusions that no longer follow from the revised paragraph.
 - Verify that cross-section transitions do not imply evidence, chronology, deployment status, or novelty that the source did not establish.
 - Scan for corrective negation, anticipatory disclaimers, and objection-answering language that the source did not motivate. For each occurrence, ask whether the rejected interpretation is already salient or materially necessary. If not, delete the rejected proposition and state the supported proposition directly.

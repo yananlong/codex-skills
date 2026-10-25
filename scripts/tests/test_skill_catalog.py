@@ -100,6 +100,20 @@ class SkillCatalogTests(unittest.TestCase):
         }), encoding="utf-8")
         self.assertEqual(self.errors(build_catalog(self.root)), [])
 
+    def test_sidecar_capabilities_replace_inferred_ones(self) -> None:
+        self.entrypoint.write_text(
+            self.entrypoint.read_text(encoding="utf-8").replace(
+                "Review a bounded artifact.", "Validate and audit a bounded artifact."
+            ), encoding="utf-8",
+        )
+        inferred = build_catalog(self.root)["skills"][0]["capabilities"]
+        self.assertIn("validation", inferred)  # the validate/audit keywords infer it
+        (self.skill / "catalog.json").write_text(
+            json.dumps({"capabilities": ["technical-writing"]}), encoding="utf-8"
+        )
+        record = build_catalog(self.root)["skills"][0]
+        self.assertEqual(record["capabilities"], ["technical-writing"])
+
     def test_stale_generated_record_fields_are_rejected(self) -> None:
         for field, replacement in {
             "name": "renamed-review", "domain": "wrong-domain",

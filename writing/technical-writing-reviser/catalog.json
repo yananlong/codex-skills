@@ -1,0 +1,20 @@
+{
+  "capabilities": ["technical-writing", "multi-agent"],
+  "inputs": [
+    "existing technical prose (Markdown, LaTeX source, or plain text)",
+    "optional critique bundle: final_issues.json from research-paper-review or REVIEW_STATE.json from research-review-loop",
+    "optional claim-evidence bindings from research-paper-plan",
+    "optional terminology map, register or venue, and page or word budget"
+  ],
+  "outputs": [
+    "revised prose in the source format",
+    "claim-change note listing every issue-driven weakening"
+  ],
+  "related_skills": [
+    "prose-flow-improver",
+    "research-paper-review",
+    "research-review-loop",
+    "research-paper-plan",
+    "research-rebuttal"
+  ]
+}

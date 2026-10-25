@@ -1,6 +1,6 @@
 ---
 name: prose-flow-improver
-description: Improve the flow, shape, and readability of existing prose while preserving substance, specificity, tone, and constraints, including planned multi-agent section, paragraph-range, or chunk-level revision for substantial documents when workers are available. Use when Codex needs to make explanatory writing less choppy, less list-heavy, less fragmented, or less over-paragraphed; combine related sentences or paragraphs aggressively but readably; add connective reasoning; favor conjunctions, relative clauses, subordinate clauses, and clean participial phrasing over semicolons; or turn terse notes into natural connected prose. Do not use when the content is inherently list-shaped, procedural, tabular, or governed by a stricter task-specific format.
+description: Improve the flow, shape, and readability of existing prose while preserving substance, specificity, tone, and constraints, including planned multi-agent section, paragraph-range, or chunk-level revision for substantial documents when workers are available. Use when the agent needs to make explanatory writing less choppy, less list-heavy, less fragmented, or less over-paragraphed; combine related sentences or paragraphs aggressively but readably; add connective reasoning; favor conjunctions, relative clauses, subordinate clauses, and clean participial phrasing over semicolons; or turn terse notes into natural connected prose. Do not use when the content is inherently list-shaped, procedural, tabular, or governed by a stricter task-specific format, and do not use it alone when the task also changes claims, evidence framing, or technical terminology (run technical-writing-reviser first).
 ---
 
 # Prose Flow Improver
@@ -57,9 +57,9 @@ End with the implication when helpful. If the paragraph explains a decision, res
 
 ## Agent Orchestration
 
-Default to multi-agent orchestration for substantial document-level prose-flow revision when the runtime supports subagents. Use it when the artifact has multiple sections, repeated transitions, uneven paragraphing, many list-to-prose conversions, or enough length that local smoothing could create inconsistent shape or tone. Use a quick single-pass rewrite for short passages, isolated paragraphs, or low-risk assistant answers.
+Default to a serial single-agent pass whenever the whole artifact fits comfortably in context, which covers a conference paper or a long report of up to roughly thirty pages. A serial pass still builds the shape brief below and still runs the preservation audit on its own output. Fan out to workers only for longer artifacts, for several independent documents, or when the user asks for parallel revision. If this skill is itself running inside a subagent, run serially.
 
-Use serial single-agent execution only when subagents are unavailable, disabled, blocked by the runtime, clearly disproportionate for the artifact, or explicitly overridden by a quick request. Execute the same shape plan serially and state the fallback when it matters.
+When workers are used, keep the plan small: at most one worker per major section or coherent chunk, and any cross-cutting pass (transitions, repetition, rhythm) is comment-only, returning findings to the parent and never editing text, so ownership stays disjoint. When `technical-writing-reviser` also applies, it owns the plan and the workers, and this skill's rules apply as constraints inside that plan.
 
 ### Parent Shape Brief Before Workers
 
@@ -76,12 +76,12 @@ Build a short shape brief before launching workers. Include:
 
 Do not launch workers until the shape brief is clear enough that local rewrites will not fight the document's intended form.
 
-### 3-7 Pass Flow Plan
+### Flow Pass Plan
 
-Build a concrete 3-7 pass plan before spawning or running workers:
+Build a concrete pass plan before spawning or running workers:
 
-- 2-5 section, paragraph-range, or coherent-chunk passes that cover the main body.
-- 1-2 cross-cutting passes for transitions, paragraph boundaries, retained list quality, repetition, or sentence rhythm.
+- one section, paragraph-range, or coherent-chunk pass per major unit of the main body;
+- at most one comment-only cross-cutting pass for transitions, paragraph boundaries, retained list quality, repetition, or sentence rhythm, and only when the parent's merge audit would not cover it.
 
 Group tightly coupled paragraphs rather than splitting one argument across workers. Do not assign a worker a range whose opening or closing sentence depends heavily on an unassigned neighbor unless the prompt includes that neighbor as read-only context.
 
@@ -104,9 +104,8 @@ Use one worker per planned pass when workers are available. Worker ownership mus
 
 Each worker prompt should:
 
-- State that the worker is not alone in the workspace.
+- State that the worker writes only to its assigned output and that the parent alone edits the source.
 - State the worker's assigned scope and owned output target.
-- State that the worker must not edit shared files or other workers' outputs.
 - Provide the shape brief, local flow goal, required retained facts, and any read-only neighboring context.
 - Require revised prose plus brief notes on retained constraints, converted or retained lists, merged paragraphs, and any uncertainty.
 - Require an empty but explicit result if no safe flow improvement is possible.
@@ -136,13 +135,17 @@ For assistant answers and explanations, prefer direct prose with a small number 
 
 For reviews, findings, or procedural guidance, keep the required structure and improve sentence quality inside it rather than forcing everything into paragraphs.
 
-For technical or academic artifacts, use this skill for flow and sentence shape only. Use `technical-writing-reviser` when the task also requires claim discipline, technical terminology conversion, or evidence-aware revision.
+For technical or academic artifacts, use this skill for flow and sentence shape only. Use `technical-writing-reviser` when the task also requires claim discipline, technical terminology conversion, or evidence-aware revision. When both apply, the reviser runs first and this skill is a constrained final pass that may not change which relation a connective asserts.
+
+For marked-up sources, preserve the format as well as the words. In LaTeX, never join a line that ends in an unescaped `%` comment with the following line, keep every macro, citation key, label, and cross-reference byte-identical and attached to the same clause, do not edit inside math or comments, and compare the visible text before and after. In Markdown, preserve code spans, links, and footnote markers.
 
 For user-provided drafts, preserve the author's intent, level of formality, and technical precision unless the user asks for a stronger tonal change.
 
 ## Preserve Signal
 
 Keep concrete nouns, exact constraints, filenames, commands, numbers, and caveats. Make the prose fuller without blurring technical precision.
+
+In technical or research prose, connectives are claims. "Because", "so", "therefore", "rather than", and "but" each assert a causal, evidential, or contrastive relation. Add one only when the source states that relation. When two facts sit side by side without a stated relation, join them with "and" or keep them separate, and do not frame a point by first denying an adjacent proposition the source never raised.
 
 Retain headings when they help scanning, but avoid turning every thought into its own bullet.
 

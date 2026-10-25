@@ -66,7 +66,7 @@ Merge paragraphs with the same job:
 If two adjacent paragraphs are both explaining the same claim, result, or recommendation, combine them unless the split improves emphasis or scanning.
 
 Add the missing relation:
-State whether the next sentence explains cause, contrast, consequence, constraint, or emphasis.
+State whether the next sentence explains cause, contrast, consequence, constraint, or emphasis, when the source states or clearly implies that relation. In technical or research prose, do not supply a causal or contrastive relation that the source does not assert; join with "and" or keep the sentences separate.
 
 Prefer conjunctions over punctuation tricks:
 If two bullets belong in one sentence, first try joining them with "and," "but," "so," "because," or "while" before reaching for a semicolon.
@@ -93,7 +93,9 @@ Before:
 - Tail latency still spikes during batch imports.
 
 After:
-Latency improved because caching removed many repeated lookups from the hot path. The gain is real, but it is not uniform because tail latency still spikes during batch imports, so the system remains sensitive to bursty write-heavy workloads.
+Latency improved, and caching reduced repeated lookups on the hot path. Tail latency still spikes during batch imports, so the system remains sensitive to bursty write-heavy workloads.
+
+The source lists the latency gain and the caching change side by side without saying one caused the other, so the rewrite keeps "and" rather than asserting "because". Write "because" only when the source states the causal link.
 
 Example 2:
 
@@ -103,7 +105,7 @@ Before:
 - Reader cannot see why the choice matters.
 
 After:
-This section needs more detail because it states the choice without explaining why it matters. The core problem is not length by itself, but that the reader cannot see the consequence of the decision or the tradeoff it resolves.
+This section needs more detail because it states the choice without explaining why it matters. The reader cannot see the consequence of the decision or the tradeoff it resolves.
 
 Example 3:
 
@@ -140,7 +142,7 @@ Before:
 - Churn is still elevated in SMB.
 
 After:
-Revenue increased, and margin improved after the pricing changes took effect. The result is positive overall, but it is not clean: SMB churn remains elevated, so the improvement still depends on fixing retention rather than only leaning on pricing.
+Revenue increased, and margin improved after the pricing changes took effect. SMB churn remains elevated, however, so the improvement still depends on fixing retention.
 
 ## Default Heuristics
 

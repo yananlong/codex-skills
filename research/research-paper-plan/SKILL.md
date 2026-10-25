@@ -1,6 +1,6 @@
 ---
 name: research-paper-plan
-description: Turn supported claims and evidence into a research paper plan that works either as a standalone manuscript-structuring pass or as the paper stage inside a coordinated research workflow. Use when asked to outline a paper, map claims to evidence, bind audited results to manuscript claims, plan figures and citations, align experiments to manuscript language, or keep limitations and threats to validity explicit.
+description: Turn supported claims and evidence into a research paper plan that works either as a standalone manuscript-structuring pass or as the paper stage inside a coordinated research workflow. Use when asked to outline a paper, map claims to evidence, bind audited results to manuscript claims, plan figures and citations, align experiments to manuscript language, port a paper between venues or page budgets, or keep limitations and threats to validity explicit. A plain outline or a related-work outline with no results audit is a lightweight pass that needs no JSON pack. Not for revising existing prose (technical-writing-reviser), reviewing a draft (research-paper-review), or answering reviewers (research-rebuttal).
 ---
 
 # Research Paper Plan
