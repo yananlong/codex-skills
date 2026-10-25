@@ -83,8 +83,8 @@ Eight themes recur across clusters. They matter more than any single finding.
 
 ### Phase 1: mechanical fixes with regression tests (this branch)
 
-Each item below is a defect with verified evidence, a bounded fix, and a test that fails on the
-old code. Items marked `[deferred]` were assigned but dropped for time; they stay phase-1 work.
+Each item below is a defect with verified evidence, a bounded fix, and a regression test that
+fails on the previous code. All of them landed in this branch.
 
 Writing skills (done in this branch):
 - Formal and argumentative support types in claim discipline; theorem hypotheses are the scope, no empirical hedges on proved statements (writing F-1).
@@ -111,7 +111,7 @@ Paper skills:
 - Review-bundle validator is provenance-family aware and resolves sibling round folders (paper F-1).
 - `init_review_loop.py --from-state` continues a loop without renumbering or dropping issues; empty required fields fail loudly (paper F-3).
 - Rebuttal pack keeps the raw pasted reviews and uses `EXT-<handle>-<n>` IDs (paper F-11).
-- Runtime-neutral wording; viz runtime label from an argument; LaTeX source accepted and flattened with a source map (paper F-12, F-7).
+- Runtime-neutral wording; viz runtime label from an argument; LaTeX source accepted and flattened with a source map (paper F-12, F-7). On the real bundles the family-aware validator now passes both first-pass reviews and fails one imported round for the eleven issues whose quotes were lost, which is the loud failure the owner wanted.
 - Paper-plan description names the lightweight outline path and venue porting (paper F-13 part).
 
 Experiments and planner:
@@ -122,7 +122,7 @@ Experiments and planner:
 - `validate_results_audit.py --root` checks evidence paths and digests against files (experiments F-3).
 - Lightweight sanity-check path in the auditor; `paper_id` optional for exploratory standalone audits; trigger descriptions carry negative examples (experiments F-7, F-12).
 - Planner quick start split into standalone and orchestrated; hard stops scoped by mode (orchestration F-9).
-- Experiment-pack envelopes with `schema_version` accepted (experiments F-5) `[if landed]`.
+- Experiment-pack validator accepts versioned claim and run-block envelopes and ignores history tables under tracker headings (experiments F-5, validator side only: the init script still writes bare arrays because the paper-plan and planner-runtime loaders require them; see D2 and D15).
 
 Repository:
 - Research CI compiles every skill script, discovers every `tests/` folder, and packages every research skill without tests (QI-09).

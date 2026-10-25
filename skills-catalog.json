@@ -11,7 +11,7 @@
   "notes": [
     "This catalog is generated from all SKILL.md files under the repository.",
     "Add new skills by adding a skill folder with SKILL.md; no central list edit is required.",
-    "Optional per-skill catalog.json sidecars may add or override structured metadata."
+    "Optional per-skill catalog.json sidecars may add or override structured metadata; an explicit capabilities, inputs, or outputs list replaces the inferred one."
   ],
   "open_catalog": true,
   "skill_count": 20,
@@ -364,12 +364,13 @@
       "capabilities": [
         "experiment-design",
         "research-planning",
+        "results-audit",
         "stage-routing"
       ],
-      "description": "Convert a concrete research claim into a tracked, decisive experiment plan that works either as a standalone planning artifact or as the experiment stage inside a coordinated research workflow. Use when asked to design experiments, define baselines or ablations, decide run order, separate must-run from nice-to-have evidence, or turn a claim plus evaluation goal into a validation plan.",
+      "description": "Convert a concrete research claim into a tracked, decisive experiment plan that works either as a standalone planning artifact or as the experiment stage inside a coordinated research workflow. Use when asked to design experiments, define baselines or ablations, decide run order, separate must-run from nice-to-have evidence, or turn a claim plus evaluation goal into a validation plan. When existing results bear on the decision, run research-results-auditor first.",
       "domain": "research",
       "frontmatter": {
-        "description": "Convert a concrete research claim into a tracked, decisive experiment plan that works either as a standalone planning artifact or as the experiment stage inside a coordinated research workflow. Use when asked to design experiments, define baselines or ablations, decide run order, separate must-run from nice-to-have evidence, or turn a claim plus evaluation goal into a validation plan.",
+        "description": "Convert a concrete research claim into a tracked, decisive experiment plan that works either as a standalone planning artifact or as the experiment stage inside a coordinated research workflow. Use when asked to design experiments, define baselines or ablations, decide run order, separate must-run from nice-to-have evidence, or turn a claim plus evaluation goal into a validation plan. When existing results bear on the decision, run research-results-auditor first.",
         "name": "research-experiment-plan"
       },
       "inputs": [],
@@ -437,8 +438,7 @@
         "novelty-review",
         "research-planning",
         "stage-routing",
-        "validation",
-        "zotero"
+        "validation"
       ],
       "description": "Generate, filter, rank, and hand off grounded research ideas from a broad research direction, problem area, literature landscape, Zotero corpus, paper limitation, or user notes. Use when asked to brainstorm publishable research ideas, find a direction, turn a broad area into candidate claims, choose what to work on, evaluate idea quality before novelty review, or create an ideation stage inside a coordinated research workflow. Prefer research-novelty-review when the user already has one concrete idea to pressure-test, research-experiment-plan when the claim is already frozen, and research-pipeline-planner when the main request is multi-stage project sequencing rather than ideation itself.",
       "domain": "research",
@@ -580,14 +580,17 @@
       "capabilities": [
         "paper-planning",
         "paper-review",
+        "rebuttal",
         "research-planning",
         "results-audit",
-        "stage-routing"
+        "stage-routing",
+        "technical-writing",
+        "validation"
       ],
-      "description": "Turn supported claims and evidence into a research paper plan that works either as a standalone manuscript-structuring pass or as the paper stage inside a coordinated research workflow. Use when asked to outline a paper, map claims to evidence, bind audited results to manuscript claims, plan figures and citations, align experiments to manuscript language, or keep limitations and threats to validity explicit.",
+      "description": "Turn supported claims and evidence into a research paper plan that works either as a standalone manuscript-structuring pass or as the paper stage inside a coordinated research workflow. Use when asked to outline a paper, map claims to evidence, bind audited results to manuscript claims, plan figures and citations, align experiments to manuscript language, port a paper between venues or page budgets, or keep limitations and threats to validity explicit. A plain outline or a related-work outline with no results audit is a lightweight pass that needs no JSON pack. Not for revising existing prose (technical-writing-reviser), reviewing a draft (research-paper-review), or answering reviewers (research-rebuttal).",
       "domain": "research",
       "frontmatter": {
-        "description": "Turn supported claims and evidence into a research paper plan that works either as a standalone manuscript-structuring pass or as the paper stage inside a coordinated research workflow. Use when asked to outline a paper, map claims to evidence, bind audited results to manuscript claims, plan figures and citations, align experiments to manuscript language, or keep limitations and threats to validity explicit.",
+        "description": "Turn supported claims and evidence into a research paper plan that works either as a standalone manuscript-structuring pass or as the paper stage inside a coordinated research workflow. Use when asked to outline a paper, map claims to evidence, bind audited results to manuscript claims, plan figures and citations, align experiments to manuscript language, port a paper between venues or page budgets, or keep limitations and threats to validity explicit. A plain outline or a related-work outline with no results audit is a lightweight pass that needs no JSON pack. Not for revising existing prose (technical-writing-reviser), reviewing a draft (research-paper-review), or answering reviewers (research-rebuttal).",
         "name": "research-paper-plan"
       },
       "inputs": [],
@@ -606,10 +609,13 @@
       "primary_intent": "planning",
       "related_skills": [
         "research-idea-discovery",
+        "research-paper-review",
         "research-pipeline-planner",
+        "research-rebuttal",
         "research-results-auditor",
         "research-review-loop",
-        "research-zotero"
+        "research-zotero",
+        "technical-writing-reviser"
       ],
       "resources": {
         "agents": [
@@ -647,12 +653,14 @@
       },
       "capabilities": [
         "multi-agent",
-        "paper-review"
+        "paper-review",
+        "pdf-processing",
+        "stage-routing"
       ],
-      "description": "Run academic paper review with OCR extraction, ChatGPT-native multi-agent critique, local visualization, and section-level review workflows integrated into the research skill suite. Use when Codex needs an initial or first-pass review of one paper artifact or arXiv URL, including OCR, extraction, default Claude-style or multi-agent review, contextualized critique, or viz JSON generation. Prefer `research-review-loop` once a tracked review state or revised artifact already exists, `research-novelty-review` for prior-art and positioning questions, `research-rebuttal` when concrete reviewer comments already exist, and `adversarial-doc-review` for non-paper documents.",
+      "description": "Run a first-pass academic review of one manuscript (LaTeX source tree, PDF, DOCX, Markdown, or arXiv URL) with a full-paper summary, planned section and cross-cutting review passes, quote-anchored issues with 1-5 ratings, optional OCR extraction and viz JSON, and a validated handoff bundle. Use when the agent needs an initial or first-pass review of one paper artifact, including extraction, multi-agent or serial pass-based critique, contextualized critique, or viz JSON generation. Prefer `research-review-loop` once a tracked review state or revised artifact already exists, `research-novelty-review` for prior-art and positioning questions, `research-rebuttal` when concrete reviewer comments already exist, and `adversarial-doc-review` for non-paper documents.",
       "domain": "research",
       "frontmatter": {
-        "description": "Run academic paper review with OCR extraction, ChatGPT-native multi-agent critique, local visualization, and section-level review workflows integrated into the research skill suite. Use when Codex needs an initial or first-pass review of one paper artifact or arXiv URL, including OCR, extraction, default Claude-style or multi-agent review, contextualized critique, or viz JSON generation. Prefer `research-review-loop` once a tracked review state or revised artifact already exists, `research-novelty-review` for prior-art and positioning questions, `research-rebuttal` when concrete reviewer comments already exist, and `adversarial-doc-review` for non-paper documents.",
+        "description": "Run a first-pass academic review of one manuscript (LaTeX source tree, PDF, DOCX, Markdown, or arXiv URL) with a full-paper summary, planned section and cross-cutting review passes, quote-anchored issues with 1-5 ratings, optional OCR extraction and viz JSON, and a validated handoff bundle. Use when the agent needs an initial or first-pass review of one paper artifact, including extraction, multi-agent or serial pass-based critique, contextualized critique, or viz JSON generation. Prefer `research-review-loop` once a tracked review state or revised artifact already exists, `research-novelty-review` for prior-art and positioning questions, `research-rebuttal` when concrete reviewer comments already exist, and `adversarial-doc-review` for non-paper documents.",
         "name": "research-paper-review"
       },
       "inputs": [],
@@ -664,13 +672,16 @@
         "criteria.md",
         "final_issues.json",
         "full_text.md",
+        "latex_source_map.json",
         "literature-context-decision.json",
         "literature-context-evidence-table.md",
         "literature-context-search-log.md",
         "literature-context.md",
+        "main.tex",
         "metadata.json",
         "overall_assessment.txt",
         "review_summary.json",
+        "root.tex",
         "summary.md"
       ],
       "path": "research/research-paper-review",
@@ -701,6 +712,7 @@
         "scripts": [
           "scripts/_engine.py",
           "scripts/consolidate_comments.py",
+          "scripts/flatten_latex.py",
           "scripts/install_engine.py",
           "scripts/prepare_workspace.py",
           "scripts/run_openaireview.py",
@@ -740,8 +752,14 @@
       "outputs": [
         "HARNESS_STATE.json",
         "artifact-index.md",
+        "commitment-transitions.json",
+        "decision-log.md",
+        "decision-log.template.md",
+        "research-brief.md",
+        "research-brief.template.md",
         "research-commitment.json",
         "run-blocks.json",
+        "task-board.md",
         "work-items.json"
       ],
       "path": "research/research-pipeline-planner",
@@ -813,22 +831,25 @@
         "rebuttal",
         "research-planning"
       ],
-      "description": "Draft venue-aware academic rebuttals and author responses from reviewer comments, scores, and paper artifacts. Use when concrete reviewer comments already exist and Codex needs to analyze reviews, build a reviewer issue board, plan evidence or manuscript fixes, draft a rebuttal, respond to AC or meta-review feedback, manage multi-round author-reviewer discussion, or prepare a paste-ready response for conference or journal review systems. Prefer `research-paper-review` for initial manuscript diagnosis before reviews arrive, `research-review-loop` for internal tracked review without external reviewer comments, and `research-novelty-review` for prior-art positioning disputes.",
+      "description": "Draft venue-aware academic rebuttals and author responses from reviewer comments, scores, and paper artifacts. Use when concrete reviewer comments already exist and the agent needs to analyze reviews, build a reviewer issue board, plan evidence or manuscript fixes, draft a rebuttal, respond to AC or meta-review feedback, manage multi-round author-reviewer discussion, or prepare a paste-ready response for conference or journal review systems. Prefer `research-paper-review` for initial manuscript diagnosis before reviews arrive, `research-review-loop` for internal tracked review without external reviewer comments, and `research-novelty-review` for prior-art positioning disputes.",
       "domain": "research",
       "frontmatter": {
-        "description": "Draft venue-aware academic rebuttals and author responses from reviewer comments, scores, and paper artifacts. Use when concrete reviewer comments already exist and Codex needs to analyze reviews, build a reviewer issue board, plan evidence or manuscript fixes, draft a rebuttal, respond to AC or meta-review feedback, manage multi-round author-reviewer discussion, or prepare a paste-ready response for conference or journal review systems. Prefer `research-paper-review` for initial manuscript diagnosis before reviews arrive, `research-review-loop` for internal tracked review without external reviewer comments, and `research-novelty-review` for prior-art positioning disputes.",
+        "description": "Draft venue-aware academic rebuttals and author responses from reviewer comments, scores, and paper artifacts. Use when concrete reviewer comments already exist and the agent needs to analyze reviews, build a reviewer issue board, plan evidence or manuscript fixes, draft a rebuttal, respond to AC or meta-review feedback, manage multi-round author-reviewer discussion, or prepare a paste-ready response for conference or journal review systems. Prefer `research-paper-review` for initial manuscript diagnosis before reviews arrive, `research-review-loop` for internal tracked review without external reviewer comments, and `research-novelty-review` for prior-art positioning disputes.",
         "name": "research-rebuttal"
       },
       "inputs": [],
       "name": "research-rebuttal",
       "outputs": [
+        "REVIEW_STATE.json",
         "ac-note.md",
         "artifact-index.md",
+        "final_issues.json",
         "issue-board.md",
         "rebuttal-paste-ready.md",
         "rebuttal-working.md",
         "research-brief.md",
         "review-analysis.md",
+        "reviews-raw.md",
         "task-list.md"
       ],
       "path": "research/research-rebuttal",
@@ -875,10 +896,10 @@
         "results-audit",
         "validation"
       ],
-      "description": "Audit ML/statistics experiment outputs for validity, confounds, statistical support, calibration, and mismatch between measured results and claimed conclusions. Use when asked to interpret results, sanity-check benchmarks, review ablations, assess robustness claims, decide whether an experiment supports a paper claim, or produce a machine-readable result-audit record for downstream paper planning.",
+      "description": "Audit ML/statistics experiment outputs for validity, confounds, statistical support, calibration, and mismatch between measured results and claimed conclusions. Use when asked to interpret results, sanity-check benchmarks, review ablations, assess robustness claims, decide whether an experiment supports a paper claim, or produce a machine-readable result-audit record for downstream paper planning. Not for formatting or summarizing results without a claim to test.",
       "domain": "research",
       "frontmatter": {
-        "description": "Audit ML/statistics experiment outputs for validity, confounds, statistical support, calibration, and mismatch between measured results and claimed conclusions. Use when asked to interpret results, sanity-check benchmarks, review ablations, assess robustness claims, decide whether an experiment supports a paper claim, or produce a machine-readable result-audit record for downstream paper planning.",
+        "description": "Audit ML/statistics experiment outputs for validity, confounds, statistical support, calibration, and mismatch between measured results and claimed conclusions. Use when asked to interpret results, sanity-check benchmarks, review ablations, assess robustness claims, decide whether an experiment supports a paper claim, or produce a machine-readable result-audit record for downstream paper planning. Not for formatting or summarizing results without a claim to test.",
         "name": "research-results-auditor"
       },
       "inputs": [],
@@ -1009,10 +1030,13 @@
         ".review.md",
         ".screening-log.md",
         ".search-log.md",
+        "bib-inventory.json",
+        "citation-audit.md",
         "literature-context-decision.json",
         "literature-context-evidence-table.md",
         "literature-context-search-log.md",
-        "literature-context.md"
+        "literature-context.md",
+        "root.tex"
       ],
       "path": "research/research-systematic-literature-review",
       "primary_intent": "review",
@@ -1044,6 +1068,7 @@
           "references/search-strategy-template.md"
         ],
         "scripts": [
+          "scripts/bib_inventory.py",
           "scripts/init_review_pack.py",
           "scripts/paper_context_artifacts.py",
           "scripts/prisma_flow_md.py",
@@ -1127,15 +1152,20 @@
         "multi-agent",
         "technical-writing"
       ],
-      "description": "Improve the flow, shape, and readability of existing prose while preserving substance, specificity, tone, and constraints, including planned multi-agent section, paragraph-range, or chunk-level revision for substantial documents when workers are available. Use when Codex needs to make explanatory writing less choppy, less list-heavy, less fragmented, or less over-paragraphed; combine related sentences or paragraphs aggressively but readably; add connective reasoning; favor conjunctions, relative clauses, subordinate clauses, and clean participial phrasing over semicolons; or turn terse notes into natural connected prose. Do not use when the content is inherently list-shaped, procedural, tabular, or governed by a stricter task-specific format.",
+      "description": "Improve the flow, shape, and readability of existing prose while preserving substance, specificity, tone, and constraints, including planned multi-agent section, paragraph-range, or chunk-level revision for substantial documents when workers are available. Use when the agent needs to make explanatory writing less choppy, less list-heavy, less fragmented, or less over-paragraphed; combine related sentences or paragraphs aggressively but readably; add connective reasoning; favor conjunctions, relative clauses, subordinate clauses, and clean participial phrasing over semicolons; or turn terse notes into natural connected prose. Do not use when the content is inherently list-shaped, procedural, tabular, or governed by a stricter task-specific format, and do not use it alone when the task also changes claims, evidence framing, or technical terminology (run technical-writing-reviser first).",
       "domain": "writing",
       "frontmatter": {
-        "description": "Improve the flow, shape, and readability of existing prose while preserving substance, specificity, tone, and constraints, including planned multi-agent section, paragraph-range, or chunk-level revision for substantial documents when workers are available. Use when Codex needs to make explanatory writing less choppy, less list-heavy, less fragmented, or less over-paragraphed; combine related sentences or paragraphs aggressively but readably; add connective reasoning; favor conjunctions, relative clauses, subordinate clauses, and clean participial phrasing over semicolons; or turn terse notes into natural connected prose. Do not use when the content is inherently list-shaped, procedural, tabular, or governed by a stricter task-specific format.",
+        "description": "Improve the flow, shape, and readability of existing prose while preserving substance, specificity, tone, and constraints, including planned multi-agent section, paragraph-range, or chunk-level revision for substantial documents when workers are available. Use when the agent needs to make explanatory writing less choppy, less list-heavy, less fragmented, or less over-paragraphed; combine related sentences or paragraphs aggressively but readably; add connective reasoning; favor conjunctions, relative clauses, subordinate clauses, and clean participial phrasing over semicolons; or turn terse notes into natural connected prose. Do not use when the content is inherently list-shaped, procedural, tabular, or governed by a stricter task-specific format, and do not use it alone when the task also changes claims, evidence framing, or technical terminology (run technical-writing-reviser first).",
         "name": "prose-flow-improver"
       },
-      "inputs": [],
+      "inputs": [
+        "existing explanatory prose or notes (Markdown, LaTeX source, or plain text)",
+        "optional shape brief from technical-writing-reviser when both skills run"
+      ],
       "name": "prose-flow-improver",
-      "outputs": [],
+      "outputs": [
+        "revised prose in the source format with substance, constraints, and connective logic preserved"
+      ],
       "path": "writing/prose-flow-improver",
       "primary_intent": "revision",
       "related_skills": [
@@ -1163,21 +1193,26 @@
         }
       },
       "capabilities": [
-        "document-memory",
         "multi-agent",
-        "research-planning",
-        "results-audit",
         "technical-writing"
       ],
-      "description": "Revise existing technical writing into clear, audience-facing prose while preserving evidence, technical meaning, uncertainty, and scope, including planned multi-agent section or issue-cluster revision for substantial artifacts when workers are available. Use for academic manuscripts, industrial technical reports, whitepapers, evaluation summaries, methods/results/limitations prose, technical claims, contribution or decision framing, and terminology conversion from internal shorthand to reader-facing language. Use after critique from research-paper-review or research-review-loop when the task is to revise the artifact's prose and claims, not to re-review it. Do not use when the main task is generic prose flow, citation work, paper planning, novelty review, experiment design, market strategy, or writing unsupported claims.",
+      "description": "Revise existing technical writing into clear, audience-facing prose while preserving evidence, technical meaning, uncertainty, and scope, including planned multi-agent section or issue-cluster revision for substantial artifacts when workers are available. Use for academic manuscripts, industrial technical reports, whitepapers, evaluation summaries, methods/results/limitations prose, technical claims, contribution or decision framing, and terminology conversion from internal shorthand to reader-facing language. Use after critique from research-paper-review or research-review-loop when the task is to revise the artifact's prose and claims, not to re-review it, and when a manuscript must be compressed to a page or word budget while preserving its claims. Do not use when the main task is generic prose flow, citation work, paper planning, novelty review, experiment design, market strategy, drafting new sections from a plan, writing a reviewer response (use research-rebuttal), or writing unsupported claims.",
       "domain": "writing",
       "frontmatter": {
-        "description": "Revise existing technical writing into clear, audience-facing prose while preserving evidence, technical meaning, uncertainty, and scope, including planned multi-agent section or issue-cluster revision for substantial artifacts when workers are available. Use for academic manuscripts, industrial technical reports, whitepapers, evaluation summaries, methods/results/limitations prose, technical claims, contribution or decision framing, and terminology conversion from internal shorthand to reader-facing language. Use after critique from research-paper-review or research-review-loop when the task is to revise the artifact's prose and claims, not to re-review it. Do not use when the main task is generic prose flow, citation work, paper planning, novelty review, experiment design, market strategy, or writing unsupported claims.",
+        "description": "Revise existing technical writing into clear, audience-facing prose while preserving evidence, technical meaning, uncertainty, and scope, including planned multi-agent section or issue-cluster revision for substantial artifacts when workers are available. Use for academic manuscripts, industrial technical reports, whitepapers, evaluation summaries, methods/results/limitations prose, technical claims, contribution or decision framing, and terminology conversion from internal shorthand to reader-facing language. Use after critique from research-paper-review or research-review-loop when the task is to revise the artifact's prose and claims, not to re-review it, and when a manuscript must be compressed to a page or word budget while preserving its claims. Do not use when the main task is generic prose flow, citation work, paper planning, novelty review, experiment design, market strategy, drafting new sections from a plan, writing a reviewer response (use research-rebuttal), or writing unsupported claims.",
         "name": "technical-writing-reviser"
       },
-      "inputs": [],
+      "inputs": [
+        "existing technical prose (Markdown, LaTeX source, or plain text)",
+        "optional critique bundle: final_issues.json from research-paper-review or REVIEW_STATE.json from research-review-loop",
+        "optional claim-evidence bindings from research-paper-plan",
+        "optional terminology map, register or venue, and page or word budget"
+      ],
       "name": "technical-writing-reviser",
-      "outputs": [],
+      "outputs": [
+        "claim-change note listing every issue-driven weakening",
+        "revised prose in the source format"
+      ],
       "path": "writing/technical-writing-reviser",
       "primary_intent": "revision",
       "related_skills": [
@@ -1187,6 +1222,7 @@
         "research-novelty-review",
         "research-paper-plan",
         "research-paper-review",
+        "research-rebuttal",
         "research-review-loop"
       ],
       "resources": {
@@ -1197,6 +1233,7 @@
         "prompts": [],
         "references": [
           "references/claim-discipline.md",
+          "references/register-and-format.md",
           "references/rewrite-examples.md",
           "references/technical-writing-patterns.md",
           "references/terminology-conversion.md"
