@@ -169,7 +169,7 @@ Choose the smallest route that covers the request, and load only the listed file
 
 ## Output contract
 
-Reader-facing prose in these artifacts is written under the drafting contract (`writing/technical-writing-reviser/references/drafting-contract.md`): claims listed with their support before writing, no machine-prose tells, and `prose_tells.py --max-density 20` run on the draft before handoff, with its summary line recorded in the artifact index. Do not draft first and patch later. This applies to `summary.md`, the issue explanations, and `overall_assessment.txt`; the paper under review is not edited by this skill.
+Reader-facing prose in these artifacts is written under the drafting contract (`writing/technical-writing-drafter/references/drafting-contract.md`): claims listed with their support before writing, no machine-prose tells, and `prose_tells.py --max-density 20` run on the draft before handoff, with its summary line recorded in the artifact index. Do not draft first and patch later. This applies to `summary.md`, the issue explanations, and `overall_assessment.txt`; the paper under review is not edited by this skill.
 
 - Preserve the active review workspace under `./review_results/<slug>_review/` unless a different path is explicitly recorded in `artifact-index.md`.
 - Required handoff files for downstream stages:

@@ -126,7 +126,7 @@ description: Run iterative adversarial review over research plans, experiment ou
 
 - Use `references/report-template.md` for each round.
 - Separate major issues from minor issues and open questions.
-- When wording is the real problem, hand the affected passage to `technical-writing-reviser` (revision mode, with the issue's `route_effect` as critique intake) rather than rewriting it inside the review; a rewrite this skill makes itself follows the drafting contract (`writing/technical-writing-reviser/references/drafting-contract.md`) and records the `prose_tells.py` line.
+- When wording is the real problem, hand the affected passage to `technical-writing-reviser` (with the issue's `route_effect` as critique intake) rather than rewriting it inside the review; a rewrite this skill makes itself follows the drafting contract (`writing/technical-writing-drafter/references/drafting-contract.md`) and records the `prose_tells.py` line.
 - Record what changed since the prior round and why each formerly-open issue is now resolved, deferred, accepted, narrowed, or still open.
 - List the minimum evidence needed to reach the next stronger evidence class.
 

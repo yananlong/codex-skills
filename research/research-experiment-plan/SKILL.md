@@ -81,7 +81,7 @@ description: Convert a concrete research claim into a tracked, decisive experime
 
 ## Output contract
 
-The narrative plan (`experiment-plan.md`) is reader-facing prose and follows the drafting contract (`writing/technical-writing-reviser/references/drafting-contract.md`); the JSON and tables remain the authority.
+The narrative plan (`experiment-plan.md`) is reader-facing prose and follows the drafting contract (`writing/technical-writing-drafter/references/drafting-contract.md`); the JSON and tables remain the authority.
 
 - Primary files:
   - `experiment-plan.md`

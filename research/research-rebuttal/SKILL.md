@@ -75,7 +75,7 @@ description: Draft venue-aware academic rebuttals and author responses from revi
   - `ac-note.md`
 - In orchestrated mode, these live under `./rebuttal/`.
 - The working draft may contain `[INTERNAL]` notes; the paste-ready draft must not.
-- The response prose in `rebuttal-working.md` and `rebuttal-paste-ready.md` is drafted under the drafting contract (`writing/technical-writing-reviser/references/drafting-contract.md`), by `technical-writing-reviser` in drafting mode when it is installed and otherwise by this skill applying the contract directly: the issue board fixes what each response may concede and claim, the register is a reviewer-facing response, no machine-prose tells, and `prose_tells.py --max-density 20` runs on the paste-ready text before the character-limit check. Do not draft first and patch later.
+- The response prose in `rebuttal-working.md` and `rebuttal-paste-ready.md` is drafted under the drafting contract (`writing/technical-writing-drafter/references/drafting-contract.md`), by `technical-writing-drafter` when it is installed and otherwise by this skill applying the contract directly: the issue board fixes what each response may concede and claim, the register is a reviewer-facing response, no machine-prose tells, and `prose_tells.py --max-density 20` runs on the paste-ready text before the character-limit check. Do not draft first and patch later.
 
 ## Workflow
 

@@ -44,5 +44,10 @@
     "query": "fix the LaTeX overfull hbox warnings and the typos in sections/results.tex",
     "should_trigger": false,
     "expected_skill": null
+  },
+  {
+    "query": "write the results section from results-audit.json and the tables, there is no draft yet",
+    "should_trigger": false,
+    "expected_skill": "technical-writing-drafter"
   }
 ]

@@ -24,7 +24,7 @@
   {
     "query": "write the related-work section",
     "should_trigger": false,
-    "expected_skill": "research-paper-plan"
+    "expected_skill": "technical-writing-drafter"
   },
   {
     "query": "export my Zotero collection to bibtex for the paper",

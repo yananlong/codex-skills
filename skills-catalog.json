@@ -14,7 +14,7 @@
     "Optional per-skill catalog.json sidecars may add or override structured metadata; an explicit capabilities, inputs, or outputs list replaces the inferred one."
   ],
   "open_catalog": true,
-  "skill_count": 20,
+  "skill_count": 21,
   "skills": [
     {
       "agent_metadata": {
@@ -399,7 +399,7 @@
         "research-pipeline-planner",
         "research-results-auditor",
         "research-review-loop",
-        "technical-writing-reviser"
+        "technical-writing-drafter"
       ],
       "resources": {
         "agents": [
@@ -480,7 +480,7 @@
         "research-pipeline-planner",
         "research-systematic-literature-review",
         "research-zotero",
-        "technical-writing-reviser"
+        "technical-writing-drafter"
       ],
       "resources": {
         "agents": [
@@ -549,7 +549,7 @@
         "research-review-loop",
         "research-systematic-literature-review",
         "research-zotero",
-        "technical-writing-reviser"
+        "technical-writing-drafter"
       ],
       "resources": {
         "agents": [
@@ -625,6 +625,7 @@
         "research-results-auditor",
         "research-review-loop",
         "research-zotero",
+        "technical-writing-drafter",
         "technical-writing-reviser"
       ],
       "resources": {
@@ -705,7 +706,7 @@
         "research-rebuttal",
         "research-review-loop",
         "research-systematic-literature-review",
-        "technical-writing-reviser"
+        "technical-writing-drafter"
       ],
       "resources": {
         "agents": [
@@ -779,7 +780,7 @@
       "related_skills": [
         "research-experiment-plan",
         "research-results-auditor",
-        "technical-writing-reviser"
+        "technical-writing-drafter"
       ],
       "resources": {
         "agents": [
@@ -874,7 +875,7 @@
         "research-paper-review",
         "research-pipeline-planner",
         "research-review-loop",
-        "technical-writing-reviser"
+        "technical-writing-drafter"
       ],
       "resources": {
         "agents": [
@@ -930,7 +931,7 @@
       "related_skills": [
         "research-paper-plan",
         "research-pipeline-planner",
-        "technical-writing-reviser"
+        "technical-writing-drafter"
       ],
       "resources": {
         "agents": [
@@ -994,6 +995,7 @@
         "research-pipeline-planner",
         "research-rebuttal",
         "research-results-auditor",
+        "technical-writing-drafter",
         "technical-writing-reviser"
       ],
       "resources": {
@@ -1065,7 +1067,7 @@
         "research-pipeline-planner",
         "research-review-loop",
         "research-zotero",
-        "technical-writing-reviser"
+        "technical-writing-drafter"
       ],
       "resources": {
         "agents": [
@@ -1188,6 +1190,7 @@
       "path": "writing/prose-flow-improver",
       "primary_intent": "revision",
       "related_skills": [
+        "technical-writing-drafter",
         "technical-writing-reviser"
       ],
       "resources": {
@@ -1204,6 +1207,63 @@
       "skill_file": "writing/prose-flow-improver/SKILL.md"
     },
     {
+      "agent_metadata": {},
+      "capabilities": [
+        "technical-writing",
+        "validation"
+      ],
+      "description": "Kickstart the writing of a manuscript section, abstract, technical report, or rebuttal response from its supporting artifacts (result audits, data tables and figures, experiment plans, literature reviews and evidence tables, novelty decisions, paper plans and claim-evidence bindings, rebuttal issue boards, author notes). Inventories the artifacts, builds a claim ledger that says what the draft may assert and at what strength, writes a one-page brief, drafts evidence-bearing sections before framing sections under the drafting contract, and gates the draft (every number traced to a source, machine-prose tells under a ceiling, claims matched to the ledger) before handing it to technical-writing-reviser. Use when there is no draft yet, or a section must be written from scratch, or a results folder and literature review need turning into prose, or the first draft of a reviewer response is needed from a decided issue board. Do not use to revise prose that exists (technical-writing-reviser), to smooth flow (prose-flow-improver), to decide the manuscript's claims and exhibits (research-paper-plan), to audit results (research-results-auditor), to decide what a rebuttal concedes (research-rebuttal), or to write claims no artifact supports.",
+      "domain": "writing",
+      "frontmatter": {
+        "description": "Kickstart the writing of a manuscript section, abstract, technical report, or rebuttal response from its supporting artifacts (result audits, data tables and figures, experiment plans, literature reviews and evidence tables, novelty decisions, paper plans and claim-evidence bindings, rebuttal issue boards, author notes). Inventories the artifacts, builds a claim ledger that says what the draft may assert and at what strength, writes a one-page brief, drafts evidence-bearing sections before framing sections under the drafting contract, and gates the draft (every number traced to a source, machine-prose tells under a ceiling, claims matched to the ledger) before handing it to technical-writing-reviser. Use when there is no draft yet, or a section must be written from scratch, or a results folder and literature review need turning into prose, or the first draft of a reviewer response is needed from a decided issue board. Do not use to revise prose that exists (technical-writing-reviser), to smooth flow (prose-flow-improver), to decide the manuscript's claims and exhibits (research-paper-plan), to audit results (research-results-auditor), to decide what a rebuttal concedes (research-rebuttal), or to write claims no artifact supports.",
+        "name": "technical-writing-drafter"
+      },
+      "inputs": [
+        "a project root or folder holding supporting artifacts: results-audit.json, data tables and figures, claim-map.json and experiment-plan.md, literature evidence tables and novelty packs, claim-evidence-bindings.json and paper-plan.md, issue-board.md, manuscript source, author notes",
+        "optional register, venue, source format, and page or word budget",
+        "optional validator results from the owning research skills"
+      ],
+      "name": "technical-writing-drafter",
+      "outputs": [
+        "a one-page writing brief with skeleton, drafting order, and gates",
+        "check_draft_numbers.py and prose_tells.py summary lines for the handoff",
+        "claim-ledger.md and claim-ledger.json with ready, careful, blocked, excluded, and proposed claims",
+        "first-draft prose in the source format with [EVIDENCE NEEDED] and [CITATION NEEDED] markers and ledger source comments",
+        "writing-intake.md and writing-intake.json listing what the draft can lean on and the gaps"
+      ],
+      "path": "writing/technical-writing-drafter",
+      "primary_intent": "execution",
+      "related_skills": [
+        "prose-flow-improver",
+        "research-novelty-review",
+        "research-paper-plan",
+        "research-paper-review",
+        "research-rebuttal",
+        "research-results-auditor",
+        "research-review-loop",
+        "research-systematic-literature-review",
+        "technical-writing-reviser"
+      ],
+      "resources": {
+        "agents": [],
+        "assets": [],
+        "prompts": [],
+        "references": [
+          "references/artifact-intake.md",
+          "references/claim-ledger.md",
+          "references/drafting-contract.md",
+          "references/section-sources.md",
+          "references/writing-brief-template.md"
+        ],
+        "scripts": [
+          "scripts/build_claim_ledger.py",
+          "scripts/check_draft_numbers.py",
+          "scripts/inventory_artifacts.py"
+        ]
+      },
+      "skill_file": "writing/technical-writing-drafter/SKILL.md"
+    },
+    {
       "agent_metadata": {
         "interface": {
           "default_prompt": "Use $technical-writing-reviser to revise this technical draft into clear reader-facing prose while preserving evidence, scope, and technical meaning.",
@@ -1215,22 +1275,20 @@
         "multi-agent",
         "technical-writing"
       ],
-      "description": "Draft and revise technical writing as clear, audience-facing prose while preserving evidence, technical meaning, uncertainty, and scope. Drafting mode writes manuscript sections, abstracts, and rebuttal responses from a paper plan, bound claims, an issue board, an outline, or notes under the drafting contract, so first drafts do not need a later patch; revision mode reworks existing prose, including planned multi-agent section or issue-cluster revision for substantial artifacts when workers are available. Use for academic manuscripts, industrial technical reports, whitepapers, evaluation summaries, methods/results/limitations prose, technical claims, contribution or decision framing, terminology conversion from internal shorthand to reader-facing language, and removing the habits that make text read as model-written (dash habits, deny-then-claim contrasts, signpost adverbs, significance inflation, participial tails, kickers, uniform rhythm). Use after critique from research-paper-review or research-review-loop when the task is to revise the artifact's prose and claims, not to re-review it, and when a manuscript must be compressed to a page or word budget while preserving its claims. Do not use when the main task is generic prose flow, citation work, paper planning, novelty review, experiment design, market strategy, deciding what a rebuttal should concede (research-rebuttal owns the issue board; this skill drafts the response prose), or writing unsupported claims.",
+      "description": "Revise technical writing into clear, audience-facing prose while preserving evidence, technical meaning, uncertainty, and scope, including planned multi-agent section or issue-cluster revision for substantial artifacts when workers are available. Use for academic manuscripts, industrial technical reports, whitepapers, evaluation summaries, methods/results/limitations prose, technical claims, contribution or decision framing, terminology conversion from internal shorthand to reader-facing language, and removing the habits that make text read as model-written (dash habits, deny-then-claim contrasts, signpost adverbs, significance inflation, participial tails, kickers, uniform rhythm). Use after critique from research-paper-review or research-review-loop when the task is to revise the artifact's prose and claims, not to re-review it, when a manuscript must be compressed to a page or word budget while preserving its claims, and on first drafts handed over by technical-writing-drafter. Do not use when there is no draft yet and the prose must be written from results, a literature review, a paper plan, or an issue board (technical-writing-drafter), or when the main task is generic prose flow, citation work, paper planning, novelty review, experiment design, market strategy, deciding what a rebuttal should concede (research-rebuttal), or writing unsupported claims.",
       "domain": "writing",
       "frontmatter": {
-        "description": "Draft and revise technical writing as clear, audience-facing prose while preserving evidence, technical meaning, uncertainty, and scope. Drafting mode writes manuscript sections, abstracts, and rebuttal responses from a paper plan, bound claims, an issue board, an outline, or notes under the drafting contract, so first drafts do not need a later patch; revision mode reworks existing prose, including planned multi-agent section or issue-cluster revision for substantial artifacts when workers are available. Use for academic manuscripts, industrial technical reports, whitepapers, evaluation summaries, methods/results/limitations prose, technical claims, contribution or decision framing, terminology conversion from internal shorthand to reader-facing language, and removing the habits that make text read as model-written (dash habits, deny-then-claim contrasts, signpost adverbs, significance inflation, participial tails, kickers, uniform rhythm). Use after critique from research-paper-review or research-review-loop when the task is to revise the artifact's prose and claims, not to re-review it, and when a manuscript must be compressed to a page or word budget while preserving its claims. Do not use when the main task is generic prose flow, citation work, paper planning, novelty review, experiment design, market strategy, deciding what a rebuttal should concede (research-rebuttal owns the issue board; this skill drafts the response prose), or writing unsupported claims.",
+        "description": "Revise technical writing into clear, audience-facing prose while preserving evidence, technical meaning, uncertainty, and scope, including planned multi-agent section or issue-cluster revision for substantial artifacts when workers are available. Use for academic manuscripts, industrial technical reports, whitepapers, evaluation summaries, methods/results/limitations prose, technical claims, contribution or decision framing, terminology conversion from internal shorthand to reader-facing language, and removing the habits that make text read as model-written (dash habits, deny-then-claim contrasts, signpost adverbs, significance inflation, participial tails, kickers, uniform rhythm). Use after critique from research-paper-review or research-review-loop when the task is to revise the artifact's prose and claims, not to re-review it, when a manuscript must be compressed to a page or word budget while preserving its claims, and on first drafts handed over by technical-writing-drafter. Do not use when there is no draft yet and the prose must be written from results, a literature review, a paper plan, or an issue board (technical-writing-drafter), or when the main task is generic prose flow, citation work, paper planning, novelty review, experiment design, market strategy, deciding what a rebuttal should concede (research-rebuttal), or writing unsupported claims.",
         "name": "technical-writing-reviser"
       },
       "inputs": [
-        "for drafting: paper plan or claim-evidence-bindings.json from research-paper-plan, issue-board.md and task-list.md from research-rebuttal, a section outline, or author notes",
-        "for revision: existing technical prose (Markdown, LaTeX source, or plain text)",
+        "existing technical prose (Markdown, LaTeX source, or plain text), including first drafts from technical-writing-drafter with their claim ledger and brief",
         "optional critique bundle: final_issues.json from research-paper-review or REVIEW_STATE.json from research-review-loop",
         "optional terminology map, register or venue, and page or word budget"
       ],
       "name": "technical-writing-reviser",
       "outputs": [
         "claim-change note listing every issue-driven weakening",
-        "first-draft prose written under references/drafting-contract.md, with [EVIDENCE NEEDED] markers where the plan has gaps",
         "prose_tells.py summary line for the handoff",
         "revised prose in the source format"
       ],
@@ -1244,7 +1302,8 @@
         "research-paper-plan",
         "research-paper-review",
         "research-rebuttal",
-        "research-review-loop"
+        "research-review-loop",
+        "technical-writing-drafter"
       ],
       "resources": {
         "agents": [
@@ -1254,7 +1313,6 @@
         "prompts": [],
         "references": [
           "references/claim-discipline.md",
-          "references/drafting-contract.md",
           "references/machine-prose-tells.md",
           "references/register-and-format.md",
           "references/rewrite-examples.md",

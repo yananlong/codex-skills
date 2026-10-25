@@ -51,7 +51,7 @@ Prefer:
 
 ## Output contract
 
-Reader-facing prose in these artifacts is written under the drafting contract (`writing/technical-writing-reviser/references/drafting-contract.md`): claims listed with their support before writing, no machine-prose tells, and `prose_tells.py --max-density 20` run on the draft before handoff, with its summary line recorded in the artifact index. Do not draft first and patch later. Manuscript prose itself is not this skill's output; it is drafted by `technical-writing-reviser` from the bindings below.
+Reader-facing prose in these artifacts is written under the drafting contract (`writing/technical-writing-drafter/references/drafting-contract.md`): claims listed with their support before writing, no machine-prose tells, and `prose_tells.py --max-density 20` run on the draft before handoff, with its summary line recorded in the artifact index. Do not draft first and patch later. Manuscript prose itself is not this skill's output; it is drafted by `technical-writing-reviser` from the bindings below.
 
 ### Canonical machine binding
 
@@ -180,7 +180,7 @@ For theoretical claims, link concrete proof or argument artifacts. For citation 
 - Ensure the Markdown matrix contains exactly the canonical claims.
 - Ensure exhibit and citation references are reciprocal.
 - Run structural validation for standalone packs and linked validation for orchestrated packs.
-- Hand the validated pack to `technical-writing-reviser` in drafting mode, which writes the manuscript sections from the bound claims under its drafting contract (evidence-bearing sections first, framing last, `[EVIDENCE NEEDED]` markers where a claim is blocked), or to `research-review-loop` when a draft already exists; missing evidence remains a block in either case.
+- Hand the validated pack to `technical-writing-drafter`, which builds its claim ledger from the bindings and writes the manuscript sections under the drafting contract (evidence-bearing sections first, framing last, `[EVIDENCE NEEDED]` markers where a claim is blocked), or to `research-review-loop` when a draft already exists; missing evidence remains a block in either case.
 
 ## Validation
 

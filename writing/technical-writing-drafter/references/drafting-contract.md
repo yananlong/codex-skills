@@ -6,9 +6,10 @@ this contract from the first draft. Drafting without it and revising afterwards 
 drafts were patched in earlier workflows; one draft written under the contract costs less than
 the draft plus the patch, and the patch never fully removes what the draft baked in.
 
-The contract is the revision skill's rules applied at writing time. It is short because the
-details live in the references it names, which the drafting agent reads when the case calls for
-them.
+The contract is `technical-writing-reviser`'s rules applied at writing time. It is short because the
+details live in the references it names (the reviser's `claim-discipline.md`,
+`machine-prose-tells.md`, `register-and-format.md`, `terminology-conversion.md`), which the
+drafting agent reads when the case calls for them.
 
 ## Before writing
 
@@ -19,8 +20,9 @@ them.
    social science, technical report) and the source format (LaTeX, Markdown, plain text). Read
    `register-and-format.md` for anything outside empirical ML in Markdown.
 3. List the claims the passage will make with their support (`claim-discipline.md`): the claims to
-   make, the claims to be careful about, and the claims to avoid. A draft may not assert a claim
-   that has no entry on this list. Where evidence is missing, the draft says so visibly with a
+   make, the claims to be careful about, and the claims to avoid. When the project has machine-
+   readable claim sources, build the list with `build_claim_ledger.py` (`claim-ledger.md`) rather
+   than from memory. A draft may not assert a claim that has no entry on this list. Where evidence is missing, the draft says so visibly with a
    marker such as `[EVIDENCE NEEDED: what]` rather than writing around the gap.
 4. Fix the terminology: defined terms are used exactly and consistently, internal labels are
    translated once (`terminology-conversion.md`), coined terms are kept and glossed.
@@ -44,7 +46,9 @@ them.
 
 ## After writing
 
-1. Run `python3 <technical-writing-reviser>/scripts/prose_tells.py <draft> --max-density 20`.
+1. When the draft carries numbers, run `check_draft_numbers.py <draft> --source <data> ...` and
+   fix or mark every untraced number; a result sentence may not carry a number the sources do
+   not. Then run `python3 <technical-writing-reviser>/scripts/prose_tells.py <draft> --max-density 20`.
    A draft above 20 tells per thousand words is revised before it leaves the skill; the target is
    under 10. Record the scanner's summary line in the artifact index or handoff note so the next
    stage can see it.
@@ -57,11 +61,16 @@ them.
 
 ## Who runs it
 
-- `technical-writing-reviser` in drafting mode owns manuscript prose drafted from a paper plan,
-  bound claims, an outline, or notes, and rebuttal response prose drafted from an issue board.
+- `technical-writing-drafter` owns first drafts written from supporting artifacts: manuscript
+  sections and abstracts from a paper plan, result audits, data tables, and literature reviews;
+  technical reports from results and notes; rebuttal response prose from an issue board. It
+  builds the claim list of step 3 from the artifacts (`claim-ledger.md`) instead of from memory.
+- `technical-writing-reviser` revises prose that already exists, including the drafter's output.
+  It never writes the first draft.
 - Every other skill that writes reader-facing prose as part of its own artifacts (a review
   summary, an audit narrative, a novelty or literature report, a research brief) applies this
-  contract itself and names it in the artifact.
+  contract itself and names it in the artifact, or hands the prose to the drafter when it is
+  installed.
 - `prose-flow-improver` runs after, as a constrained pass, never as the drafter.
 
 When the writing skills are not installed beside a research skill, the contract still applies as

@@ -41,7 +41,7 @@ description: Generate, filter, rank, and hand off grounded research ideas from a
 
 ## Output Contract
 
-Reader-facing prose in these artifacts is written under the drafting contract (`writing/technical-writing-reviser/references/drafting-contract.md`): claims listed with their support before writing, no machine-prose tells, and `prose_tells.py --max-density 20` run on the draft before handoff, with its summary line recorded in the artifact index. Do not draft first and patch later.
+Reader-facing prose in these artifacts is written under the drafting contract (`writing/technical-writing-drafter/references/drafting-contract.md`): claims listed with their support before writing, no machine-prose tells, and `prose_tells.py --max-density 20` run on the draft before handoff, with its summary line recorded in the artifact index. Do not draft first and patch later.
 
 For tracked ideation, produce these files:
 

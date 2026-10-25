@@ -26,8 +26,8 @@ Choose the mode first. Use orchestrated mode only when the project already has a
 ### Standalone (default)
 
 1. Read the project's current-status documents and any `research-commitment.json`; do not initialize a harness or require a suite root.
-2. Produce the requested brief, phase plan, milestones, or next decision directly. A brief or plan is reader-facing prose: write it under the drafting contract (`writing/technical-writing-reviser/references/drafting-contract.md`) rather than drafting it and patching it later.
-3. Route the next piece of work to one stage skill. When the next piece of work is manuscript or response prose, the stage skill is `technical-writing-reviser` in drafting mode, fed by the plan or issue board that owns the content.
+2. Produce the requested brief, phase plan, milestones, or next decision directly. A brief or plan is reader-facing prose: write it under the drafting contract (`writing/technical-writing-drafter/references/drafting-contract.md`) rather than drafting it and patching it later.
+3. Route the next piece of work to one stage skill. When the next piece of work is manuscript or response prose, the stage skill is `technical-writing-drafter`, fed by the plan, audits, literature review, or issue board that owns the content.
 4. Treat a proposed D3-D4 identity change as a question for the user, not an ordinary revision.
 
 ### Orchestrated
