@@ -237,6 +237,7 @@ def main() -> int:
     parser.add_argument("--examples", type=int, default=3, help="Examples to show per category")
     parser.add_argument("--format", choices=("text", "json"), default="text")
     parser.add_argument("--fail-if-worse", action="store_true", help="Exit 1 when total density rose against the baseline")
+    parser.add_argument("--max-density", type=float, help="Exit 1 when total density per 1k words exceeds this value (for new drafts with no baseline)")
     args = parser.parse_args()
 
     try:
@@ -267,10 +268,14 @@ def main() -> int:
         if baseline:
             print("\n".join(compare(baseline, revised)))
 
+    failed = False
     if args.fail_if_worse and baseline and revised.total_density() > baseline.total_density():
         print("[FAIL] the revision has a higher tell density than the baseline", file=sys.stderr)
-        return 1
-    return 0
+        failed = True
+    if args.max_density is not None and revised.total_density() > args.max_density:
+        print(f"[FAIL] tell density {revised.total_density()} per 1k words exceeds the limit of {args.max_density}", file=sys.stderr)
+        failed = True
+    return 1 if failed else 0
 
 
 if __name__ == "__main__":

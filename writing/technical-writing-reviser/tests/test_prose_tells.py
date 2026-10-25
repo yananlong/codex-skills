@@ -84,6 +84,19 @@ class ProseTellsTests(unittest.TestCase):
             self.assertIn("baseline", payload)
             self.assertLess(payload["total_density_per_1k"], payload["baseline"]["total_density_per_1k"])
 
+    def test_max_density_gate_for_new_drafts(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            (root / "draft.md").write_text(TELL_HEAVY, encoding="utf-8")
+            (root / "clean.md").write_text(CLEAN, encoding="utf-8")
+            bad = subprocess.run([sys.executable, str(SCRIPTS / "prose_tells.py"), str(root / "draft.md"), "--max-density", "20"],
+                                 capture_output=True, text=True, check=False, timeout=30)
+            self.assertEqual(bad.returncode, 1)
+            self.assertIn("exceeds the limit", bad.stderr)
+            good = subprocess.run([sys.executable, str(SCRIPTS / "prose_tells.py"), str(root / "clean.md"), "--max-density", "20"],
+                                  capture_output=True, text=True, check=False, timeout=30)
+            self.assertEqual(good.returncode, 0, good.stderr)
+
     def test_uniform_rhythm_and_anaphora_are_reported_as_possible(self) -> None:
         text = ("The model reads the input once. The model writes the output twice. The model stores the state after. "
                 "The model reports the result then.\n")

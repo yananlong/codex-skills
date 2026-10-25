@@ -98,6 +98,7 @@ Writing skills (done in this branch):
 - Length-budget trigger, rebuttal routing, near-miss routing table (writing F-9).
 - Catalog sidecars for both writing skills; the generator now lets an explicit sidecar list replace lexical inference (writing F-10, QI-02).
 - Runtime-neutral wording; serial when running inside a subagent (writing F-11).
+- Drafting has an owner. Earlier workflows drafted manuscript sections, rebuttal responses, and reports inside the research skills with no writing discipline, and the writing skills, being revision-only, could only patch the result. `technical-writing-reviser` now has a drafting mode and a one-page `references/drafting-contract.md` (claims listed with support before writing, visible `[EVIDENCE NEEDED]` markers, register and format rules, the tells recipes, and a `prose_tells.py --max-density 20` gate on the draft). Paper-plan hands its bound claims to that mode instead of to an unowned "drafting" stage, rebuttal's response prose is drafted under it, review-loop routes wording problems to it, and every other prose-producing skill (paper review, auditor narrative, novelty and literature reports, idea selection, experiment-plan narrative, the planner's brief and episodes) names the contract at its output boundary.
 - Machine-prose tells: a shared catalogue with a recipe and the legitimate use for each habit (dashes, deny-then-claim contrasts, signpost adverbs, significance inflation, participial tails, tricolons, summary chains, kickers, uniform rhythm, meta-commentary, hedge stacks, bolded lead-ins, tone), a stdlib scanner that reports density per thousand words and compares a revision with its source, a workflow step and an audit requirement in both writing skills, and removal of the two rules in our own skills that prescribed the pattern ("end with the implication" and "2 to 4 sentences per paragraph").
 
 Discovery skills:
@@ -155,6 +156,7 @@ schema or rule; the decision is which shape to adopt, since several skills must 
 | D17 | Move prospective-evaluation machinery to repo-level `evals/`; exclude from skill packages | planner | orch F-11 |
 | D18 | Search-log columns that web-search models can fill honestly (`results_inspected`, `tool`, `spot-checked`), one query per row, dated novelty logs | literature-review, novelty | disc F-9 |
 | D19 | Stage gates move into the owning sibling SKILL.md; `stage-gates.md` becomes an index | planner and all stage skills | orch F-8 |
+| D20 | Rename `technical-writing-reviser` to a name that covers drafting as well as revision (for example `technical-writing`), since it now owns first drafts; the rename touches the catalog, nine research skills, and any installed copies, so it waits for a version boundary | reviser, prose-flow, all prose-producing skills | this round |
 
 Recommended order: D3 and D8 first (the two blockers), then D1 and D2 together (they define the
 shared vocabulary that D6, D7, D9 depend on), then D10 and D11 together (one issue schema and one

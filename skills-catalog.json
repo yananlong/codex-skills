@@ -398,7 +398,8 @@
         "research-paper-plan",
         "research-pipeline-planner",
         "research-results-auditor",
-        "research-review-loop"
+        "research-review-loop",
+        "technical-writing-reviser"
       ],
       "resources": {
         "agents": [
@@ -478,7 +479,8 @@
         "research-novelty-review",
         "research-pipeline-planner",
         "research-systematic-literature-review",
-        "research-zotero"
+        "research-zotero",
+        "technical-writing-reviser"
       ],
       "resources": {
         "agents": [
@@ -546,7 +548,8 @@
         "research-rebuttal",
         "research-review-loop",
         "research-systematic-literature-review",
-        "research-zotero"
+        "research-zotero",
+        "technical-writing-reviser"
       ],
       "resources": {
         "agents": [
@@ -701,7 +704,8 @@
         "research-pipeline-planner",
         "research-rebuttal",
         "research-review-loop",
-        "research-systematic-literature-review"
+        "research-systematic-literature-review",
+        "technical-writing-reviser"
       ],
       "resources": {
         "agents": [
@@ -774,7 +778,8 @@
       "primary_intent": "orchestration",
       "related_skills": [
         "research-experiment-plan",
-        "research-results-auditor"
+        "research-results-auditor",
+        "technical-writing-reviser"
       ],
       "resources": {
         "agents": [
@@ -868,7 +873,8 @@
         "research-paper-plan",
         "research-paper-review",
         "research-pipeline-planner",
-        "research-review-loop"
+        "research-review-loop",
+        "technical-writing-reviser"
       ],
       "resources": {
         "agents": [
@@ -923,7 +929,8 @@
       "primary_intent": "review",
       "related_skills": [
         "research-paper-plan",
-        "research-pipeline-planner"
+        "research-pipeline-planner",
+        "technical-writing-reviser"
       ],
       "resources": {
         "agents": [
@@ -986,7 +993,8 @@
         "research-paper-review",
         "research-pipeline-planner",
         "research-rebuttal",
-        "research-results-auditor"
+        "research-results-auditor",
+        "technical-writing-reviser"
       ],
       "resources": {
         "agents": [
@@ -1056,7 +1064,8 @@
         "research-paper-review",
         "research-pipeline-planner",
         "research-review-loop",
-        "research-zotero"
+        "research-zotero",
+        "technical-writing-reviser"
       ],
       "resources": {
         "agents": [
@@ -1206,21 +1215,23 @@
         "multi-agent",
         "technical-writing"
       ],
-      "description": "Revise existing technical writing into clear, audience-facing prose while preserving evidence, technical meaning, uncertainty, and scope, including planned multi-agent section or issue-cluster revision for substantial artifacts when workers are available. Use for academic manuscripts, industrial technical reports, whitepapers, evaluation summaries, methods/results/limitations prose, technical claims, contribution or decision framing, terminology conversion from internal shorthand to reader-facing language, and removing the habits that make text read as model-written (dash habits, deny-then-claim contrasts, signpost adverbs, significance inflation, participial tails, kickers, uniform rhythm). Use after critique from research-paper-review or research-review-loop when the task is to revise the artifact's prose and claims, not to re-review it, and when a manuscript must be compressed to a page or word budget while preserving its claims. Do not use when the main task is generic prose flow, citation work, paper planning, novelty review, experiment design, market strategy, drafting new sections from a plan, writing a reviewer response (use research-rebuttal), or writing unsupported claims.",
+      "description": "Draft and revise technical writing as clear, audience-facing prose while preserving evidence, technical meaning, uncertainty, and scope. Drafting mode writes manuscript sections, abstracts, and rebuttal responses from a paper plan, bound claims, an issue board, an outline, or notes under the drafting contract, so first drafts do not need a later patch; revision mode reworks existing prose, including planned multi-agent section or issue-cluster revision for substantial artifacts when workers are available. Use for academic manuscripts, industrial technical reports, whitepapers, evaluation summaries, methods/results/limitations prose, technical claims, contribution or decision framing, terminology conversion from internal shorthand to reader-facing language, and removing the habits that make text read as model-written (dash habits, deny-then-claim contrasts, signpost adverbs, significance inflation, participial tails, kickers, uniform rhythm). Use after critique from research-paper-review or research-review-loop when the task is to revise the artifact's prose and claims, not to re-review it, and when a manuscript must be compressed to a page or word budget while preserving its claims. Do not use when the main task is generic prose flow, citation work, paper planning, novelty review, experiment design, market strategy, deciding what a rebuttal should concede (research-rebuttal owns the issue board; this skill drafts the response prose), or writing unsupported claims.",
       "domain": "writing",
       "frontmatter": {
-        "description": "Revise existing technical writing into clear, audience-facing prose while preserving evidence, technical meaning, uncertainty, and scope, including planned multi-agent section or issue-cluster revision for substantial artifacts when workers are available. Use for academic manuscripts, industrial technical reports, whitepapers, evaluation summaries, methods/results/limitations prose, technical claims, contribution or decision framing, terminology conversion from internal shorthand to reader-facing language, and removing the habits that make text read as model-written (dash habits, deny-then-claim contrasts, signpost adverbs, significance inflation, participial tails, kickers, uniform rhythm). Use after critique from research-paper-review or research-review-loop when the task is to revise the artifact's prose and claims, not to re-review it, and when a manuscript must be compressed to a page or word budget while preserving its claims. Do not use when the main task is generic prose flow, citation work, paper planning, novelty review, experiment design, market strategy, drafting new sections from a plan, writing a reviewer response (use research-rebuttal), or writing unsupported claims.",
+        "description": "Draft and revise technical writing as clear, audience-facing prose while preserving evidence, technical meaning, uncertainty, and scope. Drafting mode writes manuscript sections, abstracts, and rebuttal responses from a paper plan, bound claims, an issue board, an outline, or notes under the drafting contract, so first drafts do not need a later patch; revision mode reworks existing prose, including planned multi-agent section or issue-cluster revision for substantial artifacts when workers are available. Use for academic manuscripts, industrial technical reports, whitepapers, evaluation summaries, methods/results/limitations prose, technical claims, contribution or decision framing, terminology conversion from internal shorthand to reader-facing language, and removing the habits that make text read as model-written (dash habits, deny-then-claim contrasts, signpost adverbs, significance inflation, participial tails, kickers, uniform rhythm). Use after critique from research-paper-review or research-review-loop when the task is to revise the artifact's prose and claims, not to re-review it, and when a manuscript must be compressed to a page or word budget while preserving its claims. Do not use when the main task is generic prose flow, citation work, paper planning, novelty review, experiment design, market strategy, deciding what a rebuttal should concede (research-rebuttal owns the issue board; this skill drafts the response prose), or writing unsupported claims.",
         "name": "technical-writing-reviser"
       },
       "inputs": [
-        "existing technical prose (Markdown, LaTeX source, or plain text)",
+        "for drafting: paper plan or claim-evidence-bindings.json from research-paper-plan, issue-board.md and task-list.md from research-rebuttal, a section outline, or author notes",
+        "for revision: existing technical prose (Markdown, LaTeX source, or plain text)",
         "optional critique bundle: final_issues.json from research-paper-review or REVIEW_STATE.json from research-review-loop",
-        "optional claim-evidence bindings from research-paper-plan",
         "optional terminology map, register or venue, and page or word budget"
       ],
       "name": "technical-writing-reviser",
       "outputs": [
         "claim-change note listing every issue-driven weakening",
+        "first-draft prose written under references/drafting-contract.md, with [EVIDENCE NEEDED] markers where the plan has gaps",
+        "prose_tells.py summary line for the handoff",
         "revised prose in the source format"
       ],
       "path": "writing/technical-writing-reviser",
@@ -1243,6 +1254,7 @@
         "prompts": [],
         "references": [
           "references/claim-discipline.md",
+          "references/drafting-contract.md",
           "references/machine-prose-tells.md",
           "references/register-and-format.md",
           "references/rewrite-examples.md",

@@ -1,13 +1,25 @@
 ---
 name: technical-writing-reviser
-description: Revise existing technical writing into clear, audience-facing prose while preserving evidence, technical meaning, uncertainty, and scope, including planned multi-agent section or issue-cluster revision for substantial artifacts when workers are available. Use for academic manuscripts, industrial technical reports, whitepapers, evaluation summaries, methods/results/limitations prose, technical claims, contribution or decision framing, terminology conversion from internal shorthand to reader-facing language, and removing the habits that make text read as model-written (dash habits, deny-then-claim contrasts, signpost adverbs, significance inflation, participial tails, kickers, uniform rhythm). Use after critique from research-paper-review or research-review-loop when the task is to revise the artifact's prose and claims, not to re-review it, and when a manuscript must be compressed to a page or word budget while preserving its claims. Do not use when the main task is generic prose flow, citation work, paper planning, novelty review, experiment design, market strategy, drafting new sections from a plan, writing a reviewer response (use research-rebuttal), or writing unsupported claims.
+description: Draft and revise technical writing as clear, audience-facing prose while preserving evidence, technical meaning, uncertainty, and scope. Drafting mode writes manuscript sections, abstracts, and rebuttal responses from a paper plan, bound claims, an issue board, an outline, or notes under the drafting contract, so first drafts do not need a later patch; revision mode reworks existing prose, including planned multi-agent section or issue-cluster revision for substantial artifacts when workers are available. Use for academic manuscripts, industrial technical reports, whitepapers, evaluation summaries, methods/results/limitations prose, technical claims, contribution or decision framing, terminology conversion from internal shorthand to reader-facing language, and removing the habits that make text read as model-written (dash habits, deny-then-claim contrasts, signpost adverbs, significance inflation, participial tails, kickers, uniform rhythm). Use after critique from research-paper-review or research-review-loop when the task is to revise the artifact's prose and claims, not to re-review it, and when a manuscript must be compressed to a page or word budget while preserving its claims. Do not use when the main task is generic prose flow, citation work, paper planning, novelty review, experiment design, market strategy, deciding what a rebuttal should concede (research-rebuttal owns the issue board; this skill drafts the response prose), or writing unsupported claims.
 ---
 
 # Technical Writing Reviser
 
 ## Overview
 
-Revise existing technical text so an outside reader can understand the claim, method, result, limitation, design decision, or technical implication without first learning the author's internal shorthand. Prefer reader-facing technical prose that states what matters, what supports it, and what the reader should conclude, while keeping the original evidential and scope limits intact.
+Write or revise technical text so an outside reader can understand the claim, method, result, limitation, design decision, or technical implication without first learning the author's internal shorthand. The skill has two modes. Drafting mode produces the first draft under [references/drafting-contract.md](references/drafting-contract.md), so the rules below apply at writing time instead of as a later patch. Revision mode, the rest of this document, reworks prose that already exists. Prefer reader-facing technical prose that states what matters, what supports it, and what the reader should conclude, while keeping the original evidential and scope limits intact.
+
+## Drafting Mode
+
+Use drafting mode when the input is a paper plan or claim-evidence bindings from `research-paper-plan`, an issue board and task list from `research-rebuttal`, a section outline, or an author's notes, and the output is new reader-facing prose. Every other skill in the suite that writes prose for a reader applies the same contract to its own artifacts.
+
+1. Read `references/drafting-contract.md` and run its pre-writing steps: the passage's job and reader, the register and source format, the claim list (to make, to be careful about, to avoid) with support levels, the terminology map, and any length budget.
+2. Draft only claims on the list. Where the plan or board marks evidence as missing or blocked, write the visible marker `[EVIDENCE NEEDED: what]` in the draft rather than prose that implies the evidence exists. Never invent a result, a citation, a number, or a reviewer concession.
+3. Write under the same rules as revision: direct positive framing, claim discipline, register-appropriate hedging, source-format safety, and none of the machine-prose tells in `references/machine-prose-tells.md`.
+4. Run `python3 scripts/prose_tells.py <draft> --max-density 20` and revise before handoff if it fails; the target is under 10 per thousand words. Then read the draft once as its reader.
+5. Hand the draft on with the claim list and the markers visible, and record the scanner line in the handoff note or artifact index. For a rebuttal, the paste-ready text goes back to `research-rebuttal`'s pack; for a manuscript section, the draft goes to the source tree and the review stage.
+
+Drafting is serial by default for anything that fits in context. For a full manuscript, draft the evidence-bearing sections first (method, experiments, results, limitations) and the framing sections last (related work, introduction, conclusion, abstract), so the framing is written from what the evidence sections actually say.
 
 ## Default Output
 
@@ -30,7 +42,8 @@ Use `research-paper-plan` when the real need is manuscript structure, claim-to-e
 - "Make the results section read less like a wall of numbers": this skill if claims or connectives change, otherwise `prose-flow-improver`.
 - "Reviewer 2 says the contribution is overclaimed; fix the intro": this skill for the manuscript text, `research-rebuttal` for the response.
 - "Does our limitations section undersell the paper?": `research-review-loop` or `research-paper-review` for the judgment, then this skill for the text.
-- "Restructure the intro so contributions map to sections": `research-paper-plan`.
+- "Restructure the intro so contributions map to sections": `research-paper-plan`. "Draft the methods section from the experiment plan" or "write the intro from the paper plan": this skill, drafting mode.
+- "Draft the response to reviewer 2 from the issue board": this skill, drafting mode, with the paste-ready text returned to `research-rebuttal`.
 - "Is our positioning against prior work defensible?": `research-novelty-review`. "Rewrite the related-work paragraph to state our difference clearly": this skill.
 - "Cut related work by a third to fit the page limit": this skill, with the budget in the brief.
 - "Fix typos and LaTeX warnings": neither writing skill.
@@ -180,7 +193,7 @@ Read [references/technical-writing-patterns.md](references/technical-writing-pat
 
 ## Scripts
 
-- `scripts/prose_tells.py`: count machine-prose tells per category with density per thousand words and located examples; `--baseline` compares a revision with its source, `--fail-if-worse` exits non-zero when the density rose, `--format json` for tooling. Handles Markdown and LaTeX by stripping comments, math, code, and citation commands first. It never rewrites.
+- `scripts/prose_tells.py`: count machine-prose tells per category with density per thousand words and located examples; `--baseline` compares a revision with its source, `--fail-if-worse` exits non-zero when the density rose, `--max-density N` exits non-zero when a new draft exceeds N per thousand words, `--format json` for tooling. Handles Markdown and LaTeX by stripping comments, math, code, and citation commands first. It never rewrites.
 
 ## Final Pass
 

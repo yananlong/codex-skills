@@ -58,6 +58,8 @@ Prefer:
 
 ## Output contract
 
+The narrative view (`results-audit.md`) is reader-facing prose and is written under the drafting contract (`writing/technical-writing-reviser/references/drafting-contract.md`): no machine-prose tells, claims stated at the strength the JSON records, and `prose_tells.py --max-density 20` run before handoff. The JSON remains the authority; the narrative explains it.
+
 ### Canonical machine record
 
 Write `results-audit.json` as the authority for downstream claim support. It contains:
