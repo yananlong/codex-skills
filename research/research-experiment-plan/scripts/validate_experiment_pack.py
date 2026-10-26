@@ -17,6 +17,8 @@ REQUIRED_PLAN_HEADINGS = [
 ]
 TRACKER_STATUSES = {"planned", "ready", "blocked", "running", "analyzed", "decisive", "inconclusive", "dropped"}
 BLOCK_PRIORITIES = {"must-run", "nice-to-have", "defer"}
+# D7: how a run relates to the plan. A tracker row without a Kind column, or with an empty cell, is planned.
+RUN_KINDS = {"planned", "unplanned", "precursor", "diagnostic", "retry"}
 EVIDENCE_CLASSES = {"exploratory", "confirmatory", "independently_verified", "operational_high_stakes"}
 EVIDENCE_RANK = {name: rank for rank, name in enumerate(("exploratory", "confirmatory", "independently_verified", "operational_high_stakes"))}
 PLACEHOLDERS = {"", "n/a", "na", "none", "null", "tbd", "todo", "unknown", "-"}
@@ -437,20 +439,52 @@ def validate_block_gate_links(blocks: dict[str, dict], gate_map: dict[str, str],
             errors.append(f"block {block_id} gate {gate_id} opens after {gate_map[gate_id]}, not {block_id}")
 
 
+def tracker_kind_column(markdown: str) -> int | None:
+    """Index of the optional Kind column in the tracker's header row, or None."""
+    start = markdown.find("# Experiment Tracker")
+    if start < 0:
+        return None
+    for line in markdown[start:].splitlines():
+        stripped = line.strip()
+        if stripped.startswith("|"):
+            cells = _split_cells(stripped)
+            if cells and cells[0].lower() == "run id":
+                lowered = [cell.lower() for cell in cells]
+                return lowered.index("kind") if "kind" in lowered else None
+    return None
+
+
+def tracker_run_kind(row: list[str], kind_column: int | None) -> str:
+    if kind_column is None or kind_column >= len(row) or not row[kind_column].strip():
+        return "planned"
+    return row[kind_column].strip().strip("`").lower()
+
+
 def validate_tracker(markdown: str, block_ids: set[str], gate_ids: set[str], errors: list[str]) -> None:
     rows = table_rows(markdown, "# Experiment Tracker", "run id")
     if not rows:
         errors.append("experiment-tracker.md has no tracker rows")
         return
+    kind_column = tracker_kind_column(markdown)
     for index, row in enumerate(rows, 1):
         if len(row) < 10:
             errors.append(f"experiment-tracker.md row {index} is too short")
             continue
-        if row[1] not in block_ids:
-            errors.append(f"experiment-tracker.md row {index} references unknown block '{row[1]}'")
-        if row[2] not in gate_ids:
+        kind = tracker_run_kind(row, kind_column)
+        if kind not in RUN_KINDS:
+            errors.append(f"experiment-tracker.md row {index} has invalid kind '{kind}'; use one of {sorted(RUN_KINDS)}")
+            continue
+        # Only a planned run must name a declared block, gate, and priority. Unplanned, precursor,
+        # diagnostic, and retry runs may sit outside the plan; check_plan_drift.py reports them.
+        planned = kind == "planned"
+        if planned and row[1] not in block_ids:
+            errors.append(
+                f"experiment-tracker.md row {index} references unknown block '{row[1]}'; declare the block, "
+                "or mark the row's Kind as unplanned, precursor, or diagnostic"
+            )
+        if planned and row[2] not in gate_ids:
             errors.append(f"experiment-tracker.md row {index} references unknown gate '{row[2]}'")
-        if row[4] not in BLOCK_PRIORITIES:
+        if planned and row[4] not in BLOCK_PRIORITIES:
             errors.append(f"experiment-tracker.md row {index} has invalid priority '{row[4]}'")
         if row[5] not in TRACKER_STATUSES:
             errors.append(f"experiment-tracker.md row {index} has invalid status '{row[5]}'")

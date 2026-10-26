@@ -17,7 +17,9 @@
 - Source mode: standalone / orchestrated
 - Requested assurance class:
 - Attained assurance class:
+- Audit kind: fresh / recomputation / replication / record_review
 - Bounded verdict:
+- Failed diagnostics (when the verdict is abstained_diagnostics_failed):
 - Audited claim effect:
 - Run-selection rule:
 - Included run IDs:
@@ -36,6 +38,14 @@
 ### Evidence artifacts
 
 - Path, kind, source, and digest:
+
+### Standalone runs
+
+- Run ID, path, how produced, digest, run kind:
+
+### Measurements
+
+- Quantity, estimate, interval and level, diagnostics, judge and blinding, comparisons and correction, runs:
 
 ### Required checks
 

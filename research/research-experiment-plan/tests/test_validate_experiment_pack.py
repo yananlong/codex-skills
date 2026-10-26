@@ -10,6 +10,7 @@ from pathlib import Path
 
 SCRIPT = Path(__file__).resolve().parents[1] / "scripts" / "validate_experiment_pack.py"
 INIT = Path(__file__).resolve().parents[1] / "scripts" / "init_experiment_pack.py"
+DRIFT = Path(__file__).resolve().parents[1] / "scripts" / "check_plan_drift.py"
 
 
 class ExperimentValidatorTests(unittest.TestCase):
@@ -145,6 +146,80 @@ x
         self.paths["decision-gates"].write_text(gates)
         cp = self.run_validator()
         self.assertNotIn("Revise if", cp.stdout)
+
+    def set_tracker(self, rows: list[str], kind_column: bool = True) -> None:
+        header = "| Run ID | Block ID | Gate ID | Purpose | Priority | Status | Owner | Dependency | Output artifact | Notes |"
+        rule = "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |"
+        if kind_column:
+            header += " Kind |"
+            rule += " --- |"
+        self.paths["tracker"].write_text("# Experiment Tracker\n" + "\n".join([header, rule, *rows]) + "\n")
+
+    def drift(self, *extra, expect=0):
+        args = [sys.executable, str(DRIFT), "--run-blocks", str(self.paths["run-blocks"]),
+                "--tracker", str(self.paths["tracker"]), *extra]
+        cp = subprocess.run(args, text=True, capture_output=True)
+        self.assertEqual(cp.returncode, expect, msg=f"stdout:\n{cp.stdout}\nstderr:\n{cp.stderr}")
+        return cp
+
+    def test_tracker_without_kind_column_still_validates(self):
+        self.write_all()
+        self.set_tracker(["| R1 | B1 | G1 | primary | must-run | planned | owner | | results/B1.json | |"], kind_column=False)
+        self.run_validator()
+
+    def test_unplanned_run_may_name_an_undeclared_block(self):
+        self.write_all()
+        self.set_tracker([
+            "| R1 | B1 | G1 | primary | must-run | planned | owner | | results/B1.json | | planned |",
+            "| X1 | probe | - | sanity probe | - | analyzed | owner | | results/x1.json | | diagnostic |",
+        ])
+        self.run_validator()
+        self.set_tracker([
+            "| R1 | B1 | G1 | primary | must-run | planned | owner | | results/B1.json | | planned |",
+            "| X1 | probe | - | sanity probe | - | analyzed | owner | | results/x1.json | | |",
+        ])
+        cp = self.run_validator(expect=1)
+        self.assertIn("mark the row's Kind as unplanned", cp.stdout)
+        self.set_tracker(["| R1 | B1 | G1 | primary | must-run | planned | owner | | results/B1.json | | sideways |"])
+        cp = self.run_validator(expect=1)
+        self.assertIn("invalid kind 'sideways'", cp.stdout)
+
+    def test_drift_report_lists_each_kind_of_drift(self):
+        self.write_all()
+        self.set_tracker([
+            "| R0 | B1 | G1 | retry first | must-run | analyzed | owner | | results/r0.json | | retry |",
+            "| X1 | probe | - | sanity probe | - | analyzed | owner | | results/x1.json | | diagnostic |",
+            "| X2 | ghost | - | forgotten | - | analyzed | owner | | results/x2.json | | planned |",
+            "| X3 | B1 | G1 | precursor deciding | - | analyzed | owner | | | | precursor |",
+        ])
+        cp = self.drift("--json")
+        report = json.loads(cp.stdout)
+        self.assertEqual(report["undeclared_runs_marked_planned"], ["X2 (block 'ghost', kind planned, status analyzed)"])
+        self.assertEqual(len(report["undeclared_runs_by_kind"]), 1)
+        self.assertEqual(len(report["kind_contradictions"]), 2)
+        self.assertEqual(report["must_run_blocks_never_run"], [])
+        self.drift("--fail-on-drift", expect=1)
+
+    def test_drift_reports_must_run_blocks_that_never_ran_and_audit_mismatches(self):
+        self.write_all()
+        self.set_tracker(["| R1 | B1 | G1 | primary | must-run | planned | owner | | results/B1.json | | planned |"])
+        audit = self.root / "results-audit.json"
+        audit.write_text(json.dumps({"audits": [{"audit_id": "A1", "source_runs": [{"run_id": "R1", "block_id": "B1", "run_kind": "unplanned"}],
+                                                  "standalone_runs": [{"run_id": "S9", "path": "s9.json"}]}]}))
+        results = self.root / "results"
+        results.mkdir()
+        (results / "B1.json").write_text("{}")
+        (results / "stray.json").write_text("{}")
+        report = json.loads(self.drift("--json", "--audit", str(audit), "--results-dir", str(results)).stdout)
+        self.assertEqual(report["must_run_blocks_never_run"], ["B1"])
+        self.assertIn("R1: audit A1 records kind unplanned, the tracker planned", report["kind_contradictions"])
+        self.assertEqual(report["audited_runs_missing_from_tracker"], ["S9 (audit A1, kind planned)"])
+        self.assertEqual(report["unreferenced_result_files"], ["stray.json"])
+        self.set_tracker(["| R1 | B1 | G1 | primary | must-run | completed / audited | owner | | results/B1.json | | unplanned |"])
+        report = json.loads(self.drift("--json").stdout)
+        self.assertEqual(report["must_run_blocks_never_run"], [])
+        cp = self.drift()
+        self.assertIn("Plan drift: 0 item(s)", cp.stdout)
 
     def test_initialized_pack_passes_structural_profile(self):
         init_root = self.root / "fresh"

@@ -204,6 +204,120 @@ class ResultsAuditTests(unittest.TestCase):
         )
         self.assertEqual(cp.returncode, 0, cp.stdout + cp.stderr)
 
+    def measurement(self, **extra):
+        item = {
+            "measurement_id": "M1",
+            "quantity": "accuracy difference on the synthetic held-out split",
+            "estimate": 0.04,
+            "interval": {"lower": 0.01, "upper": 0.07, "level": 0.95, "method": "bootstrap"},
+            "diagnostics": [{"name": "label_balance", "status": "pass"}],
+            "judge": {"kind": "llm", "identity": "synthetic-judge", "version": "v1", "blinded": True},
+            "multiplicity": {"comparisons": 3, "correction": "holm"},
+            "run_ids": ["RUN1"],
+        }
+        item.update(extra)
+        return item
+
+    def test_extended_evidence_sources(self) -> None:
+        audit = self.audit["audits"][0]
+        audit["evidence_artifacts"].append({"path": "proofs/lemma.md", "kind": "proof", "source": "derivation", "digest": ""})
+        self.write_all()
+        self.validate()
+        audit["evidence_artifacts"][-1]["source"] = "hearsay"
+        self.write_all()
+        cp = self.validate(expect=1)
+        self.assertIn("source must be one of", cp.stdout)
+
+    def test_standalone_runs_are_checked_when_present(self) -> None:
+        audit = self.audit["audits"][0]
+        audit["standalone_runs"] = [
+            {"run_id": "S1", "path": "results/s1.json", "produced_by": "python rerun.py", "run_kind": "diagnostic"}
+        ]
+        self.write_all()
+        self.validate()
+        audit["standalone_runs"].append({"run_id": "RUN1", "path": "x", "produced_by": "y", "digest": "zz"})
+        audit["standalone_runs"][0]["run_kind"] = "sideways"
+        self.write_all()
+        cp = self.validate(expect=1)
+        self.assertIn("appears more than once", cp.stdout)
+        self.assertIn("digest must be empty or a lowercase SHA-256", cp.stdout)
+        self.assertIn("run_kind must be one of", cp.stdout)
+
+    def test_measurement_shapes(self) -> None:
+        audit = self.audit["audits"][0]
+        audit["measurements"] = [self.measurement()]
+        self.write_all()
+        self.validate()
+        audit["measurements"] = [self.measurement(
+            estimate=0.2,
+            interval={"lower": 0.01, "upper": 0.07, "level": 95},
+            judge={"kind": "oracle", "identity": "", "blinded": "yes"},
+            multiplicity={"comparisons": 4, "correction": "none"},
+            run_ids=["R9"],
+        )]
+        self.write_all()
+        cp = self.validate(expect=1)
+        for text in ("does not contain the estimate", "level must be a number strictly between 0 and 1",
+                     "judge.kind must be one of", "judge.blinded must be true or false",
+                     "needs a rationale", "run_ids reference runs this audit does not list"):
+            self.assertIn(text, cp.stdout)
+
+    def test_audit_kind_needs_matching_evidence(self) -> None:
+        audit = self.audit["audits"][0]
+        audit["audit_kind"] = "recomputation"
+        self.write_all()
+        cp = self.validate(expect=1)
+        self.assertIn("source recomputation", cp.stdout)
+        audit["evidence_artifacts"].append({"path": "recompute/table.csv", "kind": "table", "source": "recomputation"})
+        self.write_all()
+        self.validate()
+        audit["audit_kind"] = "replication"
+        self.write_all()
+        self.validate()
+        audit["audit_kind"] = "vibes"
+        self.write_all()
+        cp = self.validate(expect=1)
+        self.assertIn("audit_kind must be one of", cp.stdout)
+
+    def test_abstention_names_failed_diagnostics(self) -> None:
+        audit = self.audit["audits"][0]
+        audit["verdict"] = "abstained_diagnostics_failed"
+        audit["attained_assurance_class"] = "exploratory"
+        audit["audited_claim_effect"] = "inconclusive"
+        audit["measurements"] = [self.measurement(diagnostics=[{"name": "judge_agreement", "status": "fail"}])]
+        self.narrative_path.write_text("# Results Audit\n\n## Audit A1\n\n- Bounded verdict: abstained_diagnostics_failed\n")
+        self.audit_path.write_text(__import__("json").dumps(self.audit))
+        cp = self.validate(profile="structural", expect=1)
+        self.assertIn("must list failed_diagnostics", cp.stdout)
+        audit["failed_diagnostics"] = ["label_balance"]
+        self.audit_path.write_text(__import__("json").dumps(self.audit))
+        cp = self.validate(profile="structural", expect=1)
+        self.assertIn("must each match a measurement diagnostic", cp.stdout)
+        audit["failed_diagnostics"] = ["judge_agreement"]
+        self.audit_path.write_text(__import__("json").dumps(self.audit))
+        self.validate(profile="structural")
+        audit["audited_claim_effect"] = "strengthen"
+        self.audit_path.write_text(__import__("json").dumps(self.audit))
+        cp = self.validate(profile="structural", expect=1)
+        self.assertIn("inconclusive or unchanged claim effect", cp.stdout)
+
+    def test_confirmatory_verdict_with_failed_diagnostic_fails(self) -> None:
+        self.audit["audits"][0]["measurements"] = [
+            self.measurement(diagnostics=[{"name": "judge_agreement", "status": "fail"}])
+        ]
+        self.write_all()
+        cp = self.validate(expect=1)
+        self.assertIn("failed measurement diagnostics", cp.stdout)
+
+    def test_source_run_kind_is_checked_when_present(self) -> None:
+        self.audit["audits"][0]["source_runs"][0]["run_kind"] = "retry"
+        self.write_all()
+        self.validate()
+        self.audit["audits"][0]["source_runs"][0]["run_kind"] = "bonus"
+        self.write_all()
+        cp = self.validate(expect=1)
+        self.assertIn("run_kind must be one of", cp.stdout)
+
     def test_accepted_narrowing_requires_a_trajectory_record(self) -> None:
         audit = self.audit["audits"][0]
         audit["predecessor_failures"] = [

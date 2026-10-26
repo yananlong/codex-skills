@@ -37,9 +37,26 @@ VERDICTS = {
     "supports_operational_high_stakes_claim",
     "inconclusive",
     "does_not_support_claim",
+    "abstained_diagnostics_failed",
 }
 CLAIM_EFFECTS = {"strengthen", "weaken", "kill", "unchanged", "inconclusive"}
 SOURCE_MODES = {"standalone", "orchestrated"}
+# Where an evidence artifact comes from. experiment and audit are the original two; the rest name
+# what real audits had to file under "audit" because nothing else was allowed.
+EVIDENCE_SOURCES = {
+    "experiment",     # an output of the audited run; needs a digest
+    "audit",          # produced by this or an earlier audit
+    "recomputation",  # re-derived in this audit from stored outputs or source data
+    "repository",     # committed code or records reviewed at a stated revision
+    "plan",           # claim map, run blocks, commitment, gate or route contract
+    "derivation",     # proof, counterexample, or formal check
+    "review",         # novelty, literature, or review decision
+    "manuscript",     # manuscript text or claim-evidence binding
+    "external",       # third-party data, results, or documentation
+}
+AUDIT_KINDS = {"fresh", "recomputation", "replication", "record_review"}
+RUN_KINDS = {"planned", "unplanned", "precursor", "diagnostic", "retry"}
+JUDGE_KINDS = {"llm", "human", "programmatic"}
 GATE_RESULTS = {"pass", "fail", "inconclusive", "not_applicable"}
 SCIENTIFIC_DISPOSITIONS = {
     "supports_claim",
@@ -276,6 +293,8 @@ def validate_source_runs(
                 )
         if not isinstance(run.get("verification_self_review"), bool):
             errors.append(f"{run_label}.verification_self_review must be boolean")
+        if "run_kind" in run and run.get("run_kind") not in RUN_KINDS:
+            errors.append(f"{run_label}.run_kind must be one of {sorted(RUN_KINDS)} (omit it for a planned run)")
         normalized.append(run)
     return normalized
 
@@ -328,8 +347,8 @@ def validate_evidence_artifacts(
         path = require_string(artifact, "path", item_label, errors)
         require_string(artifact, "kind", item_label, errors)
         source = artifact.get("source")
-        if source not in {"experiment", "audit"}:
-            errors.append(f"{item_label}.source must be experiment or audit")
+        if source not in EVIDENCE_SOURCES:
+            errors.append(f"{item_label}.source must be one of {sorted(EVIDENCE_SOURCES)}")
         if path:
             if path in seen:
                 errors.append(f"{label}.evidence_artifacts contains duplicate path {path}")
@@ -397,6 +416,191 @@ def validate_trajectory_record(
         )
     if "corrective_action" in audit:
         check_repair(audit["corrective_action"], f"{label}.corrective_action", errors, warnings)
+
+
+def _number(value: Any) -> bool:
+    return isinstance(value, (int, float)) and not isinstance(value, bool)
+
+
+def validate_standalone_runs(audit: dict[str, Any], label: str, errors: list[str]) -> set[str]:
+    """D6: runs audited without a harness binding. Optional; checked when present."""
+    runs = audit.get("standalone_runs")
+    if runs is None:
+        return set()
+    if not isinstance(runs, list):
+        errors.append(f"{label}.standalone_runs must be a list")
+        return set()
+    harness_ids = {
+        str(run.get("run_id")) for run in audit.get("source_runs", []) or [] if isinstance(run, dict)
+    }
+    seen: set[str] = set()
+    for index, run in enumerate(runs, start=1):
+        run_label = f"{label}.standalone_runs[{index}]"
+        if not isinstance(run, dict):
+            errors.append(f"{run_label} must be an object")
+            continue
+        run_id = validate_identifier(run.get("run_id"), f"{run_label}.run_id", errors)
+        if run_id in seen or run_id in harness_ids:
+            errors.append(f"{label}: run_id {run_id} appears more than once across source_runs and standalone_runs")
+        seen.add(run_id)
+        require_string(run, "path", run_label, errors)
+        require_string(run, "produced_by", run_label, errors)
+        digest = run.get("digest")
+        if digest not in (None, "") and not DIGEST_RE.fullmatch(str(digest)):
+            errors.append(f"{run_label}.digest must be empty or a lowercase SHA-256 hex digest")
+        if "run_kind" in run and run.get("run_kind") not in RUN_KINDS:
+            errors.append(f"{run_label}.run_kind must be one of {sorted(RUN_KINDS)} (omit it for a planned run)")
+        if "block_id" in run and not meaningful(run.get("block_id")):
+            errors.append(f"{run_label}.block_id must be substantive when present")
+    return seen
+
+
+def validate_measurements(
+    audit: dict[str, Any], label: str, run_ids: set[str], errors: list[str]
+) -> dict[str, set[str]]:
+    """D6: measured quantities with interval, diagnostics, judge identity, and multiplicity.
+
+    Returns the failed diagnostic names per measurement.
+    """
+    measurements = audit.get("measurements")
+    failed: dict[str, set[str]] = {}
+    if measurements is None:
+        return failed
+    if not isinstance(measurements, list):
+        errors.append(f"{label}.measurements must be a list")
+        return failed
+    seen: set[str] = set()
+    for index, item in enumerate(measurements, start=1):
+        m_label = f"{label}.measurements[{index}]"
+        if not isinstance(item, dict):
+            errors.append(f"{m_label} must be an object")
+            continue
+        m_id = validate_identifier(item.get("measurement_id"), f"{m_label}.measurement_id", errors)
+        if m_id in seen:
+            errors.append(f"{label}.measurements contains duplicate measurement_id {m_id}")
+        seen.add(m_id)
+        require_string(item, "quantity", m_label, errors)
+        estimate = item.get("estimate")
+        if not _number(estimate):
+            errors.append(f"{m_label}.estimate must be a number")
+        interval = item.get("interval")
+        if interval is not None:
+            if not isinstance(interval, dict):
+                errors.append(f"{m_label}.interval must be an object with lower, upper, and level")
+            else:
+                lower, upper, level = interval.get("lower"), interval.get("upper"), interval.get("level")
+                if not (_number(lower) and _number(upper)):
+                    errors.append(f"{m_label}.interval.lower and upper must be numbers")
+                elif lower > upper:
+                    errors.append(f"{m_label}.interval.lower must not exceed upper")
+                elif _number(estimate) and not lower <= estimate <= upper:
+                    errors.append(f"{m_label}: the interval [{lower}, {upper}] does not contain the estimate {estimate}")
+                if not _number(level) or not 0 < level < 1:
+                    errors.append(f"{m_label}.interval.level must be a number strictly between 0 and 1")
+                if "method" in interval and not meaningful(interval.get("method")):
+                    errors.append(f"{m_label}.interval.method must be substantive when present")
+        diagnostics = item.get("diagnostics", [])
+        if not isinstance(diagnostics, list):
+            errors.append(f"{m_label}.diagnostics must be a list")
+            diagnostics = []
+        for d_index, diagnostic in enumerate(diagnostics, start=1):
+            d_label = f"{m_label}.diagnostics[{d_index}]"
+            if not isinstance(diagnostic, dict) or not meaningful(diagnostic.get("name")):
+                errors.append(f"{d_label} must be an object with a substantive name")
+                continue
+            if diagnostic.get("status") not in CHECK_STATUSES:
+                errors.append(f"{d_label}.status must be one of {sorted(CHECK_STATUSES)}")
+            elif diagnostic["status"] == "fail":
+                failed.setdefault(m_id, set()).add(str(diagnostic["name"]))
+        judge = item.get("judge")
+        if judge is not None:
+            if not isinstance(judge, dict):
+                errors.append(f"{m_label}.judge must be an object")
+            else:
+                if judge.get("kind") not in JUDGE_KINDS:
+                    errors.append(f"{m_label}.judge.kind must be one of {sorted(JUDGE_KINDS)}")
+                require_string(judge, "identity", f"{m_label}.judge", errors)
+                if "version" in judge and not meaningful(judge.get("version")):
+                    errors.append(f"{m_label}.judge.version must be substantive when present")
+                if not isinstance(judge.get("blinded"), bool):
+                    errors.append(f"{m_label}.judge.blinded must be true or false")
+        multiplicity = item.get("multiplicity")
+        if multiplicity is not None:
+            if not isinstance(multiplicity, dict):
+                errors.append(f"{m_label}.multiplicity must be an object")
+            else:
+                comparisons = multiplicity.get("comparisons")
+                if not isinstance(comparisons, int) or isinstance(comparisons, bool) or comparisons < 1:
+                    errors.append(f"{m_label}.multiplicity.comparisons must be a positive integer")
+                if not meaningful(multiplicity.get("correction")):
+                    errors.append(
+                        f"{m_label}.multiplicity.correction must name the correction applied, or 'none'"
+                    )
+                elif (
+                    isinstance(comparisons, int) and comparisons > 1
+                    and str(multiplicity["correction"]).strip().lower() == "none"
+                    and not meaningful(multiplicity.get("rationale"))
+                ):
+                    errors.append(
+                        f"{m_label}.multiplicity: {comparisons} comparisons with correction 'none' needs a rationale"
+                    )
+        refs = item.get("run_ids", [])
+        if not isinstance(refs, list):
+            errors.append(f"{m_label}.run_ids must be a list")
+        else:
+            unknown = [ref for ref in refs if str(ref) not in run_ids]
+            if unknown:
+                errors.append(f"{m_label}.run_ids reference runs this audit does not list: {', '.join(map(str, unknown))}")
+    return failed
+
+
+def validate_audit_kind(audit: dict[str, Any], label: str, run_ids: set[str], errors: list[str]) -> None:
+    """D6: what kind of audit this is. Optional; when present it must be backed by matching evidence."""
+    if "audit_kind" not in audit:
+        return
+    kind = audit.get("audit_kind")
+    if kind not in AUDIT_KINDS:
+        errors.append(f"{label}.audit_kind must be one of {sorted(AUDIT_KINDS)}")
+        return
+    sources = {
+        artifact.get("source") for artifact in audit.get("evidence_artifacts", []) or [] if isinstance(artifact, dict)
+    }
+    if kind == "recomputation" and "recomputation" not in sources:
+        errors.append(f"{label}: a recomputation audit lists at least one evidence artifact with source recomputation")
+    if kind == "replication" and not run_ids:
+        errors.append(f"{label}: a replication audit lists the rerun in source_runs or standalone_runs")
+
+
+def validate_abstention(
+    audit: dict[str, Any], label: str, checks: dict[str, str], failed: dict[str, set[str]],
+    errors: list[str], warnings: list[str],
+) -> None:
+    """D6: abstained_diagnostics_failed declines to judge and names the diagnostics that failed."""
+    verdict = audit.get("verdict")
+    failed_anywhere = set().union(*failed.values()) if failed else set()
+    failed_checks = {name for name, status in checks.items() if status == "fail"}
+    if verdict == "abstained_diagnostics_failed":
+        named = audit.get("failed_diagnostics")
+        if not isinstance(named, list) or not named or any(not meaningful(item) for item in named):
+            errors.append(f"{label}: abstained_diagnostics_failed must list failed_diagnostics by name")
+            return
+        unknown = [name for name in named if name not in failed_anywhere | failed_checks]
+        if unknown:
+            errors.append(
+                f"{label}.failed_diagnostics must each match a measurement diagnostic or check with status fail: "
+                + ", ".join(unknown)
+            )
+        if audit.get("audited_claim_effect") not in {"inconclusive", "unchanged"}:
+            errors.append(f"{label}: abstained_diagnostics_failed requires an inconclusive or unchanged claim effect")
+    elif verdict in POSITIVE_VERDICTS and failed:
+        names = ", ".join(f"{m}: {', '.join(sorted(v))}" for m, v in sorted(failed.items()))
+        if verdict == "supports_exploratory_follow_up":
+            warnings.append(f"{label}: positive verdict with failed measurement diagnostics ({names}); say why in limitations")
+        else:
+            errors.append(
+                f"{label}: {verdict} with failed measurement diagnostics ({names}); abstain with "
+                "abstained_diagnostics_failed or lower the verdict"
+            )
 
 
 def validate_verdict_semantics(
@@ -527,6 +731,11 @@ def validate_audits(
         if not isinstance(limitations, list) or any(not meaningful(value) for value in limitations):
             errors.append(f"{label}.limitations must be a list of substantive strings")
         validate_verdict_semantics(audit, label, str(source_mode), runs, checks, errors)
+        standalone_ids = validate_standalone_runs(audit, label, errors)
+        all_run_ids = standalone_ids | {str(run.get("run_id")) for run in runs if meaningful(run.get("run_id"))}
+        failed_diagnostics = validate_measurements(audit, label, all_run_ids, errors)
+        validate_audit_kind(audit, label, all_run_ids, errors)
+        validate_abstention(audit, label, checks, failed_diagnostics, errors, warnings)
         if complete and audit_id:
             heading = f"## Audit {audit_id}"
             if heading not in narrative:
@@ -805,6 +1014,20 @@ def validate_evidence_files(
                 )
             else:
                 errors.append(message)
+        for run in audit.get("standalone_runs", []) or []:
+            if not isinstance(run, dict) or not meaningful(run.get("path")):
+                continue
+            target = (root / str(run["path"])).resolve()
+            if root != target and root not in target.parents:
+                errors.append(f"audit {audit_id} standalone run path escapes --root: {run['path']}")
+                continue
+            if not target.exists():
+                errors.append(f"audit {audit_id} standalone run path does not exist under --root: {run['path']}")
+                continue
+            digest = run.get("digest")
+            if meaningful(digest) and target.is_file() and sha256_file(target) != digest:
+                message = f"audit {audit_id} standalone run digest does not match file bytes for {run['path']}"
+                (warnings if stale_revision else errors).append(message)
 
 
 def parse_args() -> argparse.Namespace:

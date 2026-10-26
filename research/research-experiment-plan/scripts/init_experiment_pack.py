@@ -103,9 +103,9 @@ FILE_TEMPLATES = {
 """,
     "experiment-tracker.md": """# Experiment Tracker
 
-| Run ID | Block ID | Gate ID | Purpose | Priority | Status | Owner | Dependency | Output artifact | Notes |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| R001 | B1 | G1 | | must-run | planned | | | | |
+| Run ID | Block ID | Gate ID | Purpose | Priority | Status | Owner | Dependency | Output artifact | Notes | Kind |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| R001 | B1 | G1 | | must-run | planned | | | | | planned |
 """,
     "claim-map.json": """[
   {

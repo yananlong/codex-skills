@@ -23,7 +23,8 @@ description: Audit ML/statistics experiment outputs for validity, confounds, sta
 
 - Work from the prompt plus concrete local result files, tables, plots, logs, or reported numbers.
 - Do not require a suite root or experiment harness.
-- Use `source_mode=standalone`; retain exact artifact paths and bounded caveats.
+- Use `source_mode=standalone`; retain exact artifact paths and bounded caveats. List runs that never went through a harness in `standalone_runs` (path, how each was produced, optional digest and run kind).
+- Record measured quantities in `measurements`: the estimate, its interval and level, the diagnostics run on it, who or what judged it (`judge`, with whether the judge was blinded), and how many comparisons were made with which correction. Set `audit_kind` when the audit recomputes, replicates, or only reviews records. When diagnostics fail badly enough that no verdict is honest, use `abstained_diagnostics_failed` and name them in `failed_diagnostics`. The fields are optional and checked when present; see `references/results-audit-schema.md`.
 - For a sanity check with no downstream paper binding, answer in chat with: the claim, the artifacts read (paths), a bounded verdict, the strongest evidence against, and the runs not inspected. Write `results-audit.json` only when the result feeds `research-paper-plan` or a tracked gate.
 - A standalone audit that requests only exploratory assurance may omit `paper_id`; omitted `snapshot_continuity` and `independence` checks default to `not_assessed`.
 - If the request is really project sequencing or cross-stage coordination, invoke `research-pipeline-planner` first.
@@ -99,6 +100,7 @@ The narrative may explain the audit but must not promote, soften, or replace the
 - `supports_operational_high_stakes_claim`
 - `inconclusive`
 - `does_not_support_claim`
+- `abstained_diagnostics_failed`: the audit declines to judge because named diagnostics failed (`failed_diagnostics`); never positive, and the claim effect stays `inconclusive` or `unchanged`
 
 ## Hard stops
 

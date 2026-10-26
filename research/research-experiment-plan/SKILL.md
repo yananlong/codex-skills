@@ -231,6 +231,8 @@ Record the result in `decision-gates.md` and in each affected block's `non_vacui
   - `decisive`
   - `inconclusive`
   - `dropped`
+- Give every run a Kind in the tracker's optional last column: `planned` (the default when the column or cell is empty), `unplanned`, `precursor`, `diagnostic`, or `retry`. Only a planned run must name a declared block, gate, and priority; the other kinds may sit outside the plan, which is how an honest tracker records the probes and reruns real projects make. Diagnostic and precursor runs do not decide gates, and a retry follows an earlier run of its block.
+- Run `scripts/check_plan_drift.py` before an audit or a gate decision to see where execution left the plan: runs no block declares, must-run blocks that never ran, kinds that contradict the plan, audited runs the tracker never lists, and result files no row names. It reports and exits 0; pass `--fail-on-drift` to make drift fail a check.
 - Carry material predecessor failures forward until new evidence resolves them; reclassification, replacement, or omission is not resolution.
 
 ### 7) Emit the execution bridge
@@ -283,4 +285,5 @@ Record the result in `decision-gates.md` and in each affected block's `non_vacui
 - `scripts/init_experiment_pack.py`: create the full experiment-planning pack in a standalone directory or the suite's `experiment-plan/` directory, including execution and lineage scaffolds.
 - `scripts/init_iteration_loop.py`: create `program.md`, an empty `results.tsv` ledger, `experiments.md`, and `ideas.md` for an autonomous iteration loop.
 - `scripts/validate_iteration_ledger.py`: check a loop ledger (header, hashes, statuses, baseline row, keep rows improve in the declared direction) and cross-check notebook entries with `--notebook`.
+- `scripts/check_plan_drift.py`: report drift between the plan and what ran. `--run-blocks` and `--tracker` are required; `--claim-map`, `--audit results-audit.json`, `--results-dir`, and `--root` add checks; `--json` prints the report as JSON; `--fail-on-drift` exits 1 when anything is listed.
 - `scripts/validate_experiment_pack.py`: validate required headings, JSON structure (bare arrays or versioned envelopes), reciprocal claim/block links, gate bindings, execution declarations, lineage policy, tracker states, and profile-specific fields (`structural`, `exploratory`, `confirmatory`) without claiming executor isolation or scientific validity.
