@@ -31,6 +31,34 @@ class CountLimitsTests(unittest.TestCase):
             check=False,
         )
 
+    def test_venue_supplies_unit_and_limit(self) -> None:
+        path = self.write("responses.md", "## R1\n" + "a" * 5000 + "\n## R2\nshort\n")
+        result = self.run_script(str(path), "--venue", "icml-2025")
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        self.assertIn("Venue icml-2025: 5000 chars (per_review)", result.stdout)
+        self.assertIn("OVER LIMIT", result.stdout)
+
+    def test_venue_without_numeric_limit_counts_without_one(self) -> None:
+        path = self.write("reply.md", "We thank the reviewer.\n")
+        result = self.run_script(str(path), "--venue", "neurips-2025")
+        self.assertEqual(result.returncode, 0, result.stdout + result.stderr)
+        self.assertIn("no numeric response limit recorded", result.stdout)
+
+    def test_venue_page_limit_is_reported_unverifiable(self) -> None:
+        path = self.write("reply.md", "One page.\n")
+        result = self.run_script(str(path), "--venue", "cvpr-2025")
+        self.assertEqual(result.returncode, 3, result.stdout + result.stderr)
+
+    def test_explicit_limit_overrides_the_venue_table(self) -> None:
+        path = self.write("reply.md", "x" * 3000 + "\n")
+        result = self.run_script(str(path), "--venue", "icml-2025", "--limit", "2500")
+        self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+        self.assertIn("--limit 2500 overrides the venue table's 5000", result.stdout)
+
+    def test_unknown_venue_is_an_input_error(self) -> None:
+        path = self.write("reply.md", "x\n")
+        self.assertEqual(self.run_script(str(path), "--venue", "nowhere-2030").returncode, 1)
+
     def test_plain_text_under_limit_counts_raw_characters(self) -> None:
         text = "We thank the reviewer. The ablation is in Section 4 (naive vs. tuned).\n"
         path = self.write("plain.md", text)

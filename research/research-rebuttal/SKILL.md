@@ -81,7 +81,7 @@ description: Draft venue-aware academic rebuttals and author responses from revi
 
 ### 1) Route venue and policy constraints first
 
-- Use `references/venue_rule_matrix.md` to choose the artifact structure:
+- Look the venue up in the shared venue table (`python3 scripts/venue_table.py show <venue_id>`; the table is `references/venues.json`, shared with `research-paper-plan`) and use `references/venue_rule_matrix.md` to choose the artifact structure:
   - one-shot PDF
   - per-review response
   - threaded discussion
@@ -89,7 +89,8 @@ description: Draft venue-aware academic rebuttals and author responses from revi
   - single-feedback response
 - Use `references/platforms_and_policies.md` for platform mechanics, anonymity, disclosure, link, revision, and LLM-policy checks.
 - If venue information is incomplete, state the assumption and choose the most conservative valid route.
-- Treat dated limits, windows, and policy details as unstable. Re-check official venue sources before final submission when those details matter.
+- Treat dated limits, windows, and policy details as unstable. Each table row carries a `verified_on` date and a status; the script flags rows older than a year or not verified. Re-check official venue sources before final submission when those details matter.
+- Check a response against the venue's recorded limit with `scripts/count_limits.sh <file> --venue <venue_id>`; an explicit `--limit` or unit flag overrides the table.
 
 ### 2) Analyze reviews and build the issue board
 

@@ -6,13 +6,18 @@
 # raw count is the only count that can confirm a response fits.
 #
 # Usage:
-#   count_limits.sh <file> [--chars|--words|--pages] [--limit N]
+#   count_limits.sh <file> [--chars|--words|--pages] [--limit N] [--venue VENUE]
 #                   [--per-section|--whole] [--strip-markup]
 #
 # Examples:
 #   count_limits.sh rebuttal.md --chars --limit 5000
 #   count_limits.sh responses.md --per-section --limit 5000
 #   count_limits.sh rebuttal.tex --words --strip-markup
+#   count_limits.sh responses.md --venue icml-2025
+#
+# --venue reads the unit and limit from the shared venue table (references/venues.json, via
+# scripts/venue_table.py) and prints any staleness or verification flag for that row. An explicit
+# --chars/--words/--pages or --limit overrides the table.
 #
 # Exit codes: 0 within limit (or no limit), 1 usage or input error,
 # 2 a counted unit exceeds the limit, 3 the limit cannot be verified (--pages).
@@ -20,13 +25,14 @@
 set -euo pipefail
 
 usage() {
-    echo "Usage: $0 <file> [--chars|--words|--pages] [--limit N] [--per-section|--whole] [--strip-markup]"
+    echo "Usage: $0 <file> [--chars|--words|--pages] [--limit N] [--venue VENUE] [--per-section|--whole] [--strip-markup]"
     echo ""
     echo "Options:"
     echo "  --chars         Count raw characters, markup included (default)"
     echo "  --words         Count raw words"
     echo "  --pages         PDF page limits cannot be verified from text; prints guidance only"
     echo "  --limit N       Fail (exit 2) if the file, or any section, exceeds N"
+    echo "  --venue VENUE   Take the unit and limit from the shared venue table (explicit flags win)"
     echo "  --per-section   Count each reviewer response (level-2 heading block; level-3 when there is one response) separately"
     echo "                  (on by default when the file has more than one such heading)"
     echo "  --whole         Count the whole file only, even if it has several headings"
@@ -48,15 +54,23 @@ if [[ ! -f "$FILE" ]]; then
 fi
 
 MODE="chars"
+MODE_SET=0
 LIMIT=""
+VENUE=""
 SPLIT="auto"
 STRIP=0
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
-        --chars) MODE="chars"; shift ;;
-        --words) MODE="words"; shift ;;
-        --pages) MODE="pages"; shift ;;
+        --chars) MODE="chars"; MODE_SET=1; shift ;;
+        --words) MODE="words"; MODE_SET=1; shift ;;
+        --pages) MODE="pages"; MODE_SET=1; shift ;;
+        --venue)
+            if [[ $# -lt 2 ]]; then
+                echo "Error: --venue requires a venue_id" >&2
+                usage
+            fi
+            VENUE="$2"; shift 2 ;;
         --per-section) SPLIT="yes"; shift ;;
         --whole) SPLIT="no"; shift ;;
         --strip-markup) STRIP=1; shift ;;
@@ -69,6 +83,32 @@ while [[ $# -gt 0 ]]; do
         *) echo "Unknown option: $1" >&2; usage ;;
     esac
 done
+
+if [[ -n "$VENUE" ]]; then
+    HELPER="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/venue_table.py"
+    set +e
+    VENUE_LIMIT="$(python3 "$HELPER" limit "$VENUE")"
+    VENUE_RC=$?
+    set -e
+    if [[ "$VENUE_RC" -eq 3 ]]; then
+        echo "Venue $VENUE: no numeric response limit recorded; counting without a limit unless --limit is given"
+    elif [[ "$VENUE_RC" -ne 0 ]]; then
+        echo "Error: could not read venue $VENUE from the venue table" >&2
+        exit 1
+    else
+        read -r V_UNIT V_VALUE V_SCOPE <<< "$VENUE_LIMIT"
+        echo "Venue $VENUE: $V_VALUE $V_UNIT ($V_SCOPE) from the shared venue table"
+        if [[ "$MODE_SET" -eq 0 ]]; then MODE="$V_UNIT"; fi
+        if [[ -z "$LIMIT" ]]; then
+            LIMIT="$V_VALUE"
+        elif [[ "$LIMIT" != "$V_VALUE" ]]; then
+            echo "NOTE: --limit $LIMIT overrides the venue table's $V_VALUE"
+        fi
+        if [[ "$MODE" != "$V_UNIT" ]]; then
+            echo "NOTE: counting $MODE while the venue table states its limit in $V_UNIT"
+        fi
+    fi
+fi
 
 if [[ "$MODE" == "pages" ]]; then
     echo "File:  $FILE"

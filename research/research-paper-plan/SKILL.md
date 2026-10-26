@@ -44,7 +44,7 @@ Prefer:
 - validated result-audit JSON;
 - source experiment claim map;
 - commitment identity;
-- target venue and page budget;
+- target venue and page budget (look the venue up with `scripts/venue_table.py show <venue_id>`; never write venue numbers from memory);
 - known weaknesses and reviewer objections;
 - desired exhibits;
 - verified citation exports or Zotero artifacts.
@@ -229,4 +229,5 @@ A passing validator establishes declared linkage and consistency, not scientific
 ## Scripts
 
 - `scripts/init_paper_pack.py`: initialize the four Markdown views plus canonical `claim-evidence-bindings.json`.
-- `scripts/validate_paper_pack.py`: validate binding structure, status/action rules, matrix/exhibit/citation reciprocity, paper identity, source claims, result-audit thresholds, and audited artifact paths.
+- `scripts/validate_paper_pack.py`: validate binding structure, status/action rules, matrix/exhibit/citation reciprocity, paper identity, source claims, result-audit thresholds, and audited artifact paths. Value bindings name the gate and value slot each reported value comes from; audit links that do not resolve are errors (pass `--results-audit` under the structural profile to check them); `--work-items` is optional when every bound audit is standalone; `--report` prints the bindings as a table.
+- `scripts/venue_table.py`: show, diff, and check rows of the shared venue table `references/venues.json` (shared with `research-rebuttal`); rows older than a year or not verified are flagged.

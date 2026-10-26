@@ -19,6 +19,15 @@ Each claim records:
 - `evidence_artifacts`: audited evidence paths used by the paper claim.
 - `planned_sections`, `exhibit_ids`, and `citation_need_ids`.
 - `limitations`, `missing_evidence`, `scope`, and `rationale`.
+- `value_bindings`: one entry per reported value, each with `audit_id` (one of the claim's `audit_ids`), `gate_id` (the decision gate whose result the sentence reports), `value_slot` (the reported value: `measurement:<measurement_id>` for an audit measurement, or a dotted field path in the audit record such as `check_results.metric_validity.status`), and an optional `sentence_anchor` locating the sentence. An active empirical or mixed claim without value bindings still validates, with a warning.
+
+## Resolving links
+
+An audit link must resolve to a record in `results-audit.json`; one that does not is an error. The linked profile always resolves links. The structural profile resolves them when `--results-audit` is given and otherwise warns that they were not checked. A value binding's gate must be a gate of its audit (the audit's `gate_id` or a source run's `gate_id`), and its value slot must resolve in the audit. When an audit records no gate, or has no `measurements` list yet, the binding passes with a warning that it is unchecked.
+
+`--work-items` is optional under the linked profile when every bound audit has `source_mode` `standalone`; the upstream audit is then revalidated with the auditor's structural profile, and a standalone audit without a `paper_id` is accepted.
+
+`--report` prints the bindings as a table (claim, sentence anchor, audit, gate, value slot, status), one row per value binding, or one row per linked audit marked `legacy` when a claim has no value bindings.
 
 ## Audit coverage and scope
 

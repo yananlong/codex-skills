@@ -15,6 +15,8 @@ SHARED = {
             "research/research-novelty-review/scripts",
         ],
     ),
+    "venues.json": ("research/research-paper-plan/references", ["research/research-rebuttal/references"]),
+    "venue_table.py": ("research/research-paper-plan/scripts", ["research/research-rebuttal/scripts"]),
 }
 
 
