@@ -43,6 +43,16 @@ class MarkupTests(unittest.TestCase):
         markdown = "Pass --limit 200 and --out here; one spaced -- aside.\n"
         self.assertEqual(scan(markdown).counts.get("dash", 0), 1)
 
+    def test_markdown_table_separators_and_rules_are_not_dashes(self) -> None:
+        text = (
+            "---\ntitle: notes\n---\n\n"
+            "| Setting | Result |\n| --- | :---: |\n| shift A | holds |\n\n"
+            "The estimator holds on both shifts.\n\n* * *\n\n___\n"
+        )
+        self.assertEqual(scan(text).counts.get("dash", 0), 0)
+        with_dashes = "| Setting | Note |\n|---|---|\n| shift A | holds --- mostly |\n\nA claim --- with a flag.\n"
+        self.assertEqual(scan(with_dashes).counts.get("dash", 0), 2)
+
     def test_line_numbers_survive_fenced_blocks(self) -> None:
         text = "Intro.\n\n```\na\nb\nc\n```\n\nImportantly, this is crucial.\n"
         report = scan(text)

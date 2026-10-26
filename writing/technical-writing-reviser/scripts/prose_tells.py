@@ -125,6 +125,11 @@ def strip_markup(text: str) -> str:
     if LATEX_HINT.search(text):
         # Only LaTeX treats % as a comment; in Markdown "12% of runs" keeps its sentence.
         text = re.sub(r"(?m)(?<!\\)%.*$", "", text)
+    else:
+        # Markdown layout lines are not prose: table separator rows (| --- | :---: |), horizontal
+        # rules, and front-matter fences would otherwise count as dashes.
+        text = re.sub(r"(?m)^[ \t]*\|?(?:[ \t]*:?-{3,}:?[ \t]*\|)+[ \t]*:?-{0,}:?[ \t]*$", "", text)
+        text = re.sub(r"(?m)^[ \t]*(?:-[ \t]*){3,}$|^[ \t]*(?:\*[ \t]*){3,}$|^[ \t]*(?:_[ \t]*){3,}$", "", text)
     text = re.sub(r"\$\$.*?\$\$", _keep_lines(" MATH "), text, flags=re.S)
     text = re.sub(r"(?<!\\)\$[^$\n]*\$", " MATH ", text)
     text = re.sub(r"\\begin\{(equation|align|figure|table|tabular|algorithm|lstlisting|verbatim)\*?\}.*?\\end\{\1\*?\}", _keep_lines(" "), text, flags=re.S)
