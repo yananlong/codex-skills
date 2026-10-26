@@ -57,6 +57,21 @@ Each entry is an object with at least:
 
 D3 and D4 states outside exploration require an entry whose decision is `authorize-D3` (for D3) or `close-and-create-D4` (for D4) and that names the identity it authorizes with `to_identity_version` (and optionally `to_paper_id`), for example `{"decision": "authorize-D3", "to_identity_version": 4, "rationale": "..."}`. The named version must equal the current `identity_version`, so an old authorization cannot cover a later pivot. Entries without `to_identity_version` are accepted as legacy authorizations with a validator warning.
 
+`contribution_floor` is optional and recommended once the status leaves `exploring`; the validator warns when a committed commitment lacks it. It states the least contribution that still justifies the paper, in a form that can fail:
+
+```json
+"contribution_floor": {
+  "statement": "the least contribution that still justifies the paper",
+  "non_vacuity_outcome": "an observable result that would show the floor is not met",
+  "invariants": ["properties any narrowed claim must keep"],
+  "status": "unchecked"
+}
+```
+
+Projects that recorded a success criterion or vision invariants in fields of their own can move them here.
+
+A `selection_history` entry may carry a `trajectory` record (the shared claim-trajectory object in `suite-contract.md`). When one claim collects two `scope_narrowing` records, the validator requires a project-level review entry after the latest one: `{"decision": "project-review", "claim_id": "C1", "route_action": "continue", "floor_status": "met", "rationale": "..."}`. `route_action` takes the route-action values; `floor_status` (`unchecked`, `met`, `not_met`) is required when a `contribution_floor` exists. Each later narrowing of the same claim needs a new review.
+
 `identity_anchors` is optional. When present it must hold digest-bound `question`, `central_object`, and `evidence_obligation` anchors, checked exactly as the semantic-assurance transition ledger checks them.
 
 ## Identity-change classes

@@ -27,6 +27,8 @@ Each complete audit records:
 - `check_results`: one record for every required check.
 - `independence`: self-review flag, actual dimensions, and evidence.
 - `limitations`, `predecessor_failures`, `minimum_corrective_action`, and `narrative_anchor`.
+- `trajectory` (required when a predecessor failure is `accepted_with_narrowing`): the shared claim-trajectory record with `claim_id` (matching the audit's), `change_class`, `content_lost`, `alternatives_considered`, and `restoring_evidence`. See the decision vocabulary in `research-pipeline-planner/references/suite-contract.md`.
+- `corrective_action` (optional): `{"action": <repair>, "note": "..."}`, with the repair one of `add_evidence`, `sharpen_comparator`, `lower_assurance`, `reframe`, `narrow`, `pivot`, `stop`. Without it, a complete audit's `minimum_corrective_action` should start with a repair name and a colon; free text passes with a warning.
 
 ## Source-run binding
 

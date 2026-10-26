@@ -8,6 +8,13 @@ import re
 from pathlib import Path
 from typing import Any
 
+from claim_trajectory import (
+    FLOOR_STATUSES,
+    ROUTE_ACTIONS,
+    check_contribution_floor,
+    check_trajectory,
+    narrowings_needing_review,
+)
 from semantic_assurance.transitions import validate_identity_anchors
 
 SCHEMA_VERSION = "1.0"
@@ -28,7 +35,7 @@ REQUIRED_FIELDS = {
     "next_mandatory_evidence_artifact", "reconsideration_gate", "selection_history",
     "predecessor_failures", "last_change_class", "last_change_rationale",
 }
-OPTIONAL_FIELDS = {"identity_anchors"}
+OPTIONAL_FIELDS = {"identity_anchors", "contribution_floor"}
 IDENTITY_FIELDS = (
     "main_question", "central_object_or_phenomenon", "minimum_publishable_claim",
     "primary_evidence_obligation", "intended_audience",
@@ -98,8 +105,33 @@ def validate_commitment(data: Any, warnings: list[str] | None = None) -> list[st
                 errors.append(f"selection_history[{index}].decision must be a substantive string")
             if not _substantive(item.get("rationale")):
                 errors.append(f"selection_history[{index}].rationale must be a substantive string")
+            if "trajectory" in item:
+                check_trajectory(item["trajectory"], f"selection_history[{index}].trajectory", errors)
+            if item.get("decision") == "project-review":
+                if not _substantive(item.get("claim_id")):
+                    errors.append(f"selection_history[{index}]: a project-review entry names the claim_id it reviewed")
+                if item.get("route_action") not in ROUTE_ACTIONS:
+                    errors.append(f"selection_history[{index}].route_action must be one of {list(ROUTE_ACTIONS)}")
+                if "contribution_floor" in data and item.get("floor_status") not in FLOOR_STATUSES:
+                    errors.append(
+                        f"selection_history[{index}].floor_status must record whether the contribution floor "
+                        f"still holds: one of {list(FLOOR_STATUSES)}"
+                    )
+        for claim_id, count in sorted(narrowings_needing_review(history).items()):
+            errors.append(
+                f"claim {claim_id} has been narrowed {count} times; record a project-level review "
+                f"(selection_history entry {{\"decision\": \"project-review\", \"claim_id\": \"{claim_id}\", "
+                f"\"route_action\": ..., \"floor_status\": ..., \"rationale\": ...}}) before manuscript integration"
+            )
 
     status = data.get("status")
+    if "contribution_floor" in data:
+        check_contribution_floor(data["contribution_floor"], "contribution_floor", errors)
+    elif status in {"committed", "executing", "interpreting"}:
+        warnings.append(
+            "no contribution_floor: state the least contribution that still justifies the paper and the outcome "
+            "that would show it is not met, so narrowing can be checked against it"
+        )
     if status in {"committed", "executing", "interpreting"}:
         for field in ACTIVE_FIELDS:
             if not _substantive(data.get(field)):

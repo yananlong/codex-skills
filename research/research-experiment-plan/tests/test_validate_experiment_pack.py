@@ -121,6 +121,31 @@ x
         self.assertEqual(cp.returncode, expect, msg=f"stdout:\n{cp.stdout}\nstderr:\n{cp.stderr}")
         return cp
 
+    def test_repair_action_enum_and_legacy_values(self):
+        self.claims[0]["decision_if_unproven"] = {"action": "sharpen_comparator", "note": "add the matched baseline"}
+        self.write_all()
+        cp = self.run_validator()
+        self.assertNotIn("decision_if_unproven", cp.stdout)
+        self.claims[0]["decision_if_unproven"] = "drop"
+        self.write_all()
+        cp = self.run_validator()
+        self.assertIn("legacy value 'drop'", cp.stdout)
+        self.claims[0]["decision_if_unproven"] = {"action": "smaller_claim"}
+        self.write_all()
+        cp = self.run_validator(expect=1)
+        self.assertIn("decision_if_unproven.action must be one of", cp.stdout)
+
+    def test_gate_revise_cell_without_action_warns(self):
+        self.write_all()
+        cp = self.run_validator()
+        self.assertIn("'Revise if' does not name a repair action", cp.stdout)
+        gates = self.paths["decision-gates"].read_text().replace(
+            "| result inconclusive |", "| `add_evidence`: rerun with a second seed |"
+        )
+        self.paths["decision-gates"].write_text(gates)
+        cp = self.run_validator()
+        self.assertNotIn("Revise if", cp.stdout)
+
     def test_initialized_pack_passes_structural_profile(self):
         init_root = self.root / "fresh"
         cp = subprocess.run([sys.executable, str(INIT), str(init_root)], text=True, capture_output=True)

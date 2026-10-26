@@ -420,6 +420,7 @@
           "references/tabmol-ddi-ood-adapter.md"
         ],
         "scripts": [
+          "scripts/claim_trajectory.py",
           "scripts/init_experiment_pack.py",
           "scripts/init_iteration_loop.py",
           "scripts/validate_experiment_pack.py",
@@ -570,6 +571,7 @@
           "references/tabmol-ddi-ood-adapter.md"
         ],
         "scripts": [
+          "scripts/claim_trajectory.py",
           "scripts/init_novelty_pack.py",
           "scripts/novelty_assurance.py",
           "scripts/validate_novelty_pack.py"
@@ -809,6 +811,7 @@
           "references/task-board-template.md"
         ],
         "scripts": [
+          "scripts/claim_trajectory.py",
           "scripts/harness_common.py",
           "scripts/harness_runtime.py",
           "scripts/init_prospective_evaluation.py",
@@ -949,6 +952,7 @@
           "references/tabmol-ddi-ood-adapter.md"
         ],
         "scripts": [
+          "scripts/claim_trajectory.py",
           "scripts/init_results_audit.py",
           "scripts/validate_results_audit.py"
         ]

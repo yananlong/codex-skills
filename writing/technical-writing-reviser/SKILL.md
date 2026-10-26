@@ -110,7 +110,7 @@ Check staleness first. Compare the critique's recorded source head or date with 
 
 Translate each issue into an edit, not a disclaimer. An issue whose effect is "blocks claim X" means the revision must not assert X; it does not license a sentence announcing that X is not claimed unless the reviewer explicitly asked for that statement or the venue requires a scope statement. An issue that narrows a claim means stating the narrower claim directly at the strength the evidence supports.
 
-Record every issue-driven weakening in a short claim-change note (original wording, revised wording, the issue that forced it) so the owning review or planning stage can see the cumulative scope loss. Do not let several locally reasonable narrowings shrink the contribution without the author seeing the total.
+Record every issue-driven weakening in a short claim-change note (original wording, revised wording, the issue that forced it) so the owning review or planning stage can see the cumulative scope loss. When the weakening gives up content, add the suite's claim-trajectory fields to the note: the claim ID, the change class (`precision`, `qualification`, `scope_narrowing`, `reframing`, or `identity_drift`), the content lost, the claim-preserving alternatives considered, and the evidence that would restore the stronger wording. In a research suite the planner copies these into the commitment's `selection_history`, where a second narrowing of the same claim triggers a project-level review. Do not let several locally reasonable narrowings shrink the contribution without the author seeing the total.
 
 ### Drafter Handoff Intake
 

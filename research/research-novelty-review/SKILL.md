@@ -90,6 +90,7 @@ Reader-facing prose in these artifacts is written under the drafting contract (`
 - In orchestrated mode, these live under `./novelty-review/`.
 - In standalone mode, any target directory is valid.
 - `novelty-decision.json` should capture the final 1-5 novelty rating, confidence rating, the exact narrow positioning that survives the review, selection-history caveats, and whether the review was self-review or materially independent. `literature_assurance.mode` is `unlinked`, `context`, or `linked`. Context mode binds the four-file paper context with per-file SHA-256 digests. Linked mode binds the exact seven-file literature pack with per-file SHA-256 digests, corpus identity, assurance verdict, and unresolved high-priority novelty-critical question IDs.
+- When the narrowest defensible positioning claims less than the paper or idea claims, add a `claim_trajectory` list to `novelty-decision.json` with one shared claim-trajectory record per changed claim (`claim_id`, `change_class`, `content_lost`, `alternatives_considered`, `restoring_evidence`; see `../research-pipeline-planner/references/suite-contract.md`). The validator checks each record, so the narrowing reaches the commitment's `selection_history` as a counted change and not only as prose.
 - In paper-review integrated mode, `novelty-decision.json` should also capture:
   - `impact_positioning_rating` (1-5)
   - `literature_context_used`

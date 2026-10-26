@@ -116,7 +116,10 @@ FILE_TEMPLATES = {
     "minimum_convincing_evidence": "",
     "anti_claim": "",
     "falsifier": "",
-    "decision_if_unproven": "reframe",
+    "decision_if_unproven": {
+      "action": "add_evidence",
+      "note": ""
+    },
     "linked_blocks": [
       "B1"
     ],

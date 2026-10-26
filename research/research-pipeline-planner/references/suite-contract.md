@@ -28,6 +28,49 @@ Use this contract only when work benefits from shared cross-stage artifacts. Do 
 
 Experiment execution adds no new root-level authority. Its frozen binding is stored in the work-item event, its run metadata is stored in the submitted episode event, and its lineage view is derived from those records.
 
+## Decision vocabulary
+
+Five kinds of decision recur across the suite. Each answers a different question, each has one closed set of values, and none stands in for another. `scripts/claim_trajectory.py` holds these sets; the experiment plan, the results auditor, and the novelty review ship byte-identical copies so each validates on its own.
+
+| Decision | Question it answers | Values | Recorded by |
+| --- | --- | --- | --- |
+| technical outcome | Did the work run as specified? | `completed`, `partial`, `failed` | the worker's episode |
+| gate result | What did the gate's evidence say? | `pass`, `fail`, `inconclusive`, `not_applicable` | the worker, then the verifier |
+| verifier decision | Is the submitted work accepted? | `approve`, `revise`, `block` | the verifier |
+| route action | Where does the project go next? | `continue`, `narrow`, `pivot-request`, `kill`, `park-successor` | the planner, or a project-level review |
+| evidence-class action | What class does the evidence now carry? | `promote`, `hold`, `downgrade` | the promotion record (`epistemic-assurance-contract.md`) |
+
+A repair answers a sixth, narrower question: what to do about a claim that is not yet proven, or on a gate's Revise branch. Experiment plans write it in `decision_if_unproven` and in the gate table's "Revise if" cell; the results auditor writes it in `corrective_action` or at the start of `minimum_corrective_action`.
+
+| Repair | Keeps the claim? | Typical route action |
+| --- | --- | --- |
+| `add_evidence` | yes | `continue` |
+| `sharpen_comparator` | yes | `continue` |
+| `lower_assurance` | yes, at a weaker evidence class | `continue` with `downgrade` |
+| `reframe` | the content, under a different contribution statement | `continue`, or `pivot-request` if the identity changes |
+| `narrow` | no: gives up part of the claim | `narrow` |
+| `pivot` | no | `pivot-request` |
+| `stop` | no | `kill` or `park-successor` |
+
+The order is deliberate. Narrowing comes after every repair that keeps the claim, so a plan whose only non-terminal repair is a smaller claim shows up as such. Write a repair as `{"action": "add_evidence", "note": "..."}` in JSON, or as `` `add_evidence`: ... `` in a table cell. Older free text and the old `drop` and `defer` values still validate, with a warning that names the replacement.
+
+### Claim trajectory
+
+When a claim changes, the stage that changes it writes one trajectory record. The same record appears in the results audit (`trajectory`), the novelty decision (`claim_trajectory`), the reviser's claim-change note, and the commitment's `selection_history` (as an entry's `trajectory`):
+
+```json
+{
+  "claim_id": "C1",
+  "change_class": "scope_narrowing",
+  "content_lost": "what scientific content the change gives up",
+  "alternatives_considered": ["add_evidence: why it was not enough", "lower_assurance: why it was rejected"],
+  "restoring_evidence": "what evidence would restore the stronger claim",
+  "recorded_by": "research-results-auditor"
+}
+```
+
+`change_class` is one of `precision`, `qualification`, `scope_narrowing`, `reframing`, or `identity_drift`. A change that loses content (`scope_narrowing`, `reframing`, `identity_drift`) must fill `content_lost`, `alternatives_considered`, and `restoring_evidence`; `identity_drift` also names its `pivot_request`. The commitment validator counts `scope_narrowing` records per claim: from the second one on, the claim needs a project-level review (a `selection_history` entry with `"decision": "project-review"`, the `claim_id`, a `route_action`, and a `floor_status` against the commitment's `contribution_floor`) before it reaches the manuscript. See `research-commitment-contract.md`.
+
 ## Operating rules
 
 - Standalone mode may ignore this layout entirely.

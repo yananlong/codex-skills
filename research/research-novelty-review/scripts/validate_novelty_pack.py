@@ -11,6 +11,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from claim_trajectory import check_trajectory
+
 SCHEMA_VERSION = "1.1"
 STATUSES = {"draft", "complete"}
 PATH_KEYS = (
@@ -396,6 +398,14 @@ def main() -> int:
         elif decision.get("schema_version") != SCHEMA_VERSION:
             errors.append(f"novelty-decision.schema_version must equal {SCHEMA_VERSION}")
         status = decision.get("status")
+        trajectories = decision.get("claim_trajectory", [])
+        if not isinstance(trajectories, list):
+            errors.append("novelty-decision.claim_trajectory must be a list of trajectory records")
+        else:
+            # D1: when the defensible positioning is narrower than the claim the paper or idea makes,
+            # record how it changed with the suite's shared trajectory record.
+            for index, record in enumerate(trajectories, 1):
+                check_trajectory(record, f"novelty-decision.claim_trajectory[{index}]", errors)
         if status not in STATUSES:
             errors.append(f"novelty-decision.status must be one of {sorted(STATUSES)}")
         ratings: dict[str, int | None] = {}

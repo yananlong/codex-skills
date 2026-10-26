@@ -84,6 +84,25 @@ class StandaloneNoveltyTests(unittest.TestCase):
         report = report.replace("- What would change the decision:", "- What would change the decision: A closer synthetic prior method.")
         self.report_path.write_text(report)
 
+    def test_claim_trajectory_records_are_validated(self) -> None:
+        self.complete(2)
+        self.assertEqual(self.validate().returncode, 0)
+        decision = json.loads(self.decision_path.read_text())
+        decision["claim_trajectory"] = [{"claim_id": "C1", "change_class": "scope_narrowing"}]
+        self.decision_path.write_text(json.dumps(decision))
+        cp = self.validate()
+        self.assertEqual(cp.returncode, 1, cp.stdout)
+        self.assertIn("claim_trajectory[1].content_lost", cp.stdout)
+        decision["claim_trajectory"] = [{
+            "claim_id": "C1",
+            "change_class": "scope_narrowing",
+            "content_lost": "the claim to a general ranking method",
+            "alternatives_considered": ["sharpen_comparator: separate the synthetic prior method by its loss"],
+            "restoring_evidence": "a comparison showing the loss matters on a second task",
+        }]
+        self.decision_path.write_text(json.dumps(decision))
+        self.assertEqual(self.validate().returncode, 0)
+
     def test_help_runs_without_literature_review_sibling(self) -> None:
         self.assertFalse((self.root / "skills" / "research-systematic-literature-review").exists())
         cp = run_python(str(self.validator), "--help")

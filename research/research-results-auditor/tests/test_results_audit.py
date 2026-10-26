@@ -204,6 +204,40 @@ class ResultsAuditTests(unittest.TestCase):
         )
         self.assertEqual(cp.returncode, 0, cp.stdout + cp.stderr)
 
+    def test_accepted_narrowing_requires_a_trajectory_record(self) -> None:
+        audit = self.audit["audits"][0]
+        audit["predecessor_failures"] = [
+            {"failure_id": "F1", "status": "accepted_with_narrowing", "rationale": "the second shift is dropped"}
+        ]
+        self.write_all()
+        cp = self.validate(expect=1)
+        self.assertIn("needs a trajectory record", cp.stdout)
+        cp = self.validate(profile="structural")
+        self.assertIn("the linked profile requires it", cp.stdout)
+        audit["trajectory"] = {"claim_id": audit["claim_id"], "change_class": "precision"}
+        self.write_all()
+        cp = self.validate(expect=1)
+        self.assertIn("cannot be precision", cp.stdout)
+        audit["trajectory"] = {
+            "claim_id": audit["claim_id"],
+            "change_class": "scope_narrowing",
+            "content_lost": "coverage of the second shift",
+            "alternatives_considered": ["lower_assurance: keep the claim as exploratory"],
+            "restoring_evidence": "a matched second-shift benchmark",
+        }
+        self.write_all()
+        self.validate()
+
+    def test_free_text_corrective_action_warns(self) -> None:
+        self.audit["audits"][0]["minimum_corrective_action"] = "look into it"
+        self.write_all()
+        cp = self.validate()
+        self.assertIn("free text without a repair action", cp.stdout)
+        self.audit["audits"][0]["minimum_corrective_action"] = "add_evidence: run the held-out shift"
+        self.write_all()
+        cp = self.validate()
+        self.assertNotIn("free text without a repair action", cp.stdout)
+
     def test_valid_linked_audit_passes(self) -> None:
         cp = self.validate()
         self.assertIn("source runs", cp.stdout)

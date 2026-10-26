@@ -26,17 +26,32 @@
     "last_change_rationale"
   ],
   "properties": {
-    "schema_version": {"const": "1.0"},
+    "schema_version": {
+      "const": "1.0"
+    },
     "paper_id": {
       "type": "string",
       "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{0,191}$"
     },
-    "identity_version": {"type": "integer", "minimum": 1},
-    "status": {
-      "enum": ["exploring", "committed", "executing", "interpreting", "closed"]
+    "identity_version": {
+      "type": "integer",
+      "minimum": 1
     },
-    "main_question": {"type": "string"},
-    "central_object_or_phenomenon": {"type": "string"},
+    "status": {
+      "enum": [
+        "exploring",
+        "committed",
+        "executing",
+        "interpreting",
+        "closed"
+      ]
+    },
+    "main_question": {
+      "type": "string"
+    },
+    "central_object_or_phenomenon": {
+      "type": "string"
+    },
     "contribution_class": {
       "enum": [
         "theory",
@@ -49,65 +64,243 @@
         "mixed"
       ]
     },
-    "minimum_publishable_claim": {"type": "string"},
-    "primary_evidence_obligation": {"type": "string"},
-    "intended_audience": {"type": "string"},
+    "minimum_publishable_claim": {
+      "type": "string"
+    },
+    "primary_evidence_obligation": {
+      "type": "string"
+    },
+    "intended_audience": {
+      "type": "string"
+    },
     "permitted_refinements": {
       "type": "array",
-      "items": {"type": "string", "minLength": 1}
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
     },
     "pivot_triggers": {
       "type": "array",
-      "items": {"type": "string", "minLength": 1}
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
     },
     "kill_conditions": {
       "type": "array",
-      "items": {"type": "string", "minLength": 1}
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
     },
     "successor_idea_policy": {
-      "enum": ["park", "reject", "separate-project"]
+      "enum": [
+        "park",
+        "reject",
+        "separate-project"
+      ]
     },
-    "next_mandatory_evidence_artifact": {"type": "string"},
-    "reconsideration_gate": {"type": "string"},
+    "next_mandatory_evidence_artifact": {
+      "type": "string"
+    },
+    "reconsideration_gate": {
+      "type": "string"
+    },
     "selection_history": {
       "type": "array",
       "items": {
         "type": "object",
         "additionalProperties": true,
-        "required": ["decision", "rationale"],
+        "required": [
+          "decision",
+          "rationale"
+        ],
         "properties": {
-          "decision": {"type": "string", "minLength": 1},
-          "rationale": {"type": "string", "minLength": 1},
-          "timestamp": {"type": "string"},
-          "evidence": {"type": "array"},
-          "to_identity_version": {"type": "integer", "minimum": 1},
-          "to_paper_id": {"type": "string"}
+          "decision": {
+            "type": "string",
+            "minLength": 1
+          },
+          "rationale": {
+            "type": "string",
+            "minLength": 1
+          },
+          "timestamp": {
+            "type": "string"
+          },
+          "evidence": {
+            "type": "array"
+          },
+          "to_identity_version": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "to_paper_id": {
+            "type": "string"
+          },
+          "trajectory": {
+            "$ref": "#/$defs/claim_trajectory"
+          },
+          "claim_id": {
+            "type": "string"
+          },
+          "route_action": {
+            "enum": [
+              "continue",
+              "narrow",
+              "pivot-request",
+              "kill",
+              "park-successor"
+            ]
+          },
+          "floor_status": {
+            "enum": [
+              "unchecked",
+              "met",
+              "not_met"
+            ]
+          }
         }
       }
     },
-    "predecessor_failures": {"type": "array"},
-    "last_change_class": {"enum": ["D0", "D1", "D2", "D3", "D4"]},
-    "last_change_rationale": {"type": "string", "minLength": 1},
+    "predecessor_failures": {
+      "type": "array"
+    },
+    "last_change_class": {
+      "enum": [
+        "D0",
+        "D1",
+        "D2",
+        "D3",
+        "D4"
+      ]
+    },
+    "last_change_rationale": {
+      "type": "string",
+      "minLength": 1
+    },
     "identity_anchors": {
       "type": "object",
       "description": "Optional digest-bound anchors used by the semantic-assurance transition ledger; definition_digest is the canonical digest of {id, definition}.",
-      "required": ["question", "central_object", "evidence_obligation"],
-      "additionalProperties": {"$ref": "#/$defs/identity_anchor"},
+      "required": [
+        "question",
+        "central_object",
+        "evidence_obligation"
+      ],
+      "additionalProperties": {
+        "$ref": "#/$defs/identity_anchor"
+      },
       "properties": {
-        "question": {"$ref": "#/$defs/identity_anchor"},
-        "central_object": {"$ref": "#/$defs/identity_anchor"},
-        "evidence_obligation": {"$ref": "#/$defs/identity_anchor"}
+        "question": {
+          "$ref": "#/$defs/identity_anchor"
+        },
+        "central_object": {
+          "$ref": "#/$defs/identity_anchor"
+        },
+        "evidence_obligation": {
+          "$ref": "#/$defs/identity_anchor"
+        }
+      }
+    },
+    "contribution_floor": {
+      "type": "object",
+      "description": "The least contribution that still justifies the paper, stated so it can fail. Checked by every project-level review of a narrowed claim.",
+      "required": [
+        "statement",
+        "non_vacuity_outcome"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "statement": {
+          "type": "string",
+          "minLength": 1
+        },
+        "non_vacuity_outcome": {
+          "type": "string",
+          "minLength": 1,
+          "description": "An observable result that would show the floor is not met."
+        },
+        "invariants": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": "Properties any narrowed claim must keep."
+        },
+        "status": {
+          "enum": [
+            "unchecked",
+            "met",
+            "not_met"
+          ]
+        }
       }
     }
   },
   "$defs": {
     "identity_anchor": {
       "type": "object",
-      "required": ["id", "definition", "definition_digest"],
+      "required": [
+        "id",
+        "definition",
+        "definition_digest"
+      ],
       "properties": {
-        "id": {"type": "string", "minLength": 1},
-        "definition": {"type": "string", "minLength": 1},
-        "definition_digest": {"type": "string", "pattern": "^[0-9a-f]{64}$"}
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "definition": {
+          "type": "string",
+          "minLength": 1
+        },
+        "definition_digest": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "claim_trajectory": {
+      "type": "object",
+      "description": "How one claim changed. Shared by the commitment, the results auditor, the novelty decision, and the reviser's claim-change note; see suite-contract.md.",
+      "required": [
+        "claim_id",
+        "change_class"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "claim_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "change_class": {
+          "enum": [
+            "precision",
+            "qualification",
+            "scope_narrowing",
+            "reframing",
+            "identity_drift"
+          ]
+        },
+        "content_lost": {
+          "type": "string"
+        },
+        "alternatives_considered": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "restoring_evidence": {
+          "type": "string"
+        },
+        "pivot_request": {
+          "type": "string"
+        },
+        "recorded_by": {
+          "type": "string"
+        }
       }
     }
   },
@@ -115,36 +308,72 @@
     {
       "if": {
         "properties": {
-          "status": {"enum": ["committed", "executing", "interpreting"]}
+          "status": {
+            "enum": [
+              "committed",
+              "executing",
+              "interpreting"
+            ]
+          }
         }
       },
       "then": {
         "properties": {
-          "main_question": {"minLength": 1},
-          "central_object_or_phenomenon": {"minLength": 1},
-          "minimum_publishable_claim": {"minLength": 1},
-          "primary_evidence_obligation": {"minLength": 1},
-          "intended_audience": {"minLength": 1},
-          "next_mandatory_evidence_artifact": {"minLength": 1},
-          "reconsideration_gate": {"minLength": 1},
-          "pivot_triggers": {"minItems": 1},
-          "kill_conditions": {"minItems": 1}
+          "main_question": {
+            "minLength": 1
+          },
+          "central_object_or_phenomenon": {
+            "minLength": 1
+          },
+          "minimum_publishable_claim": {
+            "minLength": 1
+          },
+          "primary_evidence_obligation": {
+            "minLength": 1
+          },
+          "intended_audience": {
+            "minLength": 1
+          },
+          "next_mandatory_evidence_artifact": {
+            "minLength": 1
+          },
+          "reconsideration_gate": {
+            "minLength": 1
+          },
+          "pivot_triggers": {
+            "minItems": 1
+          },
+          "kill_conditions": {
+            "minItems": 1
+          }
         }
       }
     },
     {
       "if": {
         "properties": {
-          "status": {"const": "closed"}
+          "status": {
+            "const": "closed"
+          }
         }
       },
       "then": {
         "properties": {
-          "main_question": {"minLength": 1},
-          "central_object_or_phenomenon": {"minLength": 1},
-          "minimum_publishable_claim": {"minLength": 1},
-          "primary_evidence_obligation": {"minLength": 1},
-          "intended_audience": {"minLength": 1}
+          "main_question": {
+            "minLength": 1
+          },
+          "central_object_or_phenomenon": {
+            "minLength": 1
+          },
+          "minimum_publishable_claim": {
+            "minLength": 1
+          },
+          "primary_evidence_obligation": {
+            "minLength": 1
+          },
+          "intended_audience": {
+            "minLength": 1
+          }
         }
       }
     }

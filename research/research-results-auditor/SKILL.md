@@ -77,7 +77,7 @@ Write `results-audit.json` as the authority for downstream claim support. It con
 
 Use the schema in `references/results-audit-schema.md` and the authority rules in `../research-pipeline-planner/references/result-audit-paper-binding-contract.md`.
 
-Until the machine schema has a dedicated claim-trajectory object, record every material scope-change assessment in `limitations`, `predecessor_failures`, and `minimum_corrective_action`. State the original claim, the retained claim, the scientific content lost, claim-preserving alternatives considered, what evidence could restore the stronger claim, and whether project-level review is required.
+Record every material scope-change assessment in the audit's `trajectory` object, the claim-trajectory record shared across the suite (`../research-pipeline-planner/references/suite-contract.md`): `claim_id`, `change_class`, `content_lost`, `alternatives_considered`, and `restoring_evidence`. The validator requires it whenever a predecessor failure is `accepted_with_narrowing`, and rejects `precision` or `qualification` as the class of such a change. Write the corrective action as a repair: `corrective_action: {"action": ..., "note": ...}`, or start `minimum_corrective_action` with the repair name and a colon. Free text still validates, with a warning. In the narrative, also state the original and retained claim and whether project-level review is required.
 
 ### Human-readable view
 
@@ -169,9 +169,9 @@ Use `pass`, `fail`, `inconclusive`, or `not_assessed`, with a substantive ration
 ### 6) Audit the claim-scope trajectory
 
 - Reconstruct the original or frozen source claim, the current audited claim, any proposed downstream wording, and prior narrowing or reframing steps that affect the same paper identity.
-- Classify the latest change and the cumulative trajectory as one of: `precision`, `evidence qualification`, `scope narrowing`, `contribution reframe`, or `identity drift`. The label is a semantic audit aid until a dedicated machine field exists.
+- Classify the latest change as one of `precision`, `qualification`, `scope_narrowing`, `reframing`, or `identity_drift` and write it in the audit's `trajectory` record. Describe the cumulative trajectory in the narrative; the commitment's `selection_history` counts narrowings per claim and asks for a project-level review from the second one on.
 - State what scientific content is lost, what remains, and whether the retained contribution still satisfies any declared minimum publishable claim or intended decision role. Do not equate a more defensible sentence with a more worthwhile paper.
-- Evaluate claim-preserving alternatives before recommending semantic narrowing. Consider whether a lower assurance class can preserve the claim as exploratory, whether a specific additional experiment can discriminate the live alternatives, whether the comparator or mechanism distinction can be sharpened without special pleading, and whether a negative or mixed result is itself the more informative contribution.
+- Evaluate claim-preserving alternatives before recommending semantic narrowing, and list them in `trajectory.alternatives_considered` by repair name (`add_evidence`, `sharpen_comparator`, `lower_assurance`, `reframe`). Consider whether a lower assurance class can preserve the claim as exploratory, whether a specific additional experiment can discriminate the live alternatives, whether the comparator or mechanism distinction can be sharpened without special pleading, and whether a negative or mixed result is itself the more informative contribution.
 - If narrowing is necessary, state the evidence that forced it, the lost contribution, what evidence could restore the stronger claim, and whether the same paper identity still holds. Repeated `proceed with narrowed claim` decisions require a cumulative project-level check rather than automatic progression to the next local gate.
 - For a predecessor failure marked `accepted_with_narrowing`, keep the failure visible relative to the original claim. The overclaim may be retired while the resulting loss of contribution remains an open project-level consequence.
 

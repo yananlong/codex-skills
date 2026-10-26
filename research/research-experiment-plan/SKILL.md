@@ -130,7 +130,8 @@ The narrative plan (`experiment-plan.md`) is reader-facing prose and follows the
   - falsification test
   - material predecessor failures and their disposition
 - Cap the number of primary/supporting claims aggressively.
-- Define what result would force reframing, reclassification, or abandonment.
+- Define what result would force reframing, reclassification, or abandonment, and write the repair for an unproven claim in `decision_if_unproven` as `{"action": ..., "note": ...}`. The actions, in the order to consider them, are `add_evidence`, `sharpen_comparator`, `lower_assurance`, `reframe`, `narrow`, `pivot`, and `stop` (the suite's decision vocabulary in `../research-pipeline-planner/references/suite-contract.md`). Prefer a repair that keeps the claim; when `narrow` is the only non-terminal repair a plan offers, say why the others do not apply.
+- Start each gate's "Revise if" cell with a repair name and a colon, for example `` `sharpen_comparator`: add the matched baseline ``. The validator warns on free text and on the old `drop` and `defer` values.
 - If the claim map is unstable, revise it before planning runs.
 - Record the claim map in both `experiment-plan.md` and `claim-map.json`.
 

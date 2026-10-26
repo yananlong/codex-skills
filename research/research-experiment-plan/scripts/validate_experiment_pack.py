@@ -8,6 +8,8 @@ import re
 from pathlib import Path
 from typing import Any
 
+from claim_trajectory import check_repair, parse_action_text
+
 REQUIRED_PLAN_HEADINGS = [
     "# Experiment Plan", "## Context", "## Claim Map", "## Experimental Storyline",
     "## Non-Vacuity Preflight", "## Experiment Blocks", "## Run Order",
@@ -15,7 +17,6 @@ REQUIRED_PLAN_HEADINGS = [
 ]
 TRACKER_STATUSES = {"planned", "ready", "blocked", "running", "analyzed", "decisive", "inconclusive", "dropped"}
 BLOCK_PRIORITIES = {"must-run", "nice-to-have", "defer"}
-DECISION_IF_UNPROVEN = {"reframe", "drop", "defer"}
 EVIDENCE_CLASSES = {"exploratory", "confirmatory", "independently_verified", "operational_high_stakes"}
 EVIDENCE_RANK = {name: rank for rank, name in enumerate(("exploratory", "confirmatory", "independently_verified", "operational_high_stakes"))}
 PLACEHOLDERS = {"", "n/a", "na", "none", "null", "tbd", "todo", "unknown", "-"}
@@ -126,7 +127,10 @@ def unwrap_envelope(data: Any, label: str, errors: list[str]) -> Any:
     return entries
 
 
-def validate_claims(data, errors: list[str], confirmatory: bool) -> tuple[dict[str, dict], dict[str, set[str]]]:
+def validate_claims(
+    data, errors: list[str], confirmatory: bool, warnings: list[str] | None = None
+) -> tuple[dict[str, dict], dict[str, set[str]]]:
+    warnings = [] if warnings is None else warnings
     claims: dict[str, dict] = {}
     links: dict[str, set[str]] = {}
     if not isinstance(data, list) or not data:
@@ -145,8 +149,7 @@ def validate_claims(data, errors: list[str], confirmatory: bool) -> tuple[dict[s
             errors.append(f"duplicate claim_id: {claim_id}")
             continue
         claims[claim_id] = entry
-        if entry.get("decision_if_unproven") not in DECISION_IF_UNPROVEN:
-            errors.append(f"{label}.decision_if_unproven must be one of {sorted(DECISION_IF_UNPROVEN)}")
+        check_repair(entry.get("decision_if_unproven"), f"{label}.decision_if_unproven", errors, warnings)
         links[claim_id] = {str(value) for value in require_list(entry, "linked_blocks", label, errors, nonempty=True)}
         if confirmatory:
             evidence = entry.get("evidence_class")
@@ -386,7 +389,10 @@ def validate_exploratory_content(claim_map: Any, run_blocks: Any, errors: list[s
             errors.append(f"{label}.metrics must be a non-empty list of substantive metric names")
 
 
-def validate_gates(markdown: str, block_ids: set[str], errors: list[str], confirmatory: bool) -> dict[str, str]:
+def validate_gates(
+    markdown: str, block_ids: set[str], errors: list[str], confirmatory: bool, warnings: list[str] | None = None
+) -> dict[str, str]:
+    warnings = [] if warnings is None else warnings
     rows = table_rows(markdown, "# Decision Gates", "gate id")
     if not rows:
         errors.append("decision-gates.md has no gate rows")
@@ -409,6 +415,12 @@ def validate_gates(markdown: str, block_ids: set[str], errors: list[str], confir
             for cell_name, cell in zip(("decision question", "proceed if", "revise if", "stop if", "owner"), row[2:7]):
                 if not meaningful(cell):
                     errors.append(f"decision-gates.md row {index} {cell_name} must be substantive")
+        revise = row[4]
+        if meaningful(revise) and parse_action_text(revise)[0] is None:
+            warnings.append(
+                f"decision-gates.md row {index} 'Revise if' does not name a repair action; start it with one of "
+                "add_evidence, sharpen_comparator, lower_assurance, reframe, narrow, pivot, stop and a colon"
+            )
     return gate_map
 
 
@@ -514,6 +526,7 @@ def build_parser() -> argparse.ArgumentParser:
 def main() -> int:
     args = build_parser().parse_args()
     errors: list[str] = []
+    warnings: list[str] = []
     plan = read_text(Path(args.plan).expanduser().resolve(), "plan", errors)
     tracker = read_text(Path(args.tracker).expanduser().resolve(), "tracker", errors)
     gates = read_text(Path(args.decision_gates).expanduser().resolve(), "decision-gates", errors)
@@ -536,10 +549,10 @@ def main() -> int:
     exploratory = args.assurance_profile == "exploratory"
     if exploratory:
         validate_exploratory_content(claim_map, run_blocks, errors)
-    claims, claim_links = validate_claims(claim_map, errors, confirmatory)
+    claims, claim_links = validate_claims(claim_map, errors, confirmatory, warnings)
     blocks, block_links = validate_blocks(run_blocks, claims, errors, confirmatory)
     validate_links(claims, claim_links, blocks, block_links, errors, confirmatory)
-    gate_map = validate_gates(gates, set(blocks), errors, confirmatory or exploratory)
+    gate_map = validate_gates(gates, set(blocks), errors, confirmatory or exploratory, warnings)
     validate_block_gate_links(blocks, gate_map, errors, confirmatory)
     validate_tracker(tracker, set(blocks), set(gate_map), errors)
     validate_run_order(plan, set(blocks), set(gate_map), errors)
@@ -548,6 +561,7 @@ def main() -> int:
         print("Validation failed:")
         for error in errors:
             print(f"- {error}")
+        print_warnings(warnings)
         return 1
     if confirmatory:
         print(
@@ -569,7 +583,15 @@ def main() -> int:
             "and lineage policies were checked when present; this does not certify semantic validity, "
             "snapshot immutability, independence, non-vacuity, or evidential sufficiency."
         )
+    print_warnings(warnings)
     return 0
+
+
+def print_warnings(warnings: list[str]) -> None:
+    if warnings:
+        print("Warnings:")
+        for warning in warnings:
+            print(f"- {warning}")
 
 
 if __name__ == "__main__":

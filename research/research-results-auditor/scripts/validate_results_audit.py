@@ -11,6 +11,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
+from claim_trajectory import check_repair, check_trajectory
+
 SCHEMA_VERSION = "1.0"
 STATUS_VALUES = {"draft", "complete", "superseded"}
 ASSURANCE_CLASSES = {
@@ -342,12 +344,14 @@ def validate_evidence_artifacts(
     return normalized
 
 
-def validate_failure_dispositions(audit: dict[str, Any], label: str, errors: list[str]) -> None:
+def validate_failure_dispositions(audit: dict[str, Any], label: str, errors: list[str]) -> bool:
+    """Validate predecessor failures; return True when any is accepted_with_narrowing."""
     failures = audit.get("predecessor_failures")
     if not isinstance(failures, list):
         errors.append(f"{label}.predecessor_failures must be a list")
-        return
+        return False
     seen: set[str] = set()
+    narrowed = False
     for index, failure in enumerate(failures, start=1):
         item_label = f"{label}.predecessor_failures[{index}]"
         if not isinstance(failure, dict):
@@ -359,7 +363,40 @@ def validate_failure_dispositions(audit: dict[str, Any], label: str, errors: lis
         seen.add(failure_id)
         if failure.get("status") not in FAILURE_STATUSES:
             errors.append(f"{item_label}.status must be one of {sorted(FAILURE_STATUSES)}")
+        narrowed = narrowed or failure.get("status") == "accepted_with_narrowing"
         require_string(failure, "rationale", item_label, errors)
+    return narrowed
+
+
+def validate_trajectory_record(
+    audit: dict[str, Any], label: str, narrowed: bool, errors: list[str], warnings: list[str],
+    *, require: bool = False,
+) -> None:
+    """D1: the claim-scope trajectory pass writes one shared trajectory record per audit.
+
+    An audit that accepts a failure with narrowing must say how the claim changed, what was lost,
+    which claim-preserving repairs were weighed, and what would restore the stronger claim.
+    """
+    trajectory = audit.get("trajectory")
+    if trajectory is None:
+        if narrowed:
+            # Audits written before the trajectory record existed still validate; the linked profile,
+            # which binds the audit to manuscript claims, requires it.
+            message = (
+                f"{label}: a predecessor failure is accepted_with_narrowing, so the audit needs a trajectory "
+                "record (claim_id, change_class, content_lost, alternatives_considered, restoring_evidence)"
+            )
+            (errors if require else warnings).append(message + ("" if require else "; the linked profile requires it"))
+        return
+    change_class = check_trajectory(trajectory, f"{label}.trajectory", errors)
+    if isinstance(trajectory, dict) and trajectory.get("claim_id") not in (None, audit.get("claim_id")):
+        errors.append(f"{label}.trajectory.claim_id must match the audit's claim_id")
+    if narrowed and change_class in {"precision", "qualification"}:
+        errors.append(
+            f"{label}: accepted_with_narrowing loses claim content, so trajectory.change_class cannot be {change_class}"
+        )
+    if "corrective_action" in audit:
+        check_repair(audit["corrective_action"], f"{label}.corrective_action", errors, warnings)
 
 
 def validate_verdict_semantics(
@@ -435,7 +472,11 @@ def validate_verdict_semantics(
             )
 
 
-def validate_audits(data: dict[str, Any], complete: bool, narrative: str, errors: list[str]) -> list[dict[str, Any]]:
+def validate_audits(
+    data: dict[str, Any], complete: bool, narrative: str, errors: list[str], warnings: list[str] | None = None,
+    *, require_trajectory: bool = False,
+) -> list[dict[str, Any]]:
+    warnings = [] if warnings is None else warnings
     audits = data.get("audits")
     if not isinstance(audits, list):
         errors.append("results-audit.json.audits must be a list")
@@ -478,7 +519,10 @@ def validate_audits(data: dict[str, Any], complete: bool, narrative: str, errors
         artifacts = validate_evidence_artifacts(audit, label, complete, errors)
         checks = validate_checks(audit, label, complete, errors, is_lightweight(audit))
         validate_independence(audit, label, complete, str(attained), checks, errors)
-        validate_failure_dispositions(audit, label, errors)
+        narrowed = validate_failure_dispositions(audit, label, errors)
+        validate_trajectory_record(audit, label, narrowed, errors, warnings, require=require_trajectory)
+        if complete and "corrective_action" not in audit and meaningful(audit.get("minimum_corrective_action")):
+            check_repair(audit["minimum_corrective_action"], f"{label}.minimum_corrective_action", errors, warnings)
         limitations = audit.get("limitations")
         if not isinstance(limitations, list) or any(not meaningful(value) for value in limitations):
             errors.append(f"{label}.limitations must be a list of substantive strings")
@@ -806,7 +850,10 @@ def main() -> int:
             errors.append("complete results-audit requires substantive paper_id")
         if "source_revision" in data and not meaningful(data.get("source_revision")):
             errors.append("results-audit.source_revision must be a substantive string when present")
-        audits = validate_audits(data, complete, narrative, errors)
+        audits = validate_audits(
+            data, complete, narrative, errors, warnings,
+            require_trajectory=args.assurance_profile == "linked",
+        )
         if args.root is not None:
             validate_evidence_files(data, audits, args.root, errors, warnings)
         if args.assurance_profile == "linked":
