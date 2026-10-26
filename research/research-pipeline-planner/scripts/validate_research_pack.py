@@ -153,6 +153,13 @@ def validate_work_items(data, errors: list[str]) -> None:
             errors.append(f"{label}.attempt must be a non-negative integer")
         if not isinstance(item.get("attempt_budget"), int) or item["attempt_budget"] < 1:
             errors.append(f"{label}.attempt_budget must be a positive integer")
+        if "technical_attempt_budget" in item:
+            # D5: items created since the split carry a separate technical budget and two counters.
+            if not isinstance(item["technical_attempt_budget"], int) or item["technical_attempt_budget"] < 1:
+                errors.append(f"{label}.technical_attempt_budget must be a positive integer")
+            for counter in ("technical_attempts", "scientific_attempts"):
+                if not isinstance(item.get(counter), int) or item[counter] < 0:
+                    errors.append(f"{label}.{counter} must be a non-negative integer")
         if not isinstance(item.get("tool_call_budget"), int) or item["tool_call_budget"] < 0:
             errors.append(f"{label}.tool_call_budget must be a non-negative integer")
     if active > 1:
@@ -327,6 +334,11 @@ def validate_experiment_event_history(
                             }
                             if episode["_experiment_run"] is not None:
                                 expected["experiment_run"] = episode["_experiment_run"]
+                            if "failure_categories" in details:
+                                # D5: the budget classification reads these, so they must match the episode.
+                                expected["failure_categories"] = [
+                                    failure.get("category") for failure in episode.get("failures", [])
+                                ]
                             # validate_evidence compares every recorded digest with the current file and
                             # reports drift once, with the re-approval hint. Here only the artifact set and
                             # the episode's content fields must agree with the event.

@@ -90,6 +90,56 @@ DECISION_CLASS = {"authorize-D3": "D3", "close-and-create-D4": "D4"}
 SKILL_ACTOR_PREFIXES = ("research-", "technical-writing-", "prose-flow-", "init_research_pack")
 
 
+PROFILES = ("autonomous", "supervised")
+DEFAULT_TECHNICAL_ATTEMPT_BUDGET = 3
+# Failure categories that describe the machinery, not the science: a run that crashed, could not
+# reach a tool, hit a permission wall, ran out of resources, or met a harness defect never produced
+# a judged result. Categories are compared after lowercasing and turning other characters into "_".
+TECHNICAL_FAILURE_CATEGORIES = frozenset({
+    "tool", "tool_failure", "tool_connector", "tool_connector_failure", "connector", "connector_failure",
+    "permission", "permission_boundary", "execution", "resource", "execution_resource",
+    "execution_resource_failure", "environment", "infrastructure", "harness", "harness_defect",
+    "crash", "timeout", "oom", "out_of_memory", "network",
+})
+
+
+def normalize_category(value: Any) -> str:
+    return "".join(ch if ch.isalnum() else "_" for ch in str(value).strip().lower()).strip("_")
+
+
+def failure_is_technical(categories: Any) -> bool:
+    """True when every recorded failure category is technical (and at least one exists)."""
+    if not isinstance(categories, list) or not categories:
+        return False
+    return all(normalize_category(category) in TECHNICAL_FAILURE_CATEGORIES for category in categories)
+
+
+def harness_profile(state: dict[str, Any] | None) -> str:
+    return (state or {}).get("profile") or "autonomous"
+
+
+def _actor_is_skill(actor: Any, work_items: dict[str, Any]) -> bool:
+    owners = {item.get("owner_skill") for item in work_items.get("items", [])}
+    return not isinstance(actor, str) or not actor.strip() or actor in owners or actor.startswith(SKILL_ACTOR_PREFIXES)
+
+
+def _end_attempt(item: dict[str, Any], attempt_class: str) -> None:
+    """Close an attempt that did not complete: count it against its budget, then retry or block.
+
+    Items created before D5 have no technical_attempt_budget and keep one shared budget.
+    """
+    if "technical_attempt_budget" not in item:
+        item["state"] = "blocked" if item["attempt"] >= item["attempt_budget"] else "ready"
+        return
+    if attempt_class == "technical":
+        item["technical_attempts"] += 1
+        exhausted = item["technical_attempts"] >= item["technical_attempt_budget"]
+    else:
+        item["scientific_attempts"] += 1
+        exhausted = item["scientific_attempts"] >= item["attempt_budget"]
+    item["state"] = "blocked" if exhausted else "ready"
+
+
 def approved_digests(state: dict[str, Any] | None) -> dict[str, str]:
     return dict((state or {}).get("approved_digests") or {})
 
@@ -452,6 +502,14 @@ def apply_event(state: dict[str, Any], work_items: dict[str, Any], event: dict[s
     work_item_id = event.get("work_item_id")
     if state.get("paused") and event_type in STATE_CHANGING_WHILE_PAUSED:
         raise SystemExit("run is paused; resume before changing harness state")
+    is_verifier_event = event_type in {"verification_approved", "verification_revise"} or (
+        event_type == "work_item_blocked" and details.get("decision") == "block"
+    )
+    if is_verifier_event and harness_profile(state) == "supervised" and _actor_is_skill(event.get("actor"), work_items):
+        raise SystemExit(
+            "the supervised profile requires the owner for every verifier transition; "
+            f"{event.get('actor')} names a skill or script"
+        )
 
     if event_type == "work_item_added":
         if any(item.get("work_item_id") == work_item_id for item in work_items["items"]):
@@ -481,6 +539,12 @@ def apply_event(state: dict[str, Any], work_items: dict[str, Any], event: dict[s
                 raise SystemExit("activation-condition predecessor belongs to a different paper identity")
         item["state"] = "ready" if _item_ready(work_items, item) else "queued"
         item["attempt"] = 0
+        if "technical_attempt_budget" in item:
+            budget = item["technical_attempt_budget"]
+            if not isinstance(budget, int) or isinstance(budget, bool) or budget < 1:
+                raise SystemExit("technical_attempt_budget must be a positive integer")
+            item["technical_attempts"] = 0
+            item["scientific_attempts"] = 0
         item["episodes"] = []
         item["verifications"] = []
         work_items["items"].append(item)
@@ -523,6 +587,10 @@ def apply_event(state: dict[str, Any], work_items: dict[str, Any], event: dict[s
             record["verified_execution_snapshot"] = copy.deepcopy(details["verified_execution_snapshot"])
         if details.get("verified_binding_digests") is not None:
             record["verified_binding_digests"] = copy.deepcopy(details["verified_binding_digests"])
+        if details.get("failure_categories") is not None:
+            if not isinstance(details["failure_categories"], list):
+                raise SystemExit("episode submission failure_categories must be a list")
+            record["failure_categories"] = list(details["failure_categories"])
         if not all(isinstance(record.get(field), str) and record[field] for field in (
             "episode_path", "episode_id", "episode_digest", "outcome",
             "transition_request", "idempotency_key"
@@ -549,13 +617,16 @@ def apply_event(state: dict[str, Any], work_items: dict[str, Any], event: dict[s
             raise SystemExit(f"cannot revise {work_item_id} from {item.get('state')}")
         _validate_verification_event(item, event, details, "revise")
         item["verifications"].append(copy.deepcopy(details))
-        item["state"] = "blocked" if item["attempt"] >= item["attempt_budget"] else "ready"
+        latest = item.get("episodes", [])[-1]
+        technical = latest.get("outcome") == "failed" and failure_is_technical(latest.get("failure_categories"))
+        _end_attempt(item, "technical" if technical else "scientific")
 
     elif event_type == "work_item_failed_retryable":
         item = find_item(work_items, work_item_id)
         if item.get("state") != "running":
             raise SystemExit(f"cannot fail {work_item_id} from {item.get('state')}")
-        item["state"] = "blocked" if item["attempt"] >= item["attempt_budget"] else "ready"
+        # A run abandoned with `fail --retryable` never produced a judged episode: a technical attempt.
+        _end_attempt(item, "technical")
 
     elif event_type == "work_item_blocked":
         item = find_item(work_items, work_item_id)
@@ -587,6 +658,16 @@ def apply_event(state: dict[str, Any], work_items: dict[str, Any], event: dict[s
 
     elif event_type == "observation_recorded":
         pass
+
+    elif event_type == "profile_set":
+        profile = details.get("profile")
+        if profile not in PROFILES:
+            raise SystemExit(f"harness profile must be one of {list(PROFILES)}")
+        if _actor_is_skill(event.get("actor"), work_items):
+            raise SystemExit("the harness profile is the owner's decision")
+        if not _meaningful(details.get("reason")):
+            raise SystemExit("a profile change needs a reason")
+        state["profile"] = profile
 
     elif event_type == "artifacts_reapproved":
         entries = details.get("entries")
@@ -831,6 +912,8 @@ def validate_work_item(
         raise SystemExit("at least one --write-scope is required")
     if args.attempt_budget < 1:
         raise SystemExit("--attempt-budget must be positive")
+    if args.technical_attempt_budget < 1:
+        raise SystemExit("--technical-attempt-budget must be positive")
     if args.tool_call_budget < 0:
         raise SystemExit("--tool-call-budget must be non-negative")
     dependencies = args.depends_on or []
@@ -869,6 +952,7 @@ def validate_work_item(
         "dependencies": dependencies,
         "activation_conditions": activation_conditions,
         "attempt_budget": args.attempt_budget,
+        "technical_attempt_budget": args.technical_attempt_budget,
         "tool_call_budget": args.tool_call_budget,
         "write_scope": args.write_scope,
         "permission_policy": args.permission_policy,
@@ -1328,6 +1412,7 @@ def command_submit(args: argparse.Namespace) -> None:
         "episode_id": episode["episode_id"],
         "episode_digest": episode["_digest"],
         "artifact_digests": episode["_artifact_digests"],
+        "failure_categories": [failure["category"] for failure in episode.get("failures", [])],
         "outcome": episode["outcome"],
         "transition_request": episode["transition_request"],
         "idempotency_key": key,
@@ -1344,6 +1429,8 @@ def command_verify(args: argparse.Namespace) -> None:
     root = args.root.resolve()
     _, state, items = reconstruct(root)
     item = find_item(items, args.work_item_id)
+    if harness_profile(state) == "supervised":
+        _require_owner_actor(args.actor, items, "a verifier transition under the supervised profile")
     if args.actor == item["owner_skill"] and not args.self_review:
         raise SystemExit("worker-role verification must be explicitly marked --self-review")
     if item["state"] != "awaiting_verification":
@@ -1617,6 +1704,17 @@ def command_commitment_edit(args: argparse.Namespace) -> None:
     print(f"recorded {args.change_class} commitment edit at {event['event_id']}")
 
 
+def command_set_profile(args: argparse.Namespace) -> None:
+    root = args.root.resolve()
+    _, state, items = reconstruct(root)
+    _require_owner_actor(args.actor, items, "setting the harness profile")
+    if harness_profile(state) == args.profile:
+        print(f"profile is already {args.profile}; nothing recorded")
+        return
+    event = commit_event(root, "profile_set", args.actor, None, {"profile": args.profile, "reason": args.reason})
+    print(f"profile {args.profile} at {event['event_id']}")
+
+
 def command_pause_resume(args: argparse.Namespace, event_type: str) -> None:
     event = commit_event(args.root.resolve(), event_type, args.actor, None, {"reason": args.reason})
     print(event["event_type"])
@@ -1696,7 +1794,14 @@ def build_parser() -> argparse.ArgumentParser:
     add.add_argument("--expected-artifact", action="append", default=[])
     add.add_argument("--depends-on", action="append", default=[])
     add.add_argument("--activation-condition", action="append", default=[])
-    add.add_argument("--attempt-budget", type=int, default=2)
+    add.add_argument(
+        "--attempt-budget", type=int, default=2,
+        help="scientific attempts: runs that executed and were judged (revised) before the item blocks",
+    )
+    add.add_argument(
+        "--technical-attempt-budget", type=int, default=DEFAULT_TECHNICAL_ATTEMPT_BUDGET,
+        help="technical failures (crash, environment, tooling) before the item blocks",
+    )
     add.add_argument("--tool-call-budget", type=int, default=20)
     add.add_argument("--write-scope", action="append", default=[])
     add.add_argument("--permission-policy", default="least_privilege")
@@ -1753,6 +1858,13 @@ def build_parser() -> argparse.ArgumentParser:
     resume.add_argument("--reason", required=True)
     resume.add_argument("--actor", required=True)
     resume.set_defaults(func=lambda args: command_pause_resume(args, "run_resumed"))
+    set_profile = sub.add_parser(
+        "set-profile", help="owner switches between autonomous and supervised (owner gates every verifier transition)"
+    )
+    set_profile.add_argument("profile", choices=list(PROFILES))
+    set_profile.add_argument("--reason", required=True)
+    set_profile.add_argument("--actor", required=True)
+    set_profile.set_defaults(func=command_set_profile)
     reapprove = sub.add_parser(
         "reapprove", help="owner re-approves anchored files whose digest drifted since they were recorded"
     )
