@@ -54,8 +54,8 @@ The runtime supports:
 
 Alternative transitions include:
 
-- `awaiting_verification -> ready` after `revise`, subject to the attempt budget;
-- `running -> ready` after a retryable failure with attempts remaining;
+- `awaiting_verification -> ready` after `revise`, subject to the budget the attempt belongs to (see "Attempt budgets and profiles");
+- `running -> ready` after a retryable failure with technical attempts remaining;
 - an incomplete item to `blocked` after a non-retryable failure, exhausted budget, or verifier block.
 
 Events are applied to a copied reconstructed state before the canonical log is appended. A rejected transition must not alter the event log. Aggregate run status is derived from work-item state and pause state rather than trusted as an independent source of truth.
@@ -157,6 +157,19 @@ Technical outcome, transition request, gate result, and scientific disposition a
 
 Digest continuity detects post-submission mutation of declared files. Start/submission equality for declared experiment inputs and evaluators records continuity at those control points; it does not prove that undeclared files were untouched or that a digest was externally anchored. Later legitimate plan or evaluator revisions do not retroactively rewrite an earlier submitted run because the event log retains the matched start/submission digest records.
 
+## Re-approval on drift
+
+A recorded digest is a historical fact about what was submitted, checkpointed, or bound. The runtime never rewrites it. When the file at that path changes afterwards, validation fails for that path as "drifted since approval" until the owner decides what the change means:
+
+- `reapprove --path <path> --reason <why> --actor <owner>` (or `--all-drifted`) appends an `artifacts_reapproved` event that records the current digest beside the earlier ones. Replay projects it into `approved_digests` in `HARNESS_STATE.json`, and every current-file check then accepts either digest. A later edit drifts again and needs a new re-approval.
+- `withhold --path <path> --reason <why> --actor <owner>` appends an `artifact_withheld` event for an anchored file kept out of the repository (private data, large outputs). A missing withheld file passes; a present one is still checked.
+- Both refuse a path the chain never anchored, a path that has not drifted, and the commitment, which goes through `commitment-edit` so its identity is checked too.
+- Both are the owner's decisions. The runtime refuses an actor that is a work item's owner skill or carries a skill or script name. This checks a label, not a person.
+
+What re-approval does not cover: a running experiment's declared inputs and evaluator artifacts stay strict between start and submission, so a mid-run change still blocks submission. A re-approved episode file still fails when its submitted fields (episode ID, outcome, transition request, artifact list, experiment run) no longer match the submission event, because the event, not the file, is the record of what was submitted.
+
+The validator lists drifted paths together with the exact `reapprove` command, and on success reports how many paths passed by re-approval or withholding, so the friction stays visible in every run.
+
 ## Verification protocol
 
 Before approving:
@@ -183,6 +196,20 @@ The runtime validates actor labels and disclosure flags, not real-world identity
 - Keep side effects around interruption points idempotent or explicitly recorded.
 - Use `replay` to rebuild projections after interrupted projection writes or manual drift.
 - Never infer completion from the absence of work or a polished artifact.
+
+## Attempt budgets and profiles
+
+A work item carries two budgets. `attempt_budget` counts scientific attempts: runs that executed and were judged. `technical_attempt_budget` (default 3) counts technical attempts: runs that never produced a judged result because something in the machinery failed. A crash therefore does not use up a chance to test the claim. The item blocks when either count reaches its budget.
+
+The runtime classifies each attempt that does not complete from recorded data, never from a declared label:
+
+- `fail --retryable` ends a run without a judged episode, so it is technical.
+- A verifier `revise` is technical only when the latest episode's outcome is `failed` and every one of its failure categories is technical: tool or connector, permission, execution or resource (including crash, timeout, out of memory, network), environment, infrastructure, or harness. Categories are compared after lowercasing and replacing other characters with `_`, so `Tool/connector failure` matches `tool_connector_failure`. Any other category, or a `completed` or `partial` episode sent back for revision, makes the attempt scientific.
+- Episode submissions record `failure_categories`, and the validator checks them against the episode file, so the classification can be replayed and audited.
+
+Items created before the split have no `technical_attempt_budget` and keep one shared budget, so older event logs replay unchanged.
+
+The harness runs under one of two profiles. `autonomous`, the default, behaves as described above. `supervised` makes every verifier transition (`verify` with `approve`, `revise`, or `block`) the owner's: the runtime and replay both refuse a verifier actor that is a work item's owner skill or carries a skill or script name. The owner switches profile with `set-profile supervised|autonomous --reason ... --actor <owner>`, which appends a `profile_set` event. As with re-approval, this checks a label, not a person.
 
 ## Failure and escalation
 

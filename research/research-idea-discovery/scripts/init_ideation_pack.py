@@ -167,6 +167,7 @@ EMPTY_SCORES = {
 }
 
 EMPTY_DECISION = {
+    "ideation_mode": "fresh",
     "decision": "generate_more",
     "selected_idea_ids": [],
     "confidence": "low",

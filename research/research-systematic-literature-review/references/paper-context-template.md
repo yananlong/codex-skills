@@ -24,9 +24,9 @@ This is a bounded paper-context evidence map, not a full systematic review, unle
 
 Summarize the exact sources, queries, filters, retrieval dates, and inclusion decisions. Keep detailed rows in `literature-context-search-log.md`.
 
-| run_id | source | query_string | filters | purpose | records_returned | retained |
-| --- | --- | --- | --- | --- | ---: | ---: |
-| run-001 | | | | falsify/support C1 | 0 | 0 |
+| run_id | tool | source | query_string | filters | purpose | results_inspected | retained |
+| --- | --- | --- | --- | --- | --- | ---: | ---: |
+| run-001 | | | | | falsify/support C1 | 0 | 0 |
 
 ## Closest Prior Work
 
@@ -70,9 +70,11 @@ Summarize the exact sources, queries, filters, retrieval dates, and inclusion de
 
 ## Search Runs
 
-| run_id | date | source | query_string | filters | purpose | records_returned | retained | notes |
-| --- | --- | --- | --- | --- | --- | ---: | ---: | --- |
-| run-001 | | | | | falsify/support target paper claim | 0 | 0 | |
+One query per row, dated. Record the `tool` used, how many results were looked at (`results_inspected`), and which were opened and checked (`spot_checked`, or none). A web-search tool does not report a total hit count, so do not write one.
+
+| run_id | date | tool | source | query_string | filters | purpose | results_inspected | spot_checked | retained | notes |
+| --- | --- | --- | --- | --- | --- | --- | ---: | --- | ---: | --- |
+| run-001 | | | | | | falsify/support target paper claim | 0 | | 0 | |
 
 ## Inclusion Decisions
 

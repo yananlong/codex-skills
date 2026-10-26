@@ -108,4 +108,84 @@ class T(unittest.TestCase):
         root=Path(__file__).parent/'fixtures'/'pr15'; idx=json.loads((root/'real-project-regressions.json').read_text()); self.assertEqual(s.validate_fixture_index(idx),[])
         nm=json.loads((root/'normality-milieu-transitions.json').read_text()); self.assertEqual(s.validate_commitment_transitions(nm,current_commitment=nm['snapshots'][-1]['commitment']),[]); self.assertEqual([x['computed_change_class'] for x in nm['transitions']],['D3','D2'])
         lt=json.loads((root/'llm-triangulation-transitions.json').read_text()); self.assertEqual(s.validate_commitment_transitions(lt,current_commitment=lt['snapshots'][-1]['commitment']),[]); self.assertEqual([x['computed_change_class'] for x in lt['transitions']],['D1','D2','D4'])
-if __name__=='__main__': unittest.main()
+
+
+class ValidatorAgreementTests(unittest.TestCase):
+    """Regressions: the commitment validator, transition ledger, and runtime must agree."""
+
+    def test_anchored_commitment_passes_both_validators(self):
+        import validate_research_commitment as vrc
+        a = commitment()
+        b = commitment(q='Question B', version=2, change='D3')
+        b['selection_history'] = [{'decision': 'authorize-D3', 'to_identity_version': 2, 'rationale': 'fired trigger'}]
+        self.assertEqual(vrc.validate_commitment(a), [])
+        self.assertEqual(vrc.validate_commitment(b), [])
+        self.assertEqual(s.validate_commitment_transitions(trans(a, b, 'D3'), current_commitment=b), [])
+        broken = copy.deepcopy(a)
+        broken['identity_anchors']['question']['definition_digest'] = '0' * 64
+        self.assertTrue(any('definition_digest is invalid' in e for e in vrc.validate_commitment(broken)))
+
+    def test_old_d3_authorization_does_not_cover_later_identity(self):
+        import validate_research_commitment as vrc
+        c = commitment(q='Question C', version=3, change='D3')
+        c['selection_history'] = [{'decision': 'authorize-D3', 'to_identity_version': 2, 'rationale': 'earlier pivot'}]
+        self.assertTrue(any('to_identity_version 3' in e for e in vrc.validate_commitment(c)))
+        c['selection_history'].append({'decision': 'authorize-D3', 'to_identity_version': 3, 'rationale': 'second pivot'})
+        self.assertEqual(vrc.validate_commitment(c), [])
+        legacy = commitment(q='Question C', version=3, change='D3')
+        legacy['selection_history'] = [{'decision': 'authorize-D3', 'rationale': 'legacy entry'}]
+        warnings: list[str] = []
+        self.assertEqual(vrc.validate_commitment(legacy, warnings), [])
+        self.assertTrue(any('legacy pivot authorization' in w for w in warnings))
+
+    def test_runtime_projection_feeds_stale_identity_check(self):
+        import os, subprocess, tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for name in ('experiment-plan', 'data', 'evaluation', 'results'):
+                (root / name).mkdir()
+            (root / 'data/input.jsonl').write_text('{"x":1}\n')
+            (root / 'evaluation/score.py').write_text("print('score')\n")
+            a = commitment()
+            (root / 'research-commitment.json').write_text(json.dumps(a))
+            (root / 'experiment-plan/claim-map.json').write_text(json.dumps([{'claim_id': 'C1', 'linked_blocks': ['B1']}]))
+            block = {
+                'block_id': 'B1', 'claim_ids': ['C1'], 'decision_gate_id': 'G1',
+                'expected_output_artifact': 'results/B1.json', 'dependencies': [],
+                'execution': {
+                    'mode': 'command', 'entrypoint': {'argv': ['python', 'scripts/b1.py'], 'cwd': '.'},
+                    'declared_inputs': [{'path': 'data/input.jsonl', 'snapshot': 'digest-at-start'}],
+                    'declared_evaluator_artifacts': [{'path': 'evaluation/score.py', 'snapshot': 'digest-at-start'}],
+                    'required_outputs': [{'path': 'results/B1.json', 'kind': 'metrics'}],
+                },
+                'lineage_policy': {'allowed_relations': ['baseline']},
+            }
+            (root / 'experiment-plan/run-blocks.json').write_text(json.dumps([block]))
+            env = dict(os.environ, HARNESS_DISABLE_FSYNC='1')
+            subprocess.run([
+                sys.executable, str(SCRIPTS / 'harness_runtime.py'), '--root', str(root), 'add',
+                '--work-item-id', 'WI-B1', '--stage', 'experiment-plan', '--owner-skill', 'worker',
+                '--objective', 'Run B1', '--acceptance-check', 'Output exists',
+                '--expected-artifact', 'results/B1.json', '--write-scope', 'results/',
+                '--experiment-run-blocks', 'experiment-plan/run-blocks.json',
+                '--experiment-claim-map', 'experiment-plan/claim-map.json',
+                '--experiment-block-id', 'B1', '--commitment', 'research-commitment.json',
+            ], check=True, capture_output=True, text=True, env=env)
+            projection = json.loads((root / 'work-items.json').read_text())
+            self.assertIn('state', projection['items'][0])
+            b = commitment(q='Question B', version=2, change='D3')
+            (root / 'ledger.json').write_text(json.dumps(trans(a, b, 'D3')))
+            (root / 'current.json').write_text(json.dumps(b))
+            cp = subprocess.run([
+                sys.executable, str(SCRIPTS / 'validate_semantic_assurance.py'), 'transitions',
+                '--transitions', str(root / 'ledger.json'), '--current-commitment', str(root / 'current.json'),
+                '--work-items', str(root / 'work-items.json'),
+            ], capture_output=True, text=True, env=env)
+            self.assertEqual(cp.returncode, 1, cp.stdout + cp.stderr)
+            self.assertIn('stale paper identity', cp.stdout + cp.stderr)
+            self.assertEqual(s.validate_commitment_transitions(trans(a, b, 'D3'), projection, b)[:1],
+                             ["active work item WI-B1 is bound to stale paper identity ('paper-a', 1)"])
+
+
+if __name__ == '__main__':
+    unittest.main()

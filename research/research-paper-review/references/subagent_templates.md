@@ -1,6 +1,6 @@
 # Subagent Templates
 
-Use these templates for both Codex worker agents and serial fallback passes. When the user has explicitly authorized agentic review, combine these templates with `references/codex-agent-orchestration.md` and launch one worker per planned pass.
+Use these templates for both Codex worker agents and serial fallback passes. When this skill runs workers, combine these templates with `references/codex-agent-orchestration.md` and give each budgeted worker its share of the planned passes; a worker running several passes uses one template per pass and writes one file per pass.
 
 ## Section-focused pass
 

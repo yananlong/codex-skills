@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Mirror the upstream openaireview CLI from the local skill.
 
-Provider-backed LLM review is opt-in so ChatGPT/Codex runs can use the active
-chat model directly instead of failing on missing external API keys.
+Provider-backed LLM review is opt-in so agent runs can use the active model
+directly instead of failing on missing external API keys.
 """
 
 from __future__ import annotations
@@ -42,13 +42,13 @@ def _print_native_review_guidance() -> None:
     print(
         "No external OpenAIReview LLM review was run.\n"
         "\n"
-        "Inside ChatGPT/Codex, use the research-paper-review ChatGPT-native "
-        "path instead: prepare or extract the paper workspace, then have the "
-        "active chat model read full_text.md, write summary.md, generate the "
+        "Use the research-paper-review native review path instead: prepare "
+        "or extract the paper workspace, then have the active agent model "
+        "read full_text.md, write summary.md, generate the "
         "comments/*.json pass outputs, consolidate findings, and write "
         "final_issues.json, review_summary.json, and overall_assessment.txt.\n"
         "\n"
-        "To force the upstream provider-backed review CLI outside ChatGPT, pass "
+        "To force the upstream provider-backed review CLI, pass "
         "--external-llm or set OPENAIREVIEW_USE_EXTERNAL_LLM=1, and configure "
         "one supported provider key: OPENROUTER_API_KEY, OPENAI_API_KEY, "
         "ANTHROPIC_API_KEY, GEMINI_API_KEY, or MISTRAL_API_KEY.",
@@ -70,7 +70,7 @@ def parse_args() -> tuple[argparse.Namespace, list[str]]:
         help=(
             "Opt in to the upstream provider-backed `review` command. "
             "Without this flag, review should be performed by the active "
-            "ChatGPT/Codex model when running inside ChatGPT."
+            "agent model in the current runtime."
         ),
     )
     args, remainder = parser.parse_known_args()

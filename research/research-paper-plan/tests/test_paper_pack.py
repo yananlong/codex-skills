@@ -13,7 +13,9 @@ INIT = ROOT / "scripts" / "init_paper_pack.py"
 VALIDATE = ROOT / "scripts" / "validate_paper_pack.py"
 
 
-class PaperPackTests(unittest.TestCase):
+class PackFixture(unittest.TestCase):
+    """Shared pack fixture; holds no tests of its own."""
+
     def setUp(self) -> None:
         self.temp = tempfile.TemporaryDirectory()
         self.root = Path(self.temp.name)
@@ -96,7 +98,7 @@ class PaperPackTests(unittest.TestCase):
         )
         self.bindings.write_text(json.dumps(self.binding_data), encoding="utf-8")
 
-    def validate(self, expect: int = 0) -> subprocess.CompletedProcess[str]:
+    def validate(self, expect: int = 0, extra: tuple[str, ...] = ()) -> subprocess.CompletedProcess[str]:
         cp = subprocess.run(
             [
                 sys.executable,
@@ -111,6 +113,7 @@ class PaperPackTests(unittest.TestCase):
                 str(self.figure),
                 "--citation-plan",
                 str(self.citation),
+                *extra,
             ],
             text=True,
             capture_output=True,
@@ -118,6 +121,8 @@ class PaperPackTests(unittest.TestCase):
         self.assertEqual(cp.returncode, expect, msg=f"stdout:\n{cp.stdout}\nstderr:\n{cp.stderr}")
         return cp
 
+
+class PaperPackTests(PackFixture):
     def test_initializer_passes_structural_profile(self) -> None:
         fresh = self.root / "fresh"
         cp = subprocess.run([sys.executable, str(INIT), str(fresh)], text=True, capture_output=True)
@@ -232,6 +237,121 @@ class PaperPackTests(unittest.TestCase):
         )
         self.write_all()
         self.validate()
+
+
+class ValueBindingTests(PackFixture):
+    """D15: bindings name the gate and the value slot; unresolved audit links are rejected."""
+
+    def write_audit(self, *, source_mode: str = "standalone", measurements: bool = True, gate: bool = True) -> Path:
+        audit = {
+            "audit_id": "A1",
+            "claim_id": "C1",
+            "source_mode": source_mode,
+            "scope": "Frozen held-out task only.",
+            "verdict": "supports_confirmatory_claim",
+            "audited_claim_effect": "strengthen",
+            "attained_assurance_class": "confirmatory",
+            "evidence_artifacts": [{"path": "results/B1.json"}],
+            "check_results": [{"check": "metric_validity", "status": "pass"}],
+            "source_runs": [{"run_id": "R1", "gate_id": "G1"}] if gate else [],
+        }
+        if measurements:
+            audit["measurements"] = [{"measurement_id": "M1", "estimate": 0.5}]
+        path = self.root / "results-audit.json"
+        path.write_text(json.dumps({
+            "schema_version": "1.0", "status": "complete", "paper_id": "P1", "identity_version": 1, "audits": [audit],
+        }), encoding="utf-8")
+        return path
+
+    def bind(self, **binding: str) -> None:
+        entry = {"audit_id": "A1", "gate_id": "G1", "value_slot": "measurement:M1", "sentence_anchor": "Results, first claim"}
+        entry.update(binding)
+        self.claim["value_bindings"] = [entry]
+        self.write_all()
+
+    def test_legacy_binding_without_gate_or_slot_warns(self) -> None:
+        cp = self.validate()
+        self.assertIn("no value_bindings", cp.stdout)
+        self.assertIn("audit links were not checked", cp.stdout)
+
+    def test_value_binding_must_use_a_linked_audit(self) -> None:
+        self.bind(audit_id="A9")
+        cp = self.validate(expect=1)
+        self.assertIn("is not one of the claim's audit_ids", cp.stdout)
+
+    def test_unresolved_audit_link_is_rejected_in_structural_profile(self) -> None:
+        audit = self.write_audit()
+        self.claim["audit_ids"] = ["A1", "A7"]
+        self.write_all()
+        cp = self.validate(expect=1, extra=("--results-audit", str(audit)))
+        self.assertIn("references unknown audit_id A7", cp.stdout)
+
+    def test_gate_and_measurement_slot_resolve(self) -> None:
+        audit = self.write_audit()
+        self.bind()
+        cp = self.validate(extra=("--results-audit", str(audit)))
+        self.assertNotIn("value binding", cp.stdout)
+        self.bind(gate_id="G2")
+        cp = self.validate(expect=1, extra=("--results-audit", str(audit)))
+        self.assertIn("gate G2 is not a gate of audit A1", cp.stdout)
+        self.bind(value_slot="measurement:M4")
+        cp = self.validate(expect=1, extra=("--results-audit", str(audit)))
+        self.assertIn("measurement:M4 is not a measurement of audit A1", cp.stdout)
+
+    def test_field_path_slot_resolves_or_fails(self) -> None:
+        audit = self.write_audit()
+        self.bind(value_slot="check_results.metric_validity.status")
+        self.validate(extra=("--results-audit", str(audit)))
+        self.bind(value_slot="check_results.baseline_fairness.status")
+        cp = self.validate(expect=1, extra=("--results-audit", str(audit)))
+        self.assertIn("does not resolve in audit A1", cp.stdout)
+
+    def test_audit_without_gates_or_measurements_leaves_the_binding_unchecked(self) -> None:
+        audit = self.write_audit(measurements=False, gate=False)
+        self.bind()
+        cp = self.validate(extra=("--results-audit", str(audit)))
+        self.assertIn("records no gate", cp.stdout)
+        self.assertIn("has no measurements list", cp.stdout)
+
+    def test_report_prints_one_row_per_binding(self) -> None:
+        audit = self.write_audit()
+        self.bind()
+        cp = self.validate(extra=("--results-audit", str(audit), "--report"))
+        self.assertIn("| Claim | Sentence anchor | Audit | Gate | Value slot | Status |", cp.stdout)
+        self.assertIn("| PC1 | Results, first claim | A1 | G1 | measurement:M1 | resolved |", cp.stdout)
+
+    def linked_args(self, audit: Path, stub: Path) -> tuple[str, ...]:
+        commitment = self.root / "research-commitment.json"
+        commitment.write_text(json.dumps({"paper_id": "P1", "identity_version": 1}), encoding="utf-8")
+        claim_map = self.root / "claim-map.json"
+        claim_map.write_text(json.dumps([{"claim_id": "C1"}]), encoding="utf-8")
+        narrative = self.root / "results-audit.md"
+        narrative.write_text("# Results Audit\n", encoding="utf-8")
+        return (
+            "--assurance-profile", "linked", "--commitment", str(commitment), "--claim-map", str(claim_map),
+            "--results-audit", str(audit), "--results-audit-narrative", str(narrative),
+            "--results-audit-validator", str(stub),
+        )
+
+    def stub_validator(self) -> Path:
+        stub = self.root / "stub_validator.py"
+        stub.write_text(
+            "import sys\n"
+            "assert '--work-items' not in sys.argv and 'linked' not in sys.argv, sys.argv\n",
+            encoding="utf-8",
+        )
+        return stub
+
+    def test_work_items_optional_when_every_bound_audit_is_standalone(self) -> None:
+        audit = self.write_audit(source_mode="standalone")
+        self.bind()
+        self.validate(extra=self.linked_args(audit, self.stub_validator()))
+
+    def test_work_items_still_required_for_orchestrated_audits(self) -> None:
+        audit = self.write_audit(source_mode="orchestrated")
+        self.bind()
+        cp = self.validate(expect=1, extra=self.linked_args(audit, self.stub_validator()))
+        self.assertIn("requires --work-items unless every bound audit has source_mode standalone", cp.stdout)
 
 
 if __name__ == "__main__":

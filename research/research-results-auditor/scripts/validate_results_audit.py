@@ -3,11 +3,15 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import re
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any
+
+from claim_trajectory import check_repair, check_trajectory
 
 SCHEMA_VERSION = "1.0"
 STATUS_VALUES = {"draft", "complete", "superseded"}
@@ -33,9 +37,26 @@ VERDICTS = {
     "supports_operational_high_stakes_claim",
     "inconclusive",
     "does_not_support_claim",
+    "abstained_diagnostics_failed",
 }
 CLAIM_EFFECTS = {"strengthen", "weaken", "kill", "unchanged", "inconclusive"}
 SOURCE_MODES = {"standalone", "orchestrated"}
+# Where an evidence artifact comes from. experiment and audit are the original two; the rest name
+# what real audits had to file under "audit" because nothing else was allowed.
+EVIDENCE_SOURCES = {
+    "experiment",     # an output of the audited run; needs a digest
+    "audit",          # produced by this or an earlier audit
+    "recomputation",  # re-derived in this audit from stored outputs or source data
+    "repository",     # committed code or records reviewed at a stated revision
+    "plan",           # claim map, run blocks, commitment, gate or route contract
+    "derivation",     # proof, counterexample, or formal check
+    "review",         # novelty, literature, or review decision
+    "manuscript",     # manuscript text or claim-evidence binding
+    "external",       # third-party data, results, or documentation
+}
+AUDIT_KINDS = {"fresh", "recomputation", "replication", "record_review"}
+RUN_KINDS = {"planned", "unplanned", "precursor", "diagnostic", "retry"}
+JUDGE_KINDS = {"llm", "human", "programmatic"}
 GATE_RESULTS = {"pass", "fail", "inconclusive", "not_applicable"}
 SCIENTIFIC_DISPOSITIONS = {
     "supports_claim",
@@ -73,6 +94,8 @@ INDEPENDENCE_DIMENSIONS = {
     "evaluation",
     "advancement_authority",
 }
+# Checks that default to not_assessed when omitted from a standalone exploratory audit.
+LIGHTWEIGHT_DEFAULT_CHECKS = ("snapshot_continuity", "independence")
 FAILURE_STATUSES = {"open", "resolved", "accepted_with_narrowing"}
 IDENTIFIER_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:-]{0,191}$")
 DIGEST_RE = re.compile(r"^[0-9a-f]{64}$")
@@ -121,7 +144,18 @@ def validate_identifier(value: Any, label: str, errors: list[str]) -> str:
     return str(value)
 
 
-def validate_checks(audit: dict[str, Any], label: str, complete: bool, errors: list[str]) -> dict[str, str]:
+def is_lightweight(audit: Any) -> bool:
+    """A standalone audit that requests only exploratory assurance."""
+    return (
+        isinstance(audit, dict)
+        and audit.get("source_mode") == "standalone"
+        and audit.get("requested_assurance_class") == "exploratory"
+    )
+
+
+def validate_checks(
+    audit: dict[str, Any], label: str, complete: bool, errors: list[str], lightweight: bool = False
+) -> dict[str, str]:
     entries = audit.get("check_results")
     if not isinstance(entries, list):
         errors.append(f"{label}.check_results must be a list")
@@ -148,6 +182,9 @@ def validate_checks(audit: dict[str, Any], label: str, complete: bool, errors: l
         evidence_paths = entry.get("evidence_paths", [])
         if not isinstance(evidence_paths, list) or any(not meaningful(path) for path in evidence_paths):
             errors.append(f"{item_label}.evidence_paths must be a list of substantive paths")
+    if lightweight:
+        for check_id in LIGHTWEIGHT_DEFAULT_CHECKS:
+            checks.setdefault(check_id, "not_assessed")
     if complete:
         missing = sorted(REQUIRED_CHECKS - set(checks))
         if missing:
@@ -256,6 +293,8 @@ def validate_source_runs(
                 )
         if not isinstance(run.get("verification_self_review"), bool):
             errors.append(f"{run_label}.verification_self_review must be boolean")
+        if "run_kind" in run and run.get("run_kind") not in RUN_KINDS:
+            errors.append(f"{run_label}.run_kind must be one of {sorted(RUN_KINDS)} (omit it for a planned run)")
         normalized.append(run)
     return normalized
 
@@ -308,8 +347,8 @@ def validate_evidence_artifacts(
         path = require_string(artifact, "path", item_label, errors)
         require_string(artifact, "kind", item_label, errors)
         source = artifact.get("source")
-        if source not in {"experiment", "audit"}:
-            errors.append(f"{item_label}.source must be experiment or audit")
+        if source not in EVIDENCE_SOURCES:
+            errors.append(f"{item_label}.source must be one of {sorted(EVIDENCE_SOURCES)}")
         if path:
             if path in seen:
                 errors.append(f"{label}.evidence_artifacts contains duplicate path {path}")
@@ -324,12 +363,14 @@ def validate_evidence_artifacts(
     return normalized
 
 
-def validate_failure_dispositions(audit: dict[str, Any], label: str, errors: list[str]) -> None:
+def validate_failure_dispositions(audit: dict[str, Any], label: str, errors: list[str]) -> bool:
+    """Validate predecessor failures; return True when any is accepted_with_narrowing."""
     failures = audit.get("predecessor_failures")
     if not isinstance(failures, list):
         errors.append(f"{label}.predecessor_failures must be a list")
-        return
+        return False
     seen: set[str] = set()
+    narrowed = False
     for index, failure in enumerate(failures, start=1):
         item_label = f"{label}.predecessor_failures[{index}]"
         if not isinstance(failure, dict):
@@ -341,7 +382,225 @@ def validate_failure_dispositions(audit: dict[str, Any], label: str, errors: lis
         seen.add(failure_id)
         if failure.get("status") not in FAILURE_STATUSES:
             errors.append(f"{item_label}.status must be one of {sorted(FAILURE_STATUSES)}")
+        narrowed = narrowed or failure.get("status") == "accepted_with_narrowing"
         require_string(failure, "rationale", item_label, errors)
+    return narrowed
+
+
+def validate_trajectory_record(
+    audit: dict[str, Any], label: str, narrowed: bool, errors: list[str], warnings: list[str],
+    *, require: bool = False,
+) -> None:
+    """D1: the claim-scope trajectory pass writes one shared trajectory record per audit.
+
+    An audit that accepts a failure with narrowing must say how the claim changed, what was lost,
+    which claim-preserving repairs were weighed, and what would restore the stronger claim.
+    """
+    trajectory = audit.get("trajectory")
+    if trajectory is None:
+        if narrowed:
+            # Audits written before the trajectory record existed still validate; the linked profile,
+            # which binds the audit to manuscript claims, requires it.
+            message = (
+                f"{label}: a predecessor failure is accepted_with_narrowing, so the audit needs a trajectory "
+                "record (claim_id, change_class, content_lost, alternatives_considered, restoring_evidence)"
+            )
+            (errors if require else warnings).append(message + ("" if require else "; the linked profile requires it"))
+        return
+    change_class = check_trajectory(trajectory, f"{label}.trajectory", errors)
+    if isinstance(trajectory, dict) and trajectory.get("claim_id") not in (None, audit.get("claim_id")):
+        errors.append(f"{label}.trajectory.claim_id must match the audit's claim_id")
+    if narrowed and change_class in {"precision", "qualification"}:
+        errors.append(
+            f"{label}: accepted_with_narrowing loses claim content, so trajectory.change_class cannot be {change_class}"
+        )
+    if "corrective_action" in audit:
+        check_repair(audit["corrective_action"], f"{label}.corrective_action", errors, warnings)
+
+
+def _number(value: Any) -> bool:
+    return isinstance(value, (int, float)) and not isinstance(value, bool)
+
+
+def validate_standalone_runs(audit: dict[str, Any], label: str, errors: list[str]) -> set[str]:
+    """D6: runs audited without a harness binding. Optional; checked when present."""
+    runs = audit.get("standalone_runs")
+    if runs is None:
+        return set()
+    if not isinstance(runs, list):
+        errors.append(f"{label}.standalone_runs must be a list")
+        return set()
+    harness_ids = {
+        str(run.get("run_id")) for run in audit.get("source_runs", []) or [] if isinstance(run, dict)
+    }
+    seen: set[str] = set()
+    for index, run in enumerate(runs, start=1):
+        run_label = f"{label}.standalone_runs[{index}]"
+        if not isinstance(run, dict):
+            errors.append(f"{run_label} must be an object")
+            continue
+        run_id = validate_identifier(run.get("run_id"), f"{run_label}.run_id", errors)
+        if run_id in seen or run_id in harness_ids:
+            errors.append(f"{label}: run_id {run_id} appears more than once across source_runs and standalone_runs")
+        seen.add(run_id)
+        require_string(run, "path", run_label, errors)
+        require_string(run, "produced_by", run_label, errors)
+        digest = run.get("digest")
+        if digest not in (None, "") and not DIGEST_RE.fullmatch(str(digest)):
+            errors.append(f"{run_label}.digest must be empty or a lowercase SHA-256 hex digest")
+        if "run_kind" in run and run.get("run_kind") not in RUN_KINDS:
+            errors.append(f"{run_label}.run_kind must be one of {sorted(RUN_KINDS)} (omit it for a planned run)")
+        if "block_id" in run and not meaningful(run.get("block_id")):
+            errors.append(f"{run_label}.block_id must be substantive when present")
+    return seen
+
+
+def validate_measurements(
+    audit: dict[str, Any], label: str, run_ids: set[str], errors: list[str]
+) -> dict[str, set[str]]:
+    """D6: measured quantities with interval, diagnostics, judge identity, and multiplicity.
+
+    Returns the failed diagnostic names per measurement.
+    """
+    measurements = audit.get("measurements")
+    failed: dict[str, set[str]] = {}
+    if measurements is None:
+        return failed
+    if not isinstance(measurements, list):
+        errors.append(f"{label}.measurements must be a list")
+        return failed
+    seen: set[str] = set()
+    for index, item in enumerate(measurements, start=1):
+        m_label = f"{label}.measurements[{index}]"
+        if not isinstance(item, dict):
+            errors.append(f"{m_label} must be an object")
+            continue
+        m_id = validate_identifier(item.get("measurement_id"), f"{m_label}.measurement_id", errors)
+        if m_id in seen:
+            errors.append(f"{label}.measurements contains duplicate measurement_id {m_id}")
+        seen.add(m_id)
+        require_string(item, "quantity", m_label, errors)
+        estimate = item.get("estimate")
+        if not _number(estimate):
+            errors.append(f"{m_label}.estimate must be a number")
+        interval = item.get("interval")
+        if interval is not None:
+            if not isinstance(interval, dict):
+                errors.append(f"{m_label}.interval must be an object with lower, upper, and level")
+            else:
+                lower, upper, level = interval.get("lower"), interval.get("upper"), interval.get("level")
+                if not (_number(lower) and _number(upper)):
+                    errors.append(f"{m_label}.interval.lower and upper must be numbers")
+                elif lower > upper:
+                    errors.append(f"{m_label}.interval.lower must not exceed upper")
+                elif _number(estimate) and not lower <= estimate <= upper:
+                    errors.append(f"{m_label}: the interval [{lower}, {upper}] does not contain the estimate {estimate}")
+                if not _number(level) or not 0 < level < 1:
+                    errors.append(f"{m_label}.interval.level must be a number strictly between 0 and 1")
+                if "method" in interval and not meaningful(interval.get("method")):
+                    errors.append(f"{m_label}.interval.method must be substantive when present")
+        diagnostics = item.get("diagnostics", [])
+        if not isinstance(diagnostics, list):
+            errors.append(f"{m_label}.diagnostics must be a list")
+            diagnostics = []
+        for d_index, diagnostic in enumerate(diagnostics, start=1):
+            d_label = f"{m_label}.diagnostics[{d_index}]"
+            if not isinstance(diagnostic, dict) or not meaningful(diagnostic.get("name")):
+                errors.append(f"{d_label} must be an object with a substantive name")
+                continue
+            if diagnostic.get("status") not in CHECK_STATUSES:
+                errors.append(f"{d_label}.status must be one of {sorted(CHECK_STATUSES)}")
+            elif diagnostic["status"] == "fail":
+                failed.setdefault(m_id, set()).add(str(diagnostic["name"]))
+        judge = item.get("judge")
+        if judge is not None:
+            if not isinstance(judge, dict):
+                errors.append(f"{m_label}.judge must be an object")
+            else:
+                if judge.get("kind") not in JUDGE_KINDS:
+                    errors.append(f"{m_label}.judge.kind must be one of {sorted(JUDGE_KINDS)}")
+                require_string(judge, "identity", f"{m_label}.judge", errors)
+                if "version" in judge and not meaningful(judge.get("version")):
+                    errors.append(f"{m_label}.judge.version must be substantive when present")
+                if not isinstance(judge.get("blinded"), bool):
+                    errors.append(f"{m_label}.judge.blinded must be true or false")
+        multiplicity = item.get("multiplicity")
+        if multiplicity is not None:
+            if not isinstance(multiplicity, dict):
+                errors.append(f"{m_label}.multiplicity must be an object")
+            else:
+                comparisons = multiplicity.get("comparisons")
+                if not isinstance(comparisons, int) or isinstance(comparisons, bool) or comparisons < 1:
+                    errors.append(f"{m_label}.multiplicity.comparisons must be a positive integer")
+                if not meaningful(multiplicity.get("correction")):
+                    errors.append(
+                        f"{m_label}.multiplicity.correction must name the correction applied, or 'none'"
+                    )
+                elif (
+                    isinstance(comparisons, int) and comparisons > 1
+                    and str(multiplicity["correction"]).strip().lower() == "none"
+                    and not meaningful(multiplicity.get("rationale"))
+                ):
+                    errors.append(
+                        f"{m_label}.multiplicity: {comparisons} comparisons with correction 'none' needs a rationale"
+                    )
+        refs = item.get("run_ids", [])
+        if not isinstance(refs, list):
+            errors.append(f"{m_label}.run_ids must be a list")
+        else:
+            unknown = [ref for ref in refs if str(ref) not in run_ids]
+            if unknown:
+                errors.append(f"{m_label}.run_ids reference runs this audit does not list: {', '.join(map(str, unknown))}")
+    return failed
+
+
+def validate_audit_kind(audit: dict[str, Any], label: str, run_ids: set[str], errors: list[str]) -> None:
+    """D6: what kind of audit this is. Optional; when present it must be backed by matching evidence."""
+    if "audit_kind" not in audit:
+        return
+    kind = audit.get("audit_kind")
+    if kind not in AUDIT_KINDS:
+        errors.append(f"{label}.audit_kind must be one of {sorted(AUDIT_KINDS)}")
+        return
+    sources = {
+        artifact.get("source") for artifact in audit.get("evidence_artifacts", []) or [] if isinstance(artifact, dict)
+    }
+    if kind == "recomputation" and "recomputation" not in sources:
+        errors.append(f"{label}: a recomputation audit lists at least one evidence artifact with source recomputation")
+    if kind == "replication" and not run_ids:
+        errors.append(f"{label}: a replication audit lists the rerun in source_runs or standalone_runs")
+
+
+def validate_abstention(
+    audit: dict[str, Any], label: str, checks: dict[str, str], failed: dict[str, set[str]],
+    errors: list[str], warnings: list[str],
+) -> None:
+    """D6: abstained_diagnostics_failed declines to judge and names the diagnostics that failed."""
+    verdict = audit.get("verdict")
+    failed_anywhere = set().union(*failed.values()) if failed else set()
+    failed_checks = {name for name, status in checks.items() if status == "fail"}
+    if verdict == "abstained_diagnostics_failed":
+        named = audit.get("failed_diagnostics")
+        if not isinstance(named, list) or not named or any(not meaningful(item) for item in named):
+            errors.append(f"{label}: abstained_diagnostics_failed must list failed_diagnostics by name")
+            return
+        unknown = [name for name in named if name not in failed_anywhere | failed_checks]
+        if unknown:
+            errors.append(
+                f"{label}.failed_diagnostics must each match a measurement diagnostic or check with status fail: "
+                + ", ".join(unknown)
+            )
+        if audit.get("audited_claim_effect") not in {"inconclusive", "unchanged"}:
+            errors.append(f"{label}: abstained_diagnostics_failed requires an inconclusive or unchanged claim effect")
+    elif verdict in POSITIVE_VERDICTS and failed:
+        names = ", ".join(f"{m}: {', '.join(sorted(v))}" for m, v in sorted(failed.items()))
+        if verdict == "supports_exploratory_follow_up":
+            warnings.append(f"{label}: positive verdict with failed measurement diagnostics ({names}); say why in limitations")
+        else:
+            errors.append(
+                f"{label}: {verdict} with failed measurement diagnostics ({names}); abstain with "
+                "abstained_diagnostics_failed or lower the verdict"
+            )
 
 
 def validate_verdict_semantics(
@@ -417,7 +676,11 @@ def validate_verdict_semantics(
             )
 
 
-def validate_audits(data: dict[str, Any], complete: bool, narrative: str, errors: list[str]) -> list[dict[str, Any]]:
+def validate_audits(
+    data: dict[str, Any], complete: bool, narrative: str, errors: list[str], warnings: list[str] | None = None,
+    *, require_trajectory: bool = False,
+) -> list[dict[str, Any]]:
+    warnings = [] if warnings is None else warnings
     audits = data.get("audits")
     if not isinstance(audits, list):
         errors.append("results-audit.json.audits must be a list")
@@ -458,13 +721,21 @@ def validate_audits(data: dict[str, Any], complete: bool, narrative: str, errors
         runs = validate_source_runs(audit, label, complete, str(source_mode), errors)
         validate_run_selection(audit, label, complete, errors)
         artifacts = validate_evidence_artifacts(audit, label, complete, errors)
-        checks = validate_checks(audit, label, complete, errors)
+        checks = validate_checks(audit, label, complete, errors, is_lightweight(audit))
         validate_independence(audit, label, complete, str(attained), checks, errors)
-        validate_failure_dispositions(audit, label, errors)
+        narrowed = validate_failure_dispositions(audit, label, errors)
+        validate_trajectory_record(audit, label, narrowed, errors, warnings, require=require_trajectory)
+        if complete and "corrective_action" not in audit and meaningful(audit.get("minimum_corrective_action")):
+            check_repair(audit["minimum_corrective_action"], f"{label}.minimum_corrective_action", errors, warnings)
         limitations = audit.get("limitations")
         if not isinstance(limitations, list) or any(not meaningful(value) for value in limitations):
             errors.append(f"{label}.limitations must be a list of substantive strings")
         validate_verdict_semantics(audit, label, str(source_mode), runs, checks, errors)
+        standalone_ids = validate_standalone_runs(audit, label, errors)
+        all_run_ids = standalone_ids | {str(run.get("run_id")) for run in runs if meaningful(run.get("run_id"))}
+        failed_diagnostics = validate_measurements(audit, label, all_run_ids, errors)
+        validate_audit_kind(audit, label, all_run_ids, errors)
+        validate_abstention(audit, label, checks, failed_diagnostics, errors, warnings)
         if complete and audit_id:
             heading = f"## Audit {audit_id}"
             if heading not in narrative:
@@ -674,6 +945,91 @@ def validate_linked(
                 errors.append(f"audit {audit_id} experiment evidence digest mismatch for {path}")
 
 
+def sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def git_head(root: Path) -> str | None:
+    try:
+        cp = subprocess.run(
+            ["git", "-C", str(root), "rev-parse", "HEAD"], text=True, capture_output=True, check=False
+        )
+    except OSError:
+        return None
+    return cp.stdout.strip() if cp.returncode == 0 and cp.stdout.strip() else None
+
+
+def resolve_revision(root: Path, revision: str) -> str:
+    try:
+        cp = subprocess.run(
+            ["git", "-C", str(root), "rev-parse", "--verify", "--quiet", f"{revision}^{{commit}}"],
+            text=True, capture_output=True, check=False,
+        )
+    except OSError:
+        return revision
+    return cp.stdout.strip() if cp.returncode == 0 and cp.stdout.strip() else revision
+
+
+def validate_evidence_files(
+    data: dict[str, Any], audits: list[dict[str, Any]], root: Path, errors: list[str], warnings: list[str]
+) -> None:
+    """Check that evidence paths exist under root and experiment digests match the bytes."""
+    root = root.resolve()
+    if not root.is_dir():
+        errors.append(f"--root is not a directory: {root}")
+        return
+    revision = data.get("source_revision")
+    stale_revision = False
+    if meaningful(revision):
+        head = git_head(root)
+        if head is not None:
+            stale_revision = resolve_revision(root, str(revision)) != head
+    for audit in audits:
+        audit_id = audit.get("audit_id", "<unknown>")
+        for artifact in audit.get("evidence_artifacts", []):
+            if not isinstance(artifact, dict) or not meaningful(artifact.get("path")):
+                continue
+            path = str(artifact["path"])
+            target = (root / path).resolve()
+            if root != target and root not in target.parents:
+                errors.append(f"audit {audit_id} evidence path escapes --root: {path}")
+                continue
+            if not target.is_file():
+                errors.append(f"audit {audit_id} evidence path does not exist under --root: {path}")
+                continue
+            digest = artifact.get("digest")
+            if artifact.get("source") != "experiment" or not meaningful(digest):
+                continue
+            actual = sha256_file(target)
+            if actual == digest:
+                continue
+            message = f"audit {audit_id} experiment evidence digest does not match file bytes for {path}"
+            if stale_revision:
+                warnings.append(
+                    f"{message}; digests were recorded at source_revision {revision}, which differs from HEAD"
+                )
+            else:
+                errors.append(message)
+        for run in audit.get("standalone_runs", []) or []:
+            if not isinstance(run, dict) or not meaningful(run.get("path")):
+                continue
+            target = (root / str(run["path"])).resolve()
+            if root != target and root not in target.parents:
+                errors.append(f"audit {audit_id} standalone run path escapes --root: {run['path']}")
+                continue
+            if not target.exists():
+                errors.append(f"audit {audit_id} standalone run path does not exist under --root: {run['path']}")
+                continue
+            digest = run.get("digest")
+            if meaningful(digest) and target.is_file() and sha256_file(target) != digest:
+                message = f"audit {audit_id} standalone run digest does not match file bytes for {run['path']}"
+                (warnings if stale_revision else errors).append(message)
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--audit", required=True, type=Path)
@@ -682,12 +1038,18 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--commitment", type=Path)
     parser.add_argument("--claim-map", type=Path)
     parser.add_argument("--work-items", type=Path)
+    parser.add_argument(
+        "--root",
+        type=Path,
+        help="Repository or suite root; when given, evidence paths must exist under it and experiment digests must match the files.",
+    )
     return parser.parse_args()
 
 
 def main() -> int:
     args = parse_args()
     errors: list[str] = []
+    warnings: list[str] = []
     data = read_json(args.audit, "results-audit JSON", errors)
     narrative = read_text(args.narrative, "results-audit narrative", errors)
     if not isinstance(data, dict):
@@ -703,9 +1065,20 @@ def main() -> int:
         if not isinstance(data.get("identity_version"), int) or data.get("identity_version", 0) < 1:
             errors.append("results-audit.identity_version must be a positive integer")
         complete = status == "complete"
-        if complete and not meaningful(data.get("paper_id")):
+        raw_audits = data.get("audits")
+        paper_id_optional = (
+            isinstance(raw_audits, list) and bool(raw_audits) and all(is_lightweight(audit) for audit in raw_audits)
+        )
+        if complete and not meaningful(data.get("paper_id")) and not paper_id_optional:
             errors.append("complete results-audit requires substantive paper_id")
-        audits = validate_audits(data, complete, narrative, errors)
+        if "source_revision" in data and not meaningful(data.get("source_revision")):
+            errors.append("results-audit.source_revision must be a substantive string when present")
+        audits = validate_audits(
+            data, complete, narrative, errors, warnings,
+            require_trajectory=args.assurance_profile == "linked",
+        )
+        if args.root is not None:
+            validate_evidence_files(data, audits, args.root, errors, warnings)
         if args.assurance_profile == "linked":
             if status != "complete":
                 errors.append("linked assurance profile requires results-audit.status=complete")
@@ -716,22 +1089,37 @@ def main() -> int:
                 claim_map = read_json(args.claim_map, "claim-map", errors)
                 work_items = read_json(args.work_items, "work-items", errors)
                 validate_linked(data, audits, commitment, claim_map, work_items, errors)
+    for warning in warnings:
+        print(f"warning: {warning}")
     if errors:
         print("Validation failed:")
         for error in errors:
             print(f"- {error}")
         return 1
+    file_note = (
+        f" Evidence paths and experiment digests were checked against files under {args.root}."
+        if args.root is not None
+        else " Evidence digests not checked against files (pass --root to check them)."
+    )
+    if isinstance(data, dict) and isinstance(data.get("audits"), list) and not data["audits"]:
+        print(
+            f"Draft: 0 audits (status {data.get('status')}). Nothing was validated beyond the empty scaffold; "
+            "do not report this as a passing audit."
+        )
+        return 0
     if args.assurance_profile == "linked":
         print(
             "Validation passed: machine-readable result audits, narrative anchors, claim IDs, source runs, "
             "episode digests, submitted and verified run metadata, run-selection accounting, and experiment evidence digests are internally linked. "
             "This establishes repository-local consistency only; it does not establish executor isolation, "
             "external immutability, scientific validity, or independent verification beyond the recorded evidence."
+            + file_note
         )
     else:
         print(
             "Validation passed: the result-audit pack is structurally consistent. This does not establish "
             "semantic validity, source-run authenticity, scientific support, or independent verification."
+            + file_note
         )
     return 0
 

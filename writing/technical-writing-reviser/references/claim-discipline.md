@@ -18,6 +18,18 @@ Distinguish these levels before rewriting:
 
 Do not move a sentence up this ladder unless the source explicitly supports that move, and do not move a supported sentence down the ladder merely because a stronger unsupported claim could be imagined.
 
+## Formal and Argumentative Support
+
+The ladder above is empirical. Theory papers, position papers, and mixed papers also carry these support types, which take different treatment:
+
+- Definition or construction: no hedge. Only precision edits are allowed.
+- Proposition, lemma, or theorem with stated hypotheses: keep the scope verbatim. The hypotheses are the scope, so never add "suggests", "under the evaluated conditions", or similar empirical hedges, and never restate a hypothesis as a limitation.
+- Proof or proof sketch: say where the proof lives and what it establishes. "We show" and "we prove" are correct verbs for a proved statement.
+- Conjecture or open question: say "we conjecture" or "we leave open".
+- Interpretive gloss of a formal result: this is interpretation. Calibrate it like level 4 above.
+- Conceptual or philosophical argument: the support is the argument. Write "we argue" and keep the premise visible. The repair for an overreaching argumentative claim is to state the premise it depends on, not to hedge the conclusion.
+- Counterexample, converse failure, impossibility, or independence result: the negation is the content. Keep it.
+
 ## Direct Supported Claim Shapes
 
 State the strongest supported claim directly. Use bounded verbs or scope qualifiers when the evidence requires them, but avoid pairing a supported claim with an unnecessary disclaimer about a stronger proposition that the source never made.
@@ -54,7 +66,7 @@ Preserve negative findings, ruled-out alternatives, absence claims, and explicit
 
 ## Missing Evidence
 
-If a sentence exceeds the available support, rewrite that sentence to the strongest supported version. Add a brief note only when the missing evidence materially constrains the user's intended claim or when the user asked for diagnosis.
+If a sentence exceeds the available support, rewrite that sentence to the strongest supported version. Move it down the ladder one rung at a time and stop at the first supported form: a claim that an evaluation discriminates becomes "we show under the evaluated conditions", and only a claim with named live alternatives becomes "is consistent with". If the source's own evidence contradicts the sentence, weakening produces a sentence that is still false. Flag the conflict for the author instead. Add a brief note only when the missing evidence materially constrains the user's intended claim or when the user asked for diagnosis.
 
 Do not normally name a hypothetical stronger claim just to explain why it is unsupported. Instead of "The current evidence supports a conditional claim, not a general claim," prefer the conditional claim itself unless the contrast is necessary for interpretation.
 

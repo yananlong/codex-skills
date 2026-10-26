@@ -2,7 +2,7 @@
 
 Generated from `**/SKILL.md`. This is an open catalog: new skills are included by rerunning `scripts/generate_skill_catalog.py`.
 
-- Skill count: 20
+- Skill count: 21
 - Domains: commercialization, documents, research, writing
 
 | Domain | Skill | Primary intent | Capabilities | Path |
@@ -14,11 +14,11 @@ Generated from `**/SKILL.md`. This is an open catalog: new skills are included b
 | documents | `exposition-to-notebook` | execution | notebook-generation | `documents/exposition-to-notebook` |
 | documents | `pdf-book-assembler` | execution | pdf-processing | `documents/pdf-book-assembler` |
 | documents | `proportional-pdf-trimmer` | specialized-workflow | pdf-processing | `documents/proportional-pdf-trimmer` |
-| research | `research-experiment-plan` | planning | experiment-design, research-planning, stage-routing | `research/research-experiment-plan` |
+| research | `research-experiment-plan` | planning | experiment-design, research-planning, results-audit, stage-routing | `research/research-experiment-plan` |
 | research | `research-idea-discovery` | ideation | experiment-design, ideation, literature-review, novelty-review, research-planning, stage-routing, ... | `research/research-idea-discovery` |
 | research | `research-novelty-review` | review | novelty-review | `research/research-novelty-review` |
-| research | `research-paper-plan` | planning | paper-planning, paper-review, research-planning, results-audit, stage-routing | `research/research-paper-plan` |
-| research | `research-paper-review` | review | multi-agent, paper-review | `research/research-paper-review` |
+| research | `research-paper-plan` | planning | paper-planning, paper-review, rebuttal, research-planning, results-audit, stage-routing, ... | `research/research-paper-plan` |
+| research | `research-paper-review` | review | multi-agent, paper-review, pdf-processing, stage-routing | `research/research-paper-review` |
 | research | `research-pipeline-planner` | orchestration | ideation, literature-review, novelty-review, rebuttal, research-planning, stage-routing | `research/research-pipeline-planner` |
 | research | `research-rebuttal` | review | paper-review, rebuttal, research-planning | `research/research-rebuttal` |
 | research | `research-results-auditor` | review | results-audit, validation | `research/research-results-auditor` |
@@ -26,7 +26,8 @@ Generated from `**/SKILL.md`. This is an open catalog: new skills are included b
 | research | `research-systematic-literature-review` | review | literature-review, novelty-review, validation | `research/research-systematic-literature-review` |
 | research | `research-zotero` | execution | literature-review, novelty-review, zotero | `research/research-zotero` |
 | writing | `prose-flow-improver` | revision | multi-agent, technical-writing | `writing/prose-flow-improver` |
-| writing | `technical-writing-reviser` | revision | document-memory, multi-agent, research-planning, results-audit, technical-writing | `writing/technical-writing-reviser` |
+| writing | `technical-writing-drafter` | execution | interactive, technical-writing, validation | `writing/technical-writing-drafter` |
+| writing | `technical-writing-reviser` | revision | multi-agent, technical-writing | `writing/technical-writing-reviser` |
 
 ## Extension Points
 

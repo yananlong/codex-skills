@@ -1,0 +1,4 @@
+interface:
+  display_name: "Technical Writing Drafter"
+  short_description: "Kickstart a draft from results, reviews, and plans"
+  default_prompt: "Use $technical-writing-drafter to inventory the supporting artifacts, build the claim ledger and outline for my review, then draft section by section."

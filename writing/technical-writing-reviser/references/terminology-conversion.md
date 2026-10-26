@@ -12,10 +12,14 @@ Watch for:
 2. Internal abbreviations that are not standard in the field.
 3. Implementation labels such as bucket names, pipeline stage names, or experiment codenames.
 4. Team-specific verbs such as "archive it," "roleplay it," or "stress it" when those verbs hide the actual operation.
-5. Names that encode an interpretation rather than a neutral description.
+5. Unexamined lab labels that encode an interpretation rather than a neutral description (a defined concept that the paper argues for is a different case; see below).
 6. Acronyms introduced in notes but not defined for the target audience.
 7. Variable, model, dataset, system, feature, or condition names that expose implementation history rather than technical function.
 8. Product, customer, or pilot labels that imply unsupported maturity, adoption, or market scope.
+
+## Coined and Defined Terms Are Not Internal Labels
+
+A term that the source introduces with a definition, uses in its title or contribution list, or that is standard in the source discipline is a concept, not shorthand. Keep it. If the target audience may not know it, add a one-time gloss on first use rather than replacing it. Replacing a coined thesis term with a neutral paraphrase changes what the paper contributes, and in argumentative or theory registers the coined term often is the contribution.
 
 ## Safe Rewrite Rule
 
@@ -29,7 +33,7 @@ Prefer:
 
 - Function over nickname.
 - Reader-facing role over implementation jargon.
-- Neutral description over internally persuasive framing.
+- Neutral description over internally persuasive framing, for lab labels that were never defined for a reader.
 - Standard field terminology over local abbreviations.
 - Stable terms over several near-synonyms for the same object.
 

@@ -55,7 +55,24 @@ Each entry is an object with at least:
 }
 ```
 
-D3 and D4 states outside exploration require an entry whose decision is `authorize-D3` or `close-and-create-D4`.
+D3 and D4 states outside exploration require an entry whose decision is `authorize-D3` (for D3) or `close-and-create-D4` (for D4) and that names the identity it authorizes with `to_identity_version` (and optionally `to_paper_id`), for example `{"decision": "authorize-D3", "to_identity_version": 4, "rationale": "..."}`. The named version must equal the current `identity_version`, so an old authorization cannot cover a later pivot. Entries without `to_identity_version` are accepted as legacy authorizations with a validator warning.
+
+`contribution_floor` is optional and recommended once the status leaves `exploring`; the validator warns when a committed commitment lacks it. It states the least contribution that still justifies the paper, in a form that can fail:
+
+```json
+"contribution_floor": {
+  "statement": "the least contribution that still justifies the paper",
+  "non_vacuity_outcome": "an observable result that would show the floor is not met",
+  "invariants": ["properties any narrowed claim must keep"],
+  "status": "unchecked"
+}
+```
+
+Projects that recorded a success criterion or vision invariants in fields of their own can move them here.
+
+A `selection_history` entry may carry a `trajectory` record (the shared claim-trajectory object in `suite-contract.md`). When one claim collects two `scope_narrowing` records, the validator requires a project-level review entry after the latest one: `{"decision": "project-review", "claim_id": "C1", "route_action": "continue", "floor_status": "met", "rationale": "..."}`. `route_action` takes the route-action values; `floor_status` (`unchecked`, `met`, `not_met`) is required when a `contribution_floor` exists. Each later narrowing of the same claim needs a new review.
+
+`identity_anchors` is optional. When present it must hold digest-bound `question`, `central_object`, and `evidence_obligation` anchors, checked exactly as the semantic-assurance transition ledger checks them.
 
 ## Identity-change classes
 
@@ -75,7 +92,7 @@ D3 and D4 states outside exploration require an entry whose decision is `authori
 6. A new attractive idea defaults to the successor policy. It does not replace the active paper merely because it scores better after later information became available.
 7. Conceptual reconsideration is blocked until `next_mandatory_evidence_artifact` exists and passes its declared gate, unless a recorded pivot trigger or kill condition has fired.
 8. Reframing, renaming, deleting a claim, or changing contribution class does not resolve predecessor failures. Preserve their dispositions explicitly.
-9. `scripts/init_research_pack.py --force` preserves an existing commitment. Reset it only with the explicit `--reset-commitment` flag or `init_research_commitment.py --force`.
+9. `scripts/init_research_pack.py --force` and `--adopt` preserve an existing commitment. Reset it only with the explicit `--reset-commitment` flag or `init_research_commitment.py --force`.
 
 ## Pivot request
 
@@ -90,13 +107,31 @@ A D3 or D4 request must record:
 - whether the replacement can be a successor project;
 - the requested disposition: `authorize-D3`, `close-and-create-D4`, or `reject-pivot`.
 
+## Recording identity changes in a harness suite
+
+Identity changes enter the harness event chain, so a verifier can tell an authorized pivot from drift:
+
+```bash
+python scripts/harness_runtime.py --root <suite> commitment-edit --change-class D1 --reason "..." --actor <who>
+python scripts/harness_runtime.py --root <suite> pivot-request --change-class D3 --defect "..." \
+    --why-not-repair "..." --requested-disposition authorize-D3 --actor <requesting skill or person>
+python scripts/harness_runtime.py --root <suite> pivot-decision PV-0001 --decision authorize-D3 \
+    --rationale "..." --actor <owner>
+```
+
+- Initialization and `--adopt` record the commitment's digest in a first `commitment_edited` event.
+- `commitment-edit` validates the file and records its digest with the declared change class. It refuses a changed `paper_id` or `identity_version`; those change only through `pivot-decision`. A D3 or D4 edit needs an authorized decision for the current identity and the owner as actor.
+- `pivot-request` may come from a downstream skill; it records the fields above and returns a request ID.
+- `pivot-decision` must come from the owner, and not from the actor who made the request. It refuses while the commitment holds unrecorded edits. `authorize-D3` raises `identity_version` by one; `close-and-create-D4` takes `--to-paper-id` and starts the successor at version 1; `reject-pivot` changes no identity. Each writes its `selection_history` entry (naming `to_identity_version` where it applies) and records the new digest in one event.
+- While both the recorded and the current commitment are `exploring`, an unrecorded edit is a validator warning (rule 1). Anywhere else, a commitment that does not match the last commitment event fails as drifted identity. A suite whose chain has no commitment event yet gets a warning that names the anchoring command.
+
 ## Minimum acceptance gate
 
 A committed project may advance only when:
 
 - the commitment object validates;
 - the active work item matches the paper identity and next mandatory evidence obligation;
-- no unapproved D3-D4 drift is present;
+- no unapproved D3-D4 drift is present, and in a harness suite the commitment on disk matches the last commitment event;
 - predecessor failures remain visible;
 - literature assurance is proportionate to any novelty or priority claims;
 - the next transition depends on evidence rather than artifact polish alone.

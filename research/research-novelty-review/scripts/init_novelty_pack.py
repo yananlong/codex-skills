@@ -39,9 +39,9 @@ NOVELTY_REPORT = """# Novelty Report
 
 ## Decision
 
-- Novelty decision rating (1-5): 3
-- Impact positioning rating (1-5): 3
-- Decision confidence rating (1-5): 3
+- Novelty decision rating (1-5):
+- Impact positioning rating (1-5):
+- Decision confidence rating (1-5):
 - Narrowest defensible positioning:
 - What would change the decision:
 - Literature assurance mode: unlinked
@@ -64,9 +64,11 @@ PRIOR_ART = """# Prior Art Matrix
 
 SEARCH_LOG = """# Search Log
 
-| Query | Source | Filters | Purpose | Closest hits | Notes |
-| --- | --- | --- | --- | --- | --- |
-| | | | falsify framing / method / protocol / artifact / result | | |
+One query per row, dated. Record the tool used, how many results were inspected, and which were opened and checked (or none). A web-search tool does not show a total hit count, so do not record one.
+
+| Date | Query | Tool | Source | Filters | Purpose | Results inspected | Spot-checked | Closest hits | Notes |
+| --- | --- | --- | --- | --- | --- | ---: | --- | --- | --- |
+| YYYY-MM-DD | | | | | falsify framing / method / protocol / artifact / result | 0 | | | |
 """
 
 
@@ -74,9 +76,9 @@ def decision_template() -> dict:
     return {
         "schema_version": "1.1",
         "status": "draft",
-        "novelty_decision_rating": 3,
-        "impact_positioning_rating": 3,
-        "decision_confidence_rating": 3,
+        "novelty_decision_rating": None,
+        "impact_positioning_rating": None,
+        "decision_confidence_rating": None,
         "narrowest_defensible_positioning": "",
         "what_would_change_the_decision": "",
         "top_kill_shot_objections": [],
@@ -118,6 +120,15 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("target_dir", type=Path, help="Directory where the pack will be created.")
     parser.add_argument("--force", action="store_true", help="Overwrite existing files.")
+    link = parser.add_mutually_exclusive_group()
+    link.add_argument(
+        "--link", type=Path, metavar="PACK_DIR",
+        help="Bind the new decision to a seven-file literature pack (mode linked).",
+    )
+    link.add_argument(
+        "--link-context", type=Path, metavar="CONTEXT_DIR",
+        help="Bind the new decision to a four-file paper context (mode context).",
+    )
     return parser.parse_args()
 
 
@@ -139,6 +150,18 @@ def main() -> None:
         path = args.target_dir / name
         path.write_text(content, encoding="utf-8")
         print(f"created {path}")
+    if args.link is not None or args.link_context is not None:
+        from novelty_assurance import link_context, link_pack, update_report, write_decision
+
+        decision_path = (args.target_dir / "novelty-decision.json").resolve()
+        decision = json.loads(decision_path.read_text(encoding="utf-8"))
+        if args.link is not None:
+            assurance = link_pack(decision_path, decision, args.link.resolve())
+        else:
+            assurance = link_context(decision_path, decision, args.link_context.resolve())
+        write_decision(decision_path, decision)
+        update_report(args.target_dir / "novelty-report.md", assurance)
+        print(f"bound novelty-decision.json in mode {assurance['mode']}")
 
 
 if __name__ == "__main__":

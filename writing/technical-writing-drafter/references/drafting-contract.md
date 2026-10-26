@@ -1,0 +1,110 @@
+# Drafting Contract
+
+Any skill that produces prose for a reader (a manuscript section or abstract, a rebuttal
+response, a review summary, a literature or novelty report, a research brief) writes it under
+this contract from the first draft. Drafting without it and revising afterwards is how bad first
+drafts were patched in earlier workflows; one draft written under the contract costs less than
+the draft plus the patch, and the patch never fully removes what the draft baked in.
+
+The contract is `technical-writing-reviser`'s rules applied at writing time. It is short because the
+details live in the references it names (the reviser's `claim-discipline.md`,
+`machine-prose-tells.md`, `register-and-format.md`, `terminology-conversion.md`), which the
+drafting agent reads when the case calls for them.
+
+## Before writing
+
+1. Name the job of the passage (motivation, method, result, limitation, response to a reviewer,
+   summary of a critique, recommendation) and the reader (a venue reviewer, an author, a project
+   owner). Write toward that job, not toward a generic technical tone.
+2. Name the register (empirical ML, ML theory, vision or systems, NLP or position paper, HCI or
+   social science, technical report) and the source format (LaTeX, Markdown, plain text). Read
+   `register-and-format.md` for anything outside empirical ML in Markdown.
+3. List the claims the passage will make with their support (`claim-discipline.md`): the claims to
+   make, the claims to be careful about, and the claims to avoid. When the project has machine-
+   readable claim sources, build the list with `build_claim_ledger.py` (`claim-ledger.md`) rather
+   than from memory. A draft may not assert a claim that has no entry on this list. Where evidence is missing, the draft says so visibly with a
+   marker such as `[EVIDENCE NEEDED: what]` rather than writing around the gap.
+4. Fix the terminology: defined terms are used exactly and consistently, internal labels are
+   translated once (`terminology-conversion.md`), coined terms are kept and glossed.
+5. Note any length budget and what the budget may not cut (claims, caveats, results).
+6. Put the plan in front of the author as an outline (one line per paragraph with its claims and
+   exhibits) and get it approved before writing prose. A wrong claim costs a line to fix in an
+   outline and a rewrite to fix in a draft (`checkpoints.md`).
+
+## While writing
+
+- State the supported proposition directly. Do not invent a position in order to reject it
+  (`claim-discipline.md`, Avoid Manufactured Rebuttals).
+- Give a formal statement its hypotheses as scope and no empirical hedge. Give an argument its
+  premise and the verb "we argue". Give an empirical result its measurement and its uncertainty.
+- Write the measurement or the mechanism where a model draft would write an adjective. Write the
+  fact and stop where a model draft would add a participial tail announcing importance. End a
+  paragraph on its evidence or its consequence, in a sentence of ordinary length, and vary
+  paragraph shape (`machine-prose-tells.md`).
+- Dash policy (the one statement the other writing pages point at): no dashes by default. Use a
+  comma for an aside, a period for a new thought, parentheses for a true parenthetical, a colon
+  for one specification. Where a dash is the only mark that can hold an interruption, one pair per
+  page at most; in LaTeX that pair is `---`, and it counts the same.
+- Keep every number, citation key, label, macro, and comment attached to the clause it belongs to
+  in the source format.
+- Keep process commentary out of the prose. Notes to the author go in a separate note, never in
+  the manuscript text.
+
+## After writing
+
+1. When the draft carries numbers, run `check_draft_numbers.py <draft> --source <data> ...` and
+   fix or mark every untraced number; a result sentence may not carry a number the sources do
+   not. When the draft cites, run `check_draft_citations.py <draft> --bib ... --bib-inventory ...`
+   and fix or mark every unresolved key. Then run
+   `python3 <technical-writing-reviser>/scripts/prose_tells.py <draft> --max-density 20`.
+   A draft above 20 tells per thousand words is revised before it leaves the skill; the target is
+   under 10. Record the scanner's summary line in the artifact index or handoff note so the next
+   stage can see it. When `technical-writing-reviser` is not installed beside this skill, skip the
+   scanner, say so in the handoff note, and check the draft by eye against the tells list below.
+2. Read the draft once as its reader. The scanner measures tells, not quality; a passage can score
+   zero and still say nothing.
+3. Compare the draft's claims with the list from step 3 above. A claim that appeared without an
+   entry is either added to the list with its support or removed from the draft.
+4. Hand the draft on with the claim list and the evidence-needed markers visible. The receiving
+   stage (review loop, paper review, the author) decides about the gaps; the draft never hides them.
+
+## Who runs it
+
+- `technical-writing-drafter` owns first drafts written from supporting artifacts: manuscript
+  sections and abstracts from a paper plan, result audits, data tables, and literature reviews;
+  technical reports from results and notes; rebuttal response prose from an issue board. It
+  builds the claim list of step 3 from the artifacts (`claim-ledger.md`) instead of from memory.
+- `technical-writing-reviser` revises prose that already exists, including the drafter's output.
+  It never writes the first draft.
+- Every other skill that writes reader-facing prose as part of its own artifacts (a review
+  summary, an audit narrative, a novelty or literature report, a research brief) applies this
+  contract itself and names it in the artifact, or hands the prose to the drafter when it is
+  installed.
+- `prose-flow-improver` runs after, as a constrained pass, never as the drafter.
+
+When the writing skills are not installed beside a research skill, the contract still applies as
+written here; the scanner step is skipped and the handoff note says so.
+
+## The tells, on one screen
+
+The reviser's `machine-prose-tells.md` has the recipes and the legitimate uses; this list is
+enough to draft by when that file is not installed.
+
+- Dashes as the all-purpose joint (see the dash policy above).
+- Deny-then-claim contrasts: "not X but Y", "not just X", "rather than X, Y". State Y.
+- Sentence-opening signposts: Importantly, Notably, Crucially, Interestingly, Moreover,
+  Furthermore, Additionally. Delete, or use a real ordinal.
+- Significance words standing in for a measurement or mechanism: crucial, robust, nuanced,
+  pivotal, comprehensive, seamless, leverage, landscape, underscore, delve, foster.
+- Participial tails that announce importance: ", highlighting ...", ", underscoring ...",
+  ", paving the way for ...". End at the fact.
+- Three parallel items for two-item content; three short parallel sentences; antithesis for
+  effect. Write the number of items the content has.
+- Interpretation chains: "This suggests ... This means ... This highlights ...". One
+  interpretation per piece of evidence, next to it.
+- Kickers: a short closing sentence after long ones, one-sentence drumbeat paragraphs. End on the
+  evidence.
+- Uniform paragraph length and shape. Let length follow the argument.
+- Meta-commentary: "It is worth noting", "the key insight is". Delete the frame.
+- Hedge stacks: "may potentially", "could possibly suggest". One hedge, the one the evidence needs.
+- Rhetorical questions, "Let's", bolded lead-ins, bullets for argument.

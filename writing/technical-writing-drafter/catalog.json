@@ -1,0 +1,30 @@
+{
+  "primary_intent": "execution",
+  "capabilities": [
+    "technical-writing",
+    "validation",
+    "interactive"
+  ],
+  "inputs": [
+    "a project root or folder holding supporting artifacts: results-audit.json, data tables and figures, claim-map.json and experiment-plan.md, literature evidence tables and novelty packs, claim-evidence-bindings.json and paper-plan.md, issue-board.md, manuscript source, author notes",
+    "optional register, venue, source format, and page or word budget",
+    "optional validator results from the owning research skills"
+  ],
+  "outputs": [
+    "writing-intake.md and writing-intake.json listing what the draft can lean on and the gaps",
+    "claim-ledger.md and claim-ledger.json with ready, careful, blocked, excluded, and proposed claims",
+    "outline.md: one line per paragraph with its claims and exhibits, edited and approved by the author before any prose",
+    "a short writing brief with job, reader, register, sources, and gates",
+    "first-draft prose, section by section in the source format, with [EVIDENCE NEEDED] and [CITATION NEEDED] markers and ledger source comments",
+    "check_draft_numbers.py, outline check, and prose_tells.py summary lines for the handoff"
+  ],
+  "related_skills": [
+    "technical-writing-reviser",
+    "prose-flow-improver",
+    "research-paper-plan",
+    "research-results-auditor",
+    "research-systematic-literature-review",
+    "research-novelty-review",
+    "research-rebuttal"
+  ]
+}

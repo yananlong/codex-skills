@@ -20,7 +20,7 @@ Before advancing evidence beyond exploratory status, record:
 5. the cheapest non-vacuity or discrimination test;
 6. material predecessor failures and their evidence-backed disposition;
 7. the independence statement across context, data access, implementation, oracle or evaluator, and advancement authority;
-8. unresolved limitations and the resulting proceed, revise, narrow, or stop decision.
+8. unresolved limitations and the resulting evidence-class action (`promote`, `hold`, or `downgrade`) and route action, using the decision vocabulary in `suite-contract.md`.
 
 ## Property, not label
 

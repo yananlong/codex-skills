@@ -67,6 +67,65 @@ class ResearchPackTests(unittest.TestCase):
         self.assertFalse((self.pack / "checkpoints/stale.json").exists())
         self.validate()
 
+    def test_force_refuses_to_discard_multi_event_history(self):
+        self.init()
+        self.add_start_submit()
+        log = self.pack / "harness-events.jsonl"
+        before = log.read_text()
+        self.assertGreater(len(before.splitlines()), 1)
+        cp = self.run_cmd(str(INIT), str(self.pack), "--force", expect=1)
+        self.assertIn("--discard-event-history", cp.stderr)
+        self.assertEqual(before, log.read_text())
+        self.assertTrue((self.pack / "episodes/EP-WI-1-A1.json").exists())
+        self.init("--force", "--discard-event-history")
+        fresh = [json.loads(line) for line in log.read_text().splitlines()]
+        self.assertEqual({event["actor"] for event in fresh}, {"init_research_pack"})
+        self.assertEqual([event["event_type"] for event in fresh], ["observation_recorded", "commitment_edited"])
+
+    def test_force_preserves_hand_written_brief_and_decision_log(self):
+        self.init()
+        brief = self.pack / "research-brief.md"
+        decisions = self.pack / "decision-log.md"
+        brief.write_text("# Research Brief\n\nhand-written frame\n")
+        decisions.write_text("# Decision Log\n\nhand-written rationale\n")
+        self.init("--force")
+        self.assertIn("hand-written frame", brief.read_text())
+        self.assertIn("hand-written rationale", decisions.read_text())
+        self.assertTrue((self.pack / "research-brief.template.md").exists())
+        self.assertTrue((self.pack / "decision-log.template.md").exists())
+        self.init("--force", "--reset-stage-artifacts", "--reset-commitment")
+        self.assertIn("hand-written rationale", decisions.read_text())
+
+    def test_adopt_creates_missing_control_files_without_deleting(self):
+        self.pack.mkdir()
+        (self.pack / "experiment-plan").mkdir()
+        plan = self.pack / "experiment-plan/plan.md"
+        plan.write_text("# Plan\n")
+        brief = self.pack / "research-brief.md"
+        brief.write_text("owner brief\n")
+        commitment = self.pack / "research-commitment.json"
+        commitment.write_text('{"paper_id": "synthetic-paper"}\n')
+        cp = self.run_cmd(str(INIT), str(self.pack), expect=1)
+        self.assertIn("Refusing to overwrite", cp.stderr)
+        self.init("--adopt")
+        self.assertEqual("# Plan\n", plan.read_text())
+        self.assertEqual("owner brief\n", brief.read_text())
+        self.assertEqual('{"paper_id": "synthetic-paper"}\n', commitment.read_text())
+        self.assertFalse((self.pack / "research-brief.template.md").exists())
+        for name in ("task-board.md", "decision-log.md", "artifact-index.md", "episodes", "checkpoints", "ideation"):
+            self.assertTrue((self.pack / name).exists(), name)
+        events = [json.loads(line) for line in (self.pack / "harness-events.jsonl").read_text().splitlines()]
+        self.assertEqual(1, len(events))
+        details = events[0]["details"]
+        self.assertEqual("observation_recorded", events[0]["event_type"])
+        self.assertEqual("legacy_import", details["category"])
+        self.assertEqual(["experiment-plan"], details["stage_directories"])
+        self.assertEqual("experiment-plan/plan.md", details["artifacts"][0]["path"])
+        self.assertRegex(details["artifacts"][0]["sha256"], r"^[0-9a-f]{64}$")
+        cp = self.run_cmd(str(INIT), str(self.pack), "--adopt", expect=1)
+        self.assertIn("already exists", cp.stderr)
+        self.assertEqual(1, len((self.pack / "harness-events.jsonl").read_text().splitlines()))
+
     def test_reset_stage_artifacts_is_explicit_and_destructive(self):
         self.init()
         sentinel = self.pack / "ideation/valuable-result.md"

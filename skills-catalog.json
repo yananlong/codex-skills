@@ -11,10 +11,10 @@
   "notes": [
     "This catalog is generated from all SKILL.md files under the repository.",
     "Add new skills by adding a skill folder with SKILL.md; no central list edit is required.",
-    "Optional per-skill catalog.json sidecars may add or override structured metadata."
+    "Optional per-skill catalog.json sidecars may add or override structured metadata; an explicit capabilities, inputs, or outputs list replaces the inferred one."
   ],
   "open_catalog": true,
-  "skill_count": 20,
+  "skill_count": 21,
   "skills": [
     {
       "agent_metadata": {
@@ -364,12 +364,13 @@
       "capabilities": [
         "experiment-design",
         "research-planning",
+        "results-audit",
         "stage-routing"
       ],
-      "description": "Convert a concrete research claim into a tracked, decisive experiment plan that works either as a standalone planning artifact or as the experiment stage inside a coordinated research workflow. Use when asked to design experiments, define baselines or ablations, decide run order, separate must-run from nice-to-have evidence, or turn a claim plus evaluation goal into a validation plan.",
+      "description": "Convert a concrete research claim into a tracked, decisive experiment plan that works either as a standalone planning artifact or as the experiment stage inside a coordinated research workflow. Use when asked to design experiments, define baselines or ablations, decide run order, separate must-run from nice-to-have evidence, turn a claim plus evaluation goal into a validation plan, or set up an autonomous keep-or-revert optimization loop on one frozen metric (autoresearch-style). When existing results bear on the decision, run research-results-auditor first.",
       "domain": "research",
       "frontmatter": {
-        "description": "Convert a concrete research claim into a tracked, decisive experiment plan that works either as a standalone planning artifact or as the experiment stage inside a coordinated research workflow. Use when asked to design experiments, define baselines or ablations, decide run order, separate must-run from nice-to-have evidence, or turn a claim plus evaluation goal into a validation plan.",
+        "description": "Convert a concrete research claim into a tracked, decisive experiment plan that works either as a standalone planning artifact or as the experiment stage inside a coordinated research workflow. Use when asked to design experiments, define baselines or ablations, decide run order, separate must-run from nice-to-have evidence, turn a claim plus evaluation goal into a validation plan, or set up an autonomous keep-or-revert optimization loop on one frozen metric (autoresearch-style). When existing results bear on the decision, run research-results-auditor first.",
         "name": "research-experiment-plan"
       },
       "inputs": [],
@@ -382,7 +383,12 @@
         "execution-bridge.md",
         "experiment-plan.md",
         "experiment-tracker.md",
+        "experiments.md",
+        "ideas.md",
+        "program.md",
         "research-brief.md",
+        "results-audit.json",
+        "results.tsv",
         "run-blocks.json"
       ],
       "path": "research/research-experiment-plan",
@@ -393,7 +399,8 @@
         "research-paper-plan",
         "research-pipeline-planner",
         "research-results-auditor",
-        "research-review-loop"
+        "research-review-loop",
+        "technical-writing-drafter"
       ],
       "resources": {
         "agents": [
@@ -405,16 +412,21 @@
           "references/claim-evidence-map-template.md",
           "references/control-and-ablation-checklist.md",
           "references/decision-gates-template.md",
+          "references/domain-adapters.md",
           "references/execution-bridge-template.md",
           "references/experiment-block-schema.md",
           "references/experiment-plan-template.md",
+          "references/iteration-loop-contract.md",
           "references/risk-confound-checklist.md",
-          "references/run-order-template.md",
-          "references/tabmol-ddi-ood-adapter.md"
+          "references/run-order-template.md"
         ],
         "scripts": [
+          "scripts/check_plan_drift.py",
+          "scripts/claim_trajectory.py",
           "scripts/init_experiment_pack.py",
-          "scripts/validate_experiment_pack.py"
+          "scripts/init_iteration_loop.py",
+          "scripts/validate_experiment_pack.py",
+          "scripts/validate_iteration_ledger.py"
         ]
       },
       "skill_file": "research/research-experiment-plan/SKILL.md"
@@ -437,8 +449,7 @@
         "novelty-review",
         "research-planning",
         "stage-routing",
-        "validation",
-        "zotero"
+        "validation"
       ],
       "description": "Generate, filter, rank, and hand off grounded research ideas from a broad research direction, problem area, literature landscape, Zotero corpus, paper limitation, or user notes. Use when asked to brainstorm publishable research ideas, find a direction, turn a broad area into candidate claims, choose what to work on, evaluate idea quality before novelty review, or create an ideation stage inside a coordinated research workflow. Prefer research-novelty-review when the user already has one concrete idea to pressure-test, research-experiment-plan when the claim is already frozen, and research-pipeline-planner when the main request is multi-stage project sequencing rather than ideation itself.",
       "domain": "research",
@@ -469,9 +480,11 @@
       "related_skills": [
         "research-experiment-plan",
         "research-novelty-review",
+        "research-paper-review",
         "research-pipeline-planner",
         "research-systematic-literature-review",
-        "research-zotero"
+        "research-zotero",
+        "technical-writing-drafter"
       ],
       "resources": {
         "agents": [
@@ -539,7 +552,8 @@
         "research-rebuttal",
         "research-review-loop",
         "research-systematic-literature-review",
-        "research-zotero"
+        "research-zotero",
+        "technical-writing-drafter"
       ],
       "resources": {
         "agents": [
@@ -550,17 +564,19 @@
         "references": [
           "references/adversarial-query-patterns.md",
           "references/decision-scale.md",
+          "references/domain-adapters.md",
           "references/literature-assurance-contract.md",
           "references/novelty-checklist.md",
           "references/overlap-scoring-rubric.md",
           "references/paper-review-integration.md",
           "references/prior-art-matrix-template.md",
           "references/reviewer-objection-rubric.md",
-          "references/search-log-template.md",
-          "references/tabmol-ddi-ood-adapter.md"
+          "references/search-log-template.md"
         ],
         "scripts": [
+          "scripts/claim_trajectory.py",
           "scripts/init_novelty_pack.py",
+          "scripts/novelty_assurance.py",
           "scripts/validate_novelty_pack.py"
         ]
       },
@@ -580,14 +596,17 @@
       "capabilities": [
         "paper-planning",
         "paper-review",
+        "rebuttal",
         "research-planning",
         "results-audit",
-        "stage-routing"
+        "stage-routing",
+        "technical-writing",
+        "validation"
       ],
-      "description": "Turn supported claims and evidence into a research paper plan that works either as a standalone manuscript-structuring pass or as the paper stage inside a coordinated research workflow. Use when asked to outline a paper, map claims to evidence, bind audited results to manuscript claims, plan figures and citations, align experiments to manuscript language, or keep limitations and threats to validity explicit.",
+      "description": "Turn supported claims and evidence into a research paper plan that works either as a standalone manuscript-structuring pass or as the paper stage inside a coordinated research workflow. Use when asked to outline a paper, map claims to evidence, bind audited results to manuscript claims, plan figures and citations, align experiments to manuscript language, port a paper between venues or page budgets, or keep limitations and threats to validity explicit. A plain outline or a related-work outline with no results audit is a lightweight pass that needs no JSON pack. Not for revising existing prose (technical-writing-reviser), reviewing a draft (research-paper-review), or answering reviewers (research-rebuttal).",
       "domain": "research",
       "frontmatter": {
-        "description": "Turn supported claims and evidence into a research paper plan that works either as a standalone manuscript-structuring pass or as the paper stage inside a coordinated research workflow. Use when asked to outline a paper, map claims to evidence, bind audited results to manuscript claims, plan figures and citations, align experiments to manuscript language, or keep limitations and threats to validity explicit.",
+        "description": "Turn supported claims and evidence into a research paper plan that works either as a standalone manuscript-structuring pass or as the paper stage inside a coordinated research workflow. Use when asked to outline a paper, map claims to evidence, bind audited results to manuscript claims, plan figures and citations, align experiments to manuscript language, port a paper between venues or page budgets, or keep limitations and threats to validity explicit. A plain outline or a related-work outline with no results audit is a lightweight pass that needs no JSON pack. Not for revising existing prose (technical-writing-reviser), reviewing a draft (research-paper-review), or answering reviewers (research-rebuttal).",
         "name": "research-paper-plan"
       },
       "inputs": [],
@@ -606,10 +625,14 @@
       "primary_intent": "planning",
       "related_skills": [
         "research-idea-discovery",
+        "research-paper-review",
         "research-pipeline-planner",
+        "research-rebuttal",
         "research-results-auditor",
         "research-review-loop",
-        "research-zotero"
+        "research-zotero",
+        "technical-writing-drafter",
+        "technical-writing-reviser"
       ],
       "resources": {
         "agents": [
@@ -621,15 +644,17 @@
           "references/citation-verification-rules.md",
           "references/claim-evidence-binding-schema.md",
           "references/claims-evidence-matrix-template.md",
+          "references/domain-adapters.md",
           "references/exhibit-plan-checklist.md",
           "references/paper-outline-template.md",
           "references/section-archetypes.md",
-          "references/tabmol-ddi-ood-adapter.md",
-          "references/venue-adapters.md"
+          "references/venue-adapters.md",
+          "references/venues.json"
         ],
         "scripts": [
           "scripts/init_paper_pack.py",
-          "scripts/validate_paper_pack.py"
+          "scripts/validate_paper_pack.py",
+          "scripts/venue_table.py"
         ]
       },
       "skill_file": "research/research-paper-plan/SKILL.md"
@@ -647,42 +672,51 @@
       },
       "capabilities": [
         "multi-agent",
-        "paper-review"
+        "paper-review",
+        "pdf-processing",
+        "stage-routing"
       ],
-      "description": "Run academic paper review with OCR extraction, ChatGPT-native multi-agent critique, local visualization, and section-level review workflows integrated into the research skill suite. Use when Codex needs an initial or first-pass review of one paper artifact or arXiv URL, including OCR, extraction, default Claude-style or multi-agent review, contextualized critique, or viz JSON generation. Prefer `research-review-loop` once a tracked review state or revised artifact already exists, `research-novelty-review` for prior-art and positioning questions, `research-rebuttal` when concrete reviewer comments already exist, and `adversarial-doc-review` for non-paper documents.",
+      "description": "Run a first-pass academic review of one manuscript (LaTeX source tree, PDF, DOCX, Markdown, or arXiv URL) with a full-paper summary, planned section and cross-cutting review passes, quote-anchored issues with 1-5 ratings, optional OCR extraction and viz JSON, and a validated handoff bundle. Use when the agent needs an initial or first-pass review of one paper artifact, including extraction, multi-agent or serial pass-based critique, contextualized critique, or viz JSON generation. Prefer `research-review-loop` once a tracked review state or revised artifact already exists, `research-novelty-review` for prior-art and positioning questions, `research-rebuttal` when concrete reviewer comments already exist, and `adversarial-doc-review` for non-paper documents.",
       "domain": "research",
       "frontmatter": {
-        "description": "Run academic paper review with OCR extraction, ChatGPT-native multi-agent critique, local visualization, and section-level review workflows integrated into the research skill suite. Use when Codex needs an initial or first-pass review of one paper artifact or arXiv URL, including OCR, extraction, default Claude-style or multi-agent review, contextualized critique, or viz JSON generation. Prefer `research-review-loop` once a tracked review state or revised artifact already exists, `research-novelty-review` for prior-art and positioning questions, `research-rebuttal` when concrete reviewer comments already exist, and `adversarial-doc-review` for non-paper documents.",
+        "description": "Run a first-pass academic review of one manuscript (LaTeX source tree, PDF, DOCX, Markdown, or arXiv URL) with a full-paper summary, planned section and cross-cutting review passes, quote-anchored issues with 1-5 ratings, optional OCR extraction and viz JSON, and a validated handoff bundle. Use when the agent needs an initial or first-pass review of one paper artifact, including extraction, multi-agent or serial pass-based critique, contextualized critique, or viz JSON generation. Prefer `research-review-loop` once a tracked review state or revised artifact already exists, `research-novelty-review` for prior-art and positioning questions, `research-rebuttal` when concrete reviewer comments already exist, and `adversarial-doc-review` for non-paper documents.",
         "name": "research-paper-review"
       },
       "inputs": [],
       "name": "research-paper-review",
       "outputs": [
         "PASS_PLAN.md",
+        "REVIEW_STATE.json",
         "_skill.json",
         "artifact-index.md",
         "criteria.md",
         "final_issues.json",
         "full_text.md",
+        "latex_source_map.json",
         "literature-context-decision.json",
         "literature-context-evidence-table.md",
         "literature-context-search-log.md",
         "literature-context.md",
+        "main.tex",
         "metadata.json",
         "overall_assessment.txt",
         "review_summary.json",
+        "root.tex",
         "summary.md"
       ],
       "path": "research/research-paper-review",
       "primary_intent": "review",
       "related_skills": [
         "adversarial-doc-review",
+        "prose-flow-improver",
         "research-novelty-review",
         "research-paper-plan",
         "research-pipeline-planner",
         "research-rebuttal",
         "research-review-loop",
-        "research-systematic-literature-review"
+        "research-systematic-literature-review",
+        "technical-writing-drafter",
+        "technical-writing-reviser"
       ],
       "resources": {
         "agents": [
@@ -696,13 +730,17 @@
           "references/criteria.md",
           "references/engine-usage.md",
           "references/rating-rubric.md",
+          "references/review-schema.md",
           "references/subagent_templates.md"
         ],
         "scripts": [
           "scripts/_engine.py",
           "scripts/consolidate_comments.py",
+          "scripts/flatten_latex.py",
           "scripts/install_engine.py",
           "scripts/prepare_workspace.py",
+          "scripts/resolve_review_artifacts.py",
+          "scripts/review_schema.py",
           "scripts/run_openaireview.py",
           "scripts/save_viz_json.py",
           "scripts/validate_review_bundle.py"
@@ -740,14 +778,22 @@
       "outputs": [
         "HARNESS_STATE.json",
         "artifact-index.md",
+        "commitment-transitions.json",
+        "decision-log.md",
+        "decision-log.template.md",
+        "research-brief.md",
+        "research-brief.template.md",
         "research-commitment.json",
         "run-blocks.json",
+        "task-board.md",
         "work-items.json"
       ],
       "path": "research/research-pipeline-planner",
       "primary_intent": "orchestration",
       "related_skills": [
-        "research-results-auditor"
+        "research-experiment-plan",
+        "research-results-auditor",
+        "technical-writing-drafter"
       ],
       "resources": {
         "agents": [
@@ -758,9 +804,9 @@
         "references": [
           "references/agentic-harness-contract.md",
           "references/decision-log-template.md",
+          "references/domain-adapters.md",
           "references/epistemic-assurance-contract.md",
           "references/experiment-execution-binding.md",
-          "references/prospective-evaluation-contract.md",
           "references/research-brief-template.md",
           "references/research-commitment-contract.md",
           "references/research-commitment.schema.json",
@@ -769,27 +815,20 @@
           "references/semantic-assurance-contract.md",
           "references/stage-gates.md",
           "references/suite-contract.md",
-          "references/tabmol-ddi-ood-adapter.md",
           "references/task-board-template.md"
         ],
         "scripts": [
+          "scripts/claim_trajectory.py",
           "scripts/harness_common.py",
           "scripts/harness_runtime.py",
-          "scripts/init_prospective_evaluation.py",
           "scripts/init_research_commitment.py",
           "scripts/init_research_pack.py",
-          "scripts/prospective_evaluation/__init__.py",
-          "scripts/prospective_evaluation/common.py",
-          "scripts/prospective_evaluation/observations.py",
-          "scripts/prospective_evaluation/protocol.py",
-          "scripts/prospective_evaluation/summary.py",
           "scripts/semantic_assurance/__init__.py",
           "scripts/semantic_assurance/common.py",
           "scripts/semantic_assurance/evidence.py",
           "scripts/semantic_assurance/fixtures.py",
           "scripts/semantic_assurance/literature.py",
           "scripts/semantic_assurance/transitions.py",
-          "scripts/validate_prospective_evaluation.py",
           "scripts/validate_research_commitment.py",
           "scripts/validate_research_pack.py",
           "scripts/validate_semantic_assurance.py"
@@ -813,22 +852,25 @@
         "rebuttal",
         "research-planning"
       ],
-      "description": "Draft venue-aware academic rebuttals and author responses from reviewer comments, scores, and paper artifacts. Use when concrete reviewer comments already exist and Codex needs to analyze reviews, build a reviewer issue board, plan evidence or manuscript fixes, draft a rebuttal, respond to AC or meta-review feedback, manage multi-round author-reviewer discussion, or prepare a paste-ready response for conference or journal review systems. Prefer `research-paper-review` for initial manuscript diagnosis before reviews arrive, `research-review-loop` for internal tracked review without external reviewer comments, and `research-novelty-review` for prior-art positioning disputes.",
+      "description": "Draft venue-aware academic rebuttals and author responses from reviewer comments, scores, and paper artifacts. Use when concrete reviewer comments already exist and the agent needs to analyze reviews, build a reviewer issue board, plan evidence or manuscript fixes, draft a rebuttal, respond to AC or meta-review feedback, manage multi-round author-reviewer discussion, or prepare a paste-ready response for conference or journal review systems. Prefer `research-paper-review` for initial manuscript diagnosis before reviews arrive, `research-review-loop` for internal tracked review without external reviewer comments, and `research-novelty-review` for prior-art positioning disputes.",
       "domain": "research",
       "frontmatter": {
-        "description": "Draft venue-aware academic rebuttals and author responses from reviewer comments, scores, and paper artifacts. Use when concrete reviewer comments already exist and Codex needs to analyze reviews, build a reviewer issue board, plan evidence or manuscript fixes, draft a rebuttal, respond to AC or meta-review feedback, manage multi-round author-reviewer discussion, or prepare a paste-ready response for conference or journal review systems. Prefer `research-paper-review` for initial manuscript diagnosis before reviews arrive, `research-review-loop` for internal tracked review without external reviewer comments, and `research-novelty-review` for prior-art positioning disputes.",
+        "description": "Draft venue-aware academic rebuttals and author responses from reviewer comments, scores, and paper artifacts. Use when concrete reviewer comments already exist and the agent needs to analyze reviews, build a reviewer issue board, plan evidence or manuscript fixes, draft a rebuttal, respond to AC or meta-review feedback, manage multi-round author-reviewer discussion, or prepare a paste-ready response for conference or journal review systems. Prefer `research-paper-review` for initial manuscript diagnosis before reviews arrive, `research-review-loop` for internal tracked review without external reviewer comments, and `research-novelty-review` for prior-art positioning disputes.",
         "name": "research-rebuttal"
       },
       "inputs": [],
       "name": "research-rebuttal",
       "outputs": [
+        "REVIEW_STATE.json",
         "ac-note.md",
         "artifact-index.md",
+        "final_issues.json",
         "issue-board.md",
         "rebuttal-paste-ready.md",
         "rebuttal-working.md",
         "research-brief.md",
         "review-analysis.md",
+        "reviews-raw.md",
         "task-list.md"
       ],
       "path": "research/research-rebuttal",
@@ -838,7 +880,8 @@
         "research-paper-plan",
         "research-paper-review",
         "research-pipeline-planner",
-        "research-review-loop"
+        "research-review-loop",
+        "technical-writing-drafter"
       ],
       "resources": {
         "agents": [
@@ -851,11 +894,15 @@
           "references/platforms_and_policies.md",
           "references/response_strategies.md",
           "references/venue_rule_matrix.md",
+          "references/venues.json",
           "references/writing_principles.md"
         ],
         "scripts": [
           "scripts/count_limits.sh",
-          "scripts/init_rebuttal_pack.py"
+          "scripts/init_rebuttal_pack.py",
+          "scripts/resolve_review_artifacts.py",
+          "scripts/review_schema.py",
+          "scripts/venue_table.py"
         ]
       },
       "skill_file": "research/research-rebuttal/SKILL.md"
@@ -875,10 +922,10 @@
         "results-audit",
         "validation"
       ],
-      "description": "Audit ML/statistics experiment outputs for validity, confounds, statistical support, calibration, and mismatch between measured results and claimed conclusions. Use when asked to interpret results, sanity-check benchmarks, review ablations, assess robustness claims, decide whether an experiment supports a paper claim, or produce a machine-readable result-audit record for downstream paper planning.",
+      "description": "Audit ML/statistics experiment outputs for validity, confounds, statistical support, calibration, and mismatch between measured results and claimed conclusions. Use when asked to interpret results, sanity-check benchmarks, review ablations, assess robustness claims, decide whether an experiment supports a paper claim, or produce a machine-readable result-audit record for downstream paper planning. Not for formatting or summarizing results without a claim to test.",
       "domain": "research",
       "frontmatter": {
-        "description": "Audit ML/statistics experiment outputs for validity, confounds, statistical support, calibration, and mismatch between measured results and claimed conclusions. Use when asked to interpret results, sanity-check benchmarks, review ablations, assess robustness claims, decide whether an experiment supports a paper claim, or produce a machine-readable result-audit record for downstream paper planning.",
+        "description": "Audit ML/statistics experiment outputs for validity, confounds, statistical support, calibration, and mismatch between measured results and claimed conclusions. Use when asked to interpret results, sanity-check benchmarks, review ablations, assess robustness claims, decide whether an experiment supports a paper claim, or produce a machine-readable result-audit record for downstream paper planning. Not for formatting or summarizing results without a claim to test.",
         "name": "research-results-auditor"
       },
       "inputs": [],
@@ -893,7 +940,8 @@
       "primary_intent": "review",
       "related_skills": [
         "research-paper-plan",
-        "research-pipeline-planner"
+        "research-pipeline-planner",
+        "technical-writing-drafter"
       ],
       "resources": {
         "agents": [
@@ -902,12 +950,13 @@
         "assets": [],
         "prompts": [],
         "references": [
+          "references/domain-adapters.md",
           "references/metrics-and-tests-checklist.md",
           "references/results-audit-schema.md",
-          "references/results-audit-template.md",
-          "references/tabmol-ddi-ood-adapter.md"
+          "references/results-audit-template.md"
         ],
         "scripts": [
+          "scripts/claim_trajectory.py",
           "scripts/init_results_audit.py",
           "scripts/validate_results_audit.py"
         ]
@@ -941,11 +990,9 @@
         "AUTO_REVIEW.md",
         "NARRATIVE_REPORT.md",
         "REVIEW_STATE.json",
-        "artifact-index.md",
         "final_issues.json",
         "metadata.json",
         "overall_assessment.txt",
-        "review_dir-or-final_issues.json",
         "review_summary.json",
         "summary.md"
       ],
@@ -953,10 +1000,13 @@
       "primary_intent": "review",
       "related_skills": [
         "adversarial-doc-review",
+        "prose-flow-improver",
         "research-paper-review",
         "research-pipeline-planner",
         "research-rebuttal",
-        "research-results-auditor"
+        "research-results-auditor",
+        "technical-writing-drafter",
+        "technical-writing-reviser"
       ],
       "resources": {
         "agents": [
@@ -965,13 +1015,16 @@
         "assets": [],
         "prompts": [],
         "references": [
+          "references/domain-adapters.md",
           "references/report-template.md",
           "references/review-checklist.md",
-          "references/review-state-schema.md",
-          "references/tabmol-ddi-ood-adapter.md"
+          "references/review-state-schema.md"
         ],
         "scripts": [
-          "scripts/init_review_loop.py"
+          "scripts/init_review_loop.py",
+          "scripts/resolve_review_artifacts.py",
+          "scripts/review_schema.py",
+          "scripts/validate_review_state.py"
         ]
       },
       "skill_file": "research/research-review-loop/SKILL.md"
@@ -1009,10 +1062,13 @@
         ".review.md",
         ".screening-log.md",
         ".search-log.md",
+        "bib-inventory.json",
+        "citation-audit.md",
         "literature-context-decision.json",
         "literature-context-evidence-table.md",
         "literature-context-search-log.md",
-        "literature-context.md"
+        "literature-context.md",
+        "root.tex"
       ],
       "path": "research/research-systematic-literature-review",
       "primary_intent": "review",
@@ -1023,7 +1079,8 @@
         "research-paper-review",
         "research-pipeline-planner",
         "research-review-loop",
-        "research-zotero"
+        "research-zotero",
+        "technical-writing-drafter"
       ],
       "resources": {
         "agents": [
@@ -1033,6 +1090,7 @@
         "prompts": [],
         "references": [
           "references/adversarial-literature-checklist.md",
+          "references/claim-cards-and-source-ladder.md",
           "references/domain-adapters.md",
           "references/evidence-table-template.md",
           "references/paper-context-template.md",
@@ -1044,10 +1102,12 @@
           "references/search-strategy-template.md"
         ],
         "scripts": [
+          "scripts/bib_inventory.py",
           "scripts/init_review_pack.py",
           "scripts/paper_context_artifacts.py",
           "scripts/prisma_flow_md.py",
           "scripts/review_pack_coverage.py",
+          "scripts/search_log_rules.py",
           "scripts/validate_review_pack.py"
         ]
       },
@@ -1127,18 +1187,24 @@
         "multi-agent",
         "technical-writing"
       ],
-      "description": "Improve the flow, shape, and readability of existing prose while preserving substance, specificity, tone, and constraints, including planned multi-agent section, paragraph-range, or chunk-level revision for substantial documents when workers are available. Use when Codex needs to make explanatory writing less choppy, less list-heavy, less fragmented, or less over-paragraphed; combine related sentences or paragraphs aggressively but readably; add connective reasoning; favor conjunctions, relative clauses, subordinate clauses, and clean participial phrasing over semicolons; or turn terse notes into natural connected prose. Do not use when the content is inherently list-shaped, procedural, tabular, or governed by a stricter task-specific format.",
+      "description": "Improve the flow, shape, and readability of existing prose while preserving substance, specificity, tone, and constraints, including planned multi-agent section, paragraph-range, or chunk-level revision for substantial documents when workers are available. Use when the agent needs to make explanatory writing less choppy, less list-heavy, less fragmented, or less over-paragraphed; combine related sentences or paragraphs aggressively but readably; add connective reasoning; favor conjunctions, relative clauses, subordinate clauses, and clean participial phrasing over semicolons; or turn terse notes into natural connected prose. Do not use when the content is inherently list-shaped, procedural, tabular, or governed by a stricter task-specific format, and do not use it alone when the task also changes claims, evidence framing, or technical terminology (run technical-writing-reviser first).",
       "domain": "writing",
       "frontmatter": {
-        "description": "Improve the flow, shape, and readability of existing prose while preserving substance, specificity, tone, and constraints, including planned multi-agent section, paragraph-range, or chunk-level revision for substantial documents when workers are available. Use when Codex needs to make explanatory writing less choppy, less list-heavy, less fragmented, or less over-paragraphed; combine related sentences or paragraphs aggressively but readably; add connective reasoning; favor conjunctions, relative clauses, subordinate clauses, and clean participial phrasing over semicolons; or turn terse notes into natural connected prose. Do not use when the content is inherently list-shaped, procedural, tabular, or governed by a stricter task-specific format.",
+        "description": "Improve the flow, shape, and readability of existing prose while preserving substance, specificity, tone, and constraints, including planned multi-agent section, paragraph-range, or chunk-level revision for substantial documents when workers are available. Use when the agent needs to make explanatory writing less choppy, less list-heavy, less fragmented, or less over-paragraphed; combine related sentences or paragraphs aggressively but readably; add connective reasoning; favor conjunctions, relative clauses, subordinate clauses, and clean participial phrasing over semicolons; or turn terse notes into natural connected prose. Do not use when the content is inherently list-shaped, procedural, tabular, or governed by a stricter task-specific format, and do not use it alone when the task also changes claims, evidence framing, or technical terminology (run technical-writing-reviser first).",
         "name": "prose-flow-improver"
       },
-      "inputs": [],
+      "inputs": [
+        "existing explanatory prose or notes (Markdown, LaTeX source, or plain text)",
+        "optional shape brief from technical-writing-reviser when both skills run"
+      ],
       "name": "prose-flow-improver",
-      "outputs": [],
+      "outputs": [
+        "revised prose in the source format with substance, constraints, and connective logic preserved"
+      ],
       "path": "writing/prose-flow-improver",
       "primary_intent": "revision",
       "related_skills": [
+        "technical-writing-drafter",
         "technical-writing-reviser"
       ],
       "resources": {
@@ -1157,27 +1223,102 @@
     {
       "agent_metadata": {
         "interface": {
+          "default_prompt": "Use $technical-writing-drafter to inventory the supporting artifacts, build the claim ledger and outline for my review, then draft section by section.",
+          "display_name": "Technical Writing Drafter",
+          "short_description": "Kickstart a draft from results, reviews, and plans"
+        }
+      },
+      "capabilities": [
+        "interactive",
+        "technical-writing",
+        "validation"
+      ],
+      "description": "Kickstart a manuscript section, report, or rebuttal response from its supporting artifacts (result audits, data and figures, experiment plans, literature reviews, paper plans and claim bindings, issue boards, author notes) at author checkpoints. Builds a claim ledger (what the draft may assert, how strongly) and a paragraph-level outline the author edits before any prose, then drafts section by section under the drafting contract with gates on numbers, citations, and machine-prose tells, then hands off to technical-writing-reviser. Use when there is no draft yet, when an outline should precede prose, when results and a literature review must become a paper or report, or for a first reviewer response from a decided issue board. Do not use to revise existing prose (technical-writing-reviser), smooth flow (prose-flow-improver), decide claims and exhibits (research-paper-plan), audit results (research-results-auditor), decide what a rebuttal concedes (research-rebuttal), or write unsupported claims.",
+      "domain": "writing",
+      "frontmatter": {
+        "description": "Kickstart a manuscript section, report, or rebuttal response from its supporting artifacts (result audits, data and figures, experiment plans, literature reviews, paper plans and claim bindings, issue boards, author notes) at author checkpoints. Builds a claim ledger (what the draft may assert, how strongly) and a paragraph-level outline the author edits before any prose, then drafts section by section under the drafting contract with gates on numbers, citations, and machine-prose tells, then hands off to technical-writing-reviser. Use when there is no draft yet, when an outline should precede prose, when results and a literature review must become a paper or report, or for a first reviewer response from a decided issue board. Do not use to revise existing prose (technical-writing-reviser), smooth flow (prose-flow-improver), decide claims and exhibits (research-paper-plan), audit results (research-results-auditor), decide what a rebuttal concedes (research-rebuttal), or write unsupported claims.",
+        "name": "technical-writing-drafter"
+      },
+      "inputs": [
+        "a project root or folder holding supporting artifacts: results-audit.json, data tables and figures, claim-map.json and experiment-plan.md, literature evidence tables and novelty packs, claim-evidence-bindings.json and paper-plan.md, issue-board.md, manuscript source, author notes",
+        "optional register, venue, source format, and page or word budget",
+        "optional validator results from the owning research skills"
+      ],
+      "name": "technical-writing-drafter",
+      "outputs": [
+        "a short writing brief with job, reader, register, sources, and gates",
+        "check_draft_numbers.py, outline check, and prose_tells.py summary lines for the handoff",
+        "claim-ledger.md and claim-ledger.json with ready, careful, blocked, excluded, and proposed claims",
+        "first-draft prose, section by section in the source format, with [EVIDENCE NEEDED] and [CITATION NEEDED] markers and ledger source comments",
+        "outline.md: one line per paragraph with its claims and exhibits, edited and approved by the author before any prose",
+        "writing-intake.md and writing-intake.json listing what the draft can lean on and the gaps"
+      ],
+      "path": "writing/technical-writing-drafter",
+      "primary_intent": "execution",
+      "related_skills": [
+        "prose-flow-improver",
+        "research-novelty-review",
+        "research-paper-plan",
+        "research-paper-review",
+        "research-rebuttal",
+        "research-results-auditor",
+        "research-review-loop",
+        "research-systematic-literature-review",
+        "technical-writing-reviser"
+      ],
+      "resources": {
+        "agents": [
+          "agents/openai.yaml"
+        ],
+        "assets": [],
+        "prompts": [],
+        "references": [
+          "references/artifact-intake.md",
+          "references/checkpoints.md",
+          "references/claim-ledger.md",
+          "references/drafting-contract.md",
+          "references/section-sources.md",
+          "references/writing-brief-template.md"
+        ],
+        "scripts": [
+          "scripts/build_claim_ledger.py",
+          "scripts/check_draft_citations.py",
+          "scripts/check_draft_numbers.py",
+          "scripts/inventory_artifacts.py",
+          "scripts/outline_from_ledger.py"
+        ]
+      },
+      "skill_file": "writing/technical-writing-drafter/SKILL.md"
+    },
+    {
+      "agent_metadata": {
+        "interface": {
           "default_prompt": "Use $technical-writing-reviser to revise this technical draft into clear reader-facing prose while preserving evidence, scope, and technical meaning.",
           "display_name": "Technical Writing Reviser",
           "short_description": "Revise technical prose without overclaiming"
         }
       },
       "capabilities": [
-        "document-memory",
         "multi-agent",
-        "research-planning",
-        "results-audit",
         "technical-writing"
       ],
-      "description": "Revise existing technical writing into clear, audience-facing prose while preserving evidence, technical meaning, uncertainty, and scope, including planned multi-agent section or issue-cluster revision for substantial artifacts when workers are available. Use for academic manuscripts, industrial technical reports, whitepapers, evaluation summaries, methods/results/limitations prose, technical claims, contribution or decision framing, and terminology conversion from internal shorthand to reader-facing language. Use after critique from research-paper-review or research-review-loop when the task is to revise the artifact's prose and claims, not to re-review it. Do not use when the main task is generic prose flow, citation work, paper planning, novelty review, experiment design, market strategy, or writing unsupported claims.",
+      "description": "Revise technical writing into clear, audience-facing prose while preserving evidence, technical meaning, uncertainty, and scope, with multi-agent revision when workers are available. Use for manuscripts, reports, whitepapers, methods/results/limitations prose, contribution framing, converting internal shorthand to reader-facing terms, and removing habits that read as model-written (dash habits, deny-then-claim contrasts, signpost adverbs, significance inflation, kickers). Use after research-paper-review or research-review-loop critique to revise rather than re-review, to compress to a page or word budget while keeping claims, and on first drafts from technical-writing-drafter. Do not use when no draft exists and prose must be written from results, a review, a plan, or an issue board (technical-writing-drafter), or for generic prose flow (prose-flow-improver), citation work, paper planning, novelty review, experiment design, what a rebuttal concedes (research-rebuttal), or unsupported claims.",
       "domain": "writing",
       "frontmatter": {
-        "description": "Revise existing technical writing into clear, audience-facing prose while preserving evidence, technical meaning, uncertainty, and scope, including planned multi-agent section or issue-cluster revision for substantial artifacts when workers are available. Use for academic manuscripts, industrial technical reports, whitepapers, evaluation summaries, methods/results/limitations prose, technical claims, contribution or decision framing, and terminology conversion from internal shorthand to reader-facing language. Use after critique from research-paper-review or research-review-loop when the task is to revise the artifact's prose and claims, not to re-review it. Do not use when the main task is generic prose flow, citation work, paper planning, novelty review, experiment design, market strategy, or writing unsupported claims.",
+        "description": "Revise technical writing into clear, audience-facing prose while preserving evidence, technical meaning, uncertainty, and scope, with multi-agent revision when workers are available. Use for manuscripts, reports, whitepapers, methods/results/limitations prose, contribution framing, converting internal shorthand to reader-facing terms, and removing habits that read as model-written (dash habits, deny-then-claim contrasts, signpost adverbs, significance inflation, kickers). Use after research-paper-review or research-review-loop critique to revise rather than re-review, to compress to a page or word budget while keeping claims, and on first drafts from technical-writing-drafter. Do not use when no draft exists and prose must be written from results, a review, a plan, or an issue board (technical-writing-drafter), or for generic prose flow (prose-flow-improver), citation work, paper planning, novelty review, experiment design, what a rebuttal concedes (research-rebuttal), or unsupported claims.",
         "name": "technical-writing-reviser"
       },
-      "inputs": [],
+      "inputs": [
+        "existing technical prose (Markdown, LaTeX source, or plain text), including first drafts from technical-writing-drafter with their claim ledger and brief",
+        "optional critique bundle: final_issues.json from research-paper-review or REVIEW_STATE.json from research-review-loop",
+        "optional terminology map, register or venue, and page or word budget"
+      ],
       "name": "technical-writing-reviser",
-      "outputs": [],
+      "outputs": [
+        "claim-change note listing every issue-driven weakening",
+        "prose_tells.py summary line for the handoff",
+        "revised prose in the source format"
+      ],
       "path": "writing/technical-writing-reviser",
       "primary_intent": "revision",
       "related_skills": [
@@ -1187,7 +1328,9 @@
         "research-novelty-review",
         "research-paper-plan",
         "research-paper-review",
-        "research-review-loop"
+        "research-rebuttal",
+        "research-review-loop",
+        "technical-writing-drafter"
       ],
       "resources": {
         "agents": [
@@ -1197,11 +1340,16 @@
         "prompts": [],
         "references": [
           "references/claim-discipline.md",
+          "references/machine-prose-tells.md",
+          "references/register-and-format.md",
           "references/rewrite-examples.md",
           "references/technical-writing-patterns.md",
           "references/terminology-conversion.md"
         ],
-        "scripts": []
+        "scripts": [
+          "scripts/latex_visible_diff.py",
+          "scripts/prose_tells.py"
+        ]
       },
       "skill_file": "writing/technical-writing-reviser/SKILL.md"
     }

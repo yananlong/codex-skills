@@ -8,7 +8,7 @@ description: Run iterative adversarial review over research plans, experiment ou
 ## Quick start
 
 1. Identify the target artifact, stakes, intended audience, and requested evidence class.
-2. Initialize review state with `scripts/init_review_loop.py` unless a review pack already exists. Use `--from-paper-review <review_dir-or-final_issues.json>` when a first-pass paper-review bundle is available.
+2. Initialize review state with `scripts/init_review_loop.py` unless a review pack already exists. Use `--from-paper-review <review_dir, final_issues.json, or project root>` when a first-pass paper-review bundle is available; without a target folder it writes `round-1/` (or the next free round) inside the bundle's workspace. To start the next round of an existing loop, use `--from-state <round-N/REVIEW_STATE.json>`; it writes the next integer `round-<N+1>/` in the same review home. `scripts/resolve_review_artifacts.py --root .` shows where the latest round is when you do not know.
 3. Build a claim ledger and a predecessor-failure ledger before issuing conclusions.
 4. Review for internal consistency, evidence quality, external verifiability, provenance, non-vacuity, complete outcome accounting, and real rather than nominal independence.
 5. Preserve previous rounds and append or version new outputs instead of overwriting prior review artifacts.
@@ -25,6 +25,8 @@ description: Run iterative adversarial review over research plans, experiment ou
 - `research-results-auditor` owns detailed validity checks over concrete result artifacts; invoke it when a route decision turns on experiment outputs.
 - `research-rebuttal` owns responses to external reviewer comments and venue-constrained discussion artifacts.
 - `adversarial-doc-review` is broader and lighter-weight; use it for one-off document critique without a tracked research review state.
+
+Ownership when skills chain: only the skill the user invoked spawns workers, and it sets one budget for the whole chain (quick: no workers; standard: up to 3; deep: 5 to 8). A skill reached by handoff never spawns. When the user invokes this skill, it owns the budget for the round: a first-pass `research-paper-review` it starts runs serially inside that budget, the three review passes below may each take a worker, and revision handed to `technical-writing-reviser` (prose per issue cluster) and the final `prose-flow-improver` pass count against the same budget. When the planner or another skill started this round, run every pass serially. Record the depth and the workers used in the round report.
 
 ## Input contract
 
@@ -46,7 +48,7 @@ description: Run iterative adversarial review over research plans, experiment ou
   - `AUTO_REVIEW.md`
   - `NARRATIVE_REPORT.md`
 - If upstream `paper-review` artifacts exist, keep explicit references to their file paths in the round state rather than rewriting the whole first-pass critique from scratch.
-- Preserve `impact_rating`, `confidence_rating`, `severity`, `quote`, `source_section`, and `related_sections` from `paper-review/final_issues.json` when importing first-pass paper-review issues. Map `impact_rating >= 4` to major-tracked issues, `impact_rating == 3` to moderate tracked issues, and `impact_rating <= 2` to minor tracked issues; if only upstream `severity` is present, preserve it as the tracked severity and leave numeric ratings null.
+- Preserve `impact_rating`, `confidence_rating`, `severity`, `quote`, `source_section`, and `related_sections` from the first-pass bundle's `final_issues.json` when importing first-pass paper-review issues. Map `impact_rating >= 4` to major-tracked issues, `impact_rating == 3` to moderate tracked issues, and `impact_rating <= 2` to minor tracked issues; if only upstream `severity` is present, preserve it as the tracked severity and leave numeric ratings null.
 - If the first-pass bundle lacks a root `review_summary.json` but has `metadata.json.round_summaries` or `round-N/review_summary.json`, use the latest round summary as the numeric/currentness summary and record the exact path in `source_artifacts`.
 - For any round that authorizes advancement, record the bounded verdict, current evidence class, requested evidence class, actual independence dimensions, unresolved predecessor failures, and the exact evidence supporting each closure.
 
@@ -66,8 +68,8 @@ description: Run iterative adversarial review over research plans, experiment ou
 - Never collapse multiple review rounds into one untracked summary.
 - Never overwrite earlier round artifacts without first preserving them in a versioned or timestamped location.
 - Require each issue to have severity or impact rating, confidence, status, evidence, and a concrete fix or follow-up.
-- If `paper-review/final_issues.json` exists, initialize the first tracked issue set from that file instead of inventing a new initial ledger. Keep the paper-review issue title, quote, explanation, source section, and ratings traceable in the state.
-- Before deciding where to write the next round, inspect `metadata.json`, `artifact-index.md`, and existing `round-N/` folders. Continue the latest round number instead of flattening root paper-review files into a round folder.
+- If `resolve_review_artifacts.py` finds a first-pass bundle, initialize the first tracked issue set from its `final_issues.json` instead of inventing a new initial ledger. Keep the paper-review issue title, quote, explanation, source section, and ratings traceable in the state.
+- Write the next round where `resolve_review_artifacts.py --next-round` says: an integer `round-<N>/` folder in the review's home, which for a review started now is `review_results/<slug>_review/`. Existing reviews keep their home, including dated or labelled round folders, and continue there with integer folders; never move or flatten earlier rounds or root paper-review files. `init_review_loop.py --from-state` carries open, resolved, and accepted-risk entries unchanged, keeps their IDs, and sets `round` to prior + 1 (override with `--round N`).
 - Record which agent, model, prompt/context, code path, data access, and authority produced each stage-critical artifact when that provenance is available.
 
 ### 2) Build the claim and failure ledgers first
@@ -126,19 +128,31 @@ description: Run iterative adversarial review over research plans, experiment ou
 
 - Use `references/report-template.md` for each round.
 - Separate major issues from minor issues and open questions.
-- Include targeted rewrites when wording is the real problem.
+- When wording is the real problem, hand the affected passage to `technical-writing-reviser` (with the issue's `route_effect` as critique intake) rather than rewriting it inside the review; a rewrite this skill makes itself follows the drafting contract (`writing/technical-writing-drafter/references/drafting-contract.md`) and records the `prose_tells.py` line.
 - Record what changed since the prior round and why each formerly-open issue is now resolved, deferred, accepted, narrowed, or still open.
 - List the minimum evidence needed to reach the next stronger evidence class.
+
+## Stage gate
+
+This skill owns its stage gate. Standalone, it is the proceed, revise, or stop test for the request. In an orchestrated project the planner applies it, together with the paper-identity and evidence-promotion gates in `research-pipeline-planner/SKILL.md`, before work enters or leaves this stage.
+
+- Proceed when the artifact is important enough to benefit from iterative review.
+- Revise when the artifact is too incomplete to support adversarial feedback.
+- Stop when there is no concrete artifact to review.
+- Carry material predecessor failures forward until new evidence resolves them; reclassification or omission does not close an issue.
+- Every round must classify identity drift as D0-D4. D3-D4 findings become pivot requests rather than ordinary issue closure.
 
 ## References
 
 - `references/review-checklist.md`
 - `references/report-template.md`
 - `references/review-state-schema.md`
-- `references/tabmol-ddi-ood-adapter.md`
+- `references/domain-adapters.md`: optional checks for LLM evaluation, Bayesian measurement, recomputation audits, theory, conceptual work, and the TabMol DDI/OOD agenda, with the rule for choosing one
 - `../research-pipeline-planner/references/review-stage-contract.md`
 - `../research-pipeline-planner/references/epistemic-assurance-contract.md`
 
-## Script
+## Scripts
 
-- `scripts/init_review_loop.py`: create deterministic state and report scaffolds for repeated review rounds; optionally seed open issues from `research-paper-review` output with `--from-paper-review`.
+- `scripts/validate_review_state.py`: check a `REVIEW_STATE.json` against the canonical issue schema. The default mode reads every known layout and reports legacy names as warnings; `--strict` requires the canonical schema, which every state `init_review_loop.py` writes passes.
+- `scripts/resolve_review_artifacts.py` and `scripts/review_schema.py`: shared copies from `research-paper-review` (see its `references/review-schema.md`).
+- `scripts/init_review_loop.py`: create deterministic state and report scaffolds for repeated review rounds. `--from-paper-review` seeds open issues from `research-paper-review` output in any known layout (read through `review_schema.py`, so every alias in the conversion table is accepted and unmapped fields are kept under `extra`), keeping incoming issue `id`s (it mints `PR<n>` only when absent); it exits non-zero and lists issue IDs when title, quote, evidence, or severity (or a 1-5 impact) resolves empty. `--from-state <REVIEW_STATE.json>` continues a loop into the next integer round folder of the same review home; `--round N` sets the round explicitly.

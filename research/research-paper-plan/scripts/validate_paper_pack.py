@@ -183,7 +183,178 @@ def split_text_items(value: str) -> set[str]:
         return set()
     return {part.strip() for part in value.split(";") if part.strip()}
 
-def validate_claims(data: dict[str, Any], complete: bool, errors: list[str]) -> list[dict[str, Any]]:
+MEASUREMENT_PREFIX = "measurement:"
+
+
+def validate_value_bindings(
+    value: Any, label: str, audit_ids: list[str], errors: list[str]
+) -> list[dict[str, Any]]:
+    """Each value binding names the audit, the gate whose result it reports, and the value slot."""
+    if not isinstance(value, list):
+        errors.append(f"{label} must be a list")
+        return []
+    bindings: list[dict[str, Any]] = []
+    for index, item in enumerate(value, start=1):
+        item_label = f"{label}[{index}]"
+        if not isinstance(item, dict):
+            errors.append(f"{item_label} must be an object")
+            continue
+        audit_id = validate_identifier(item.get("audit_id"), f"{item_label}.audit_id", errors)
+        if audit_id and audit_id not in audit_ids:
+            errors.append(f"{item_label}.audit_id {audit_id} is not one of the claim's audit_ids")
+        validate_identifier(item.get("gate_id"), f"{item_label}.gate_id", errors)
+        if not meaningful(item.get("value_slot")):
+            errors.append(
+                f"{item_label}.value_slot must name the reported value: measurement:<id> or a field path in the audit"
+            )
+        if "sentence_anchor" in item and not meaningful(item.get("sentence_anchor")):
+            errors.append(f"{item_label}.sentence_anchor must be substantive when present")
+        bindings.append(item)
+    return bindings
+
+
+def resolve_field_path(record: Any, path: str) -> Any:
+    """Follow a dotted path through an audit record; list segments match an index or an id-like field."""
+    current = record
+    for segment in path.split("."):
+        if isinstance(current, dict):
+            if segment not in current:
+                return None
+            current = current[segment]
+        elif isinstance(current, list):
+            if segment.isdigit() and int(segment) < len(current):
+                current = current[int(segment)]
+                continue
+            matches = [
+                item for item in current
+                if isinstance(item, dict)
+                and any(
+                    value == segment
+                    for key, value in item.items()
+                    if isinstance(value, str) and (key == "id" or key.endswith("_id") or key in {"check", "name"})
+                )
+            ]
+            if len(matches) != 1:
+                return None
+            current = matches[0]
+        else:
+            return None
+    return current
+
+
+def audit_gates(audit: dict[str, Any]) -> set[str]:
+    gates = {str(audit["gate_id"])} if meaningful(audit.get("gate_id")) else set()
+    for run in audit.get("source_runs", []) or []:
+        if isinstance(run, dict) and meaningful(run.get("gate_id")):
+            gates.add(str(run["gate_id"]))
+    return gates
+
+
+def check_value_binding(binding: dict[str, Any], audit: dict[str, Any] | None) -> tuple[list[str], list[str]]:
+    """Return (problems, notes) for one value binding against its audit record."""
+    if audit is None:
+        return [f"audit {binding.get('audit_id')} does not resolve to an audit record"], []
+    problems: list[str] = []
+    notes: list[str] = []
+    gates = audit_gates(audit)
+    gate_id = binding.get("gate_id")
+    if gates and gate_id not in gates:
+        problems.append(f"gate {gate_id} is not a gate of audit {audit.get('audit_id')} ({', '.join(sorted(gates))})")
+    elif not gates:
+        notes.append(f"audit {audit.get('audit_id')} records no gate, so gate {gate_id} is unchecked")
+    slot = str(binding.get("value_slot", ""))
+    if slot.startswith(MEASUREMENT_PREFIX):
+        wanted = slot[len(MEASUREMENT_PREFIX):]
+        measurements = audit.get("measurements")
+        if not isinstance(measurements, list):
+            notes.append(f"audit {audit.get('audit_id')} has no measurements list, so {slot} is unchecked")
+        elif wanted not in {
+            str(item.get("measurement_id", item.get("id")))
+            for item in measurements
+            if isinstance(item, dict)
+        }:
+            problems.append(f"{slot} is not a measurement of audit {audit.get('audit_id')}")
+    elif slot and resolve_field_path(audit, slot) is None:
+        problems.append(f"value slot {slot} does not resolve in audit {audit.get('audit_id')}")
+    return problems, notes
+
+
+def audit_index_of(results_audit: Any) -> dict[str, dict[str, Any]]:
+    if not isinstance(results_audit, dict):
+        return {}
+    return {
+        str(audit["audit_id"]): audit
+        for audit in results_audit.get("audits", []) or []
+        if isinstance(audit, dict) and meaningful(audit.get("audit_id"))
+    }
+
+
+def resolve_bindings(
+    claims: list[dict[str, Any]],
+    audit_index: dict[str, dict[str, Any]],
+    errors: list[str],
+    warnings: list[str],
+    *,
+    check_audit_ids: bool,
+) -> None:
+    """Reject audit links and value bindings that do not resolve against the results audit."""
+    for claim in claims:
+        claim_id = str(claim.get("paper_claim_id", "<unknown>"))
+        if check_audit_ids:
+            for audit_id in claim.get("audit_ids", []) or []:
+                if str(audit_id) not in audit_index:
+                    errors.append(f"paper claim {claim_id} references unknown audit_id {audit_id}")
+            for item in claim.get("audit_exclusions", []) or []:
+                if isinstance(item, dict) and meaningful(item.get("audit_id")) and str(item["audit_id"]) not in audit_index:
+                    errors.append(f"paper claim {claim_id} excludes unknown audit_id {item['audit_id']}")
+        for binding in claim.get("value_bindings", []) or []:
+            if not isinstance(binding, dict):
+                continue
+            problems, notes = check_value_binding(binding, audit_index.get(str(binding.get("audit_id"))))
+            errors.extend(f"paper claim {claim_id} value binding: {problem}" for problem in problems)
+            warnings.extend(f"paper claim {claim_id} value binding: {note}" for note in notes)
+
+
+def report_rows(claims: list[dict[str, Any]], audit_index: dict[str, dict[str, Any]] | None) -> list[list[str]]:
+    rows: list[list[str]] = []
+    for claim in claims:
+        claim_id = str(claim.get("paper_claim_id", ""))
+        bindings = [item for item in claim.get("value_bindings", []) or [] if isinstance(item, dict)]
+        for binding in bindings:
+            if audit_index is None:
+                status = "unchecked: no results audit given"
+            else:
+                problems, notes = check_value_binding(binding, audit_index.get(str(binding.get("audit_id"))))
+                status = "unresolved: " + "; ".join(problems) if problems else ("resolved (" + "; ".join(notes) + ")" if notes else "resolved")
+            rows.append([
+                claim_id, str(binding.get("sentence_anchor", "")), str(binding.get("audit_id", "")),
+                str(binding.get("gate_id", "")), str(binding.get("value_slot", "")), status,
+            ])
+        if not bindings:
+            audits = [str(audit_id) for audit_id in claim.get("audit_ids", []) or []]
+            for audit_id in audits or [""]:
+                if not audit_id:
+                    status = "no audit link"
+                elif audit_index is not None and audit_id not in audit_index:
+                    status = "unresolved: audit link does not resolve"
+                else:
+                    status = "legacy: no gate or value slot"
+                rows.append([claim_id, "", audit_id, "", "", status])
+    return rows
+
+
+def print_report(rows: list[list[str]]) -> None:
+    headers = ["Claim", "Sentence anchor", "Audit", "Gate", "Value slot", "Status"]
+    print("| " + " | ".join(headers) + " |")
+    print("| " + " | ".join("---" for _ in headers) + " |")
+    for row in rows:
+        print("| " + " | ".join(cell.replace("|", "/") for cell in row) + " |")
+
+
+def validate_claims(
+    data: dict[str, Any], complete: bool, errors: list[str], warnings: list[str] | None = None
+) -> list[dict[str, Any]]:
+    warnings = [] if warnings is None else warnings
     claims = data.get("claims")
     if not isinstance(claims, list):
         errors.append("claim-evidence-bindings.json.claims must be a list")
@@ -234,6 +405,13 @@ def validate_claims(data: dict[str, Any], complete: bool, errors: list[str]) -> 
         citation_ids = substantive_string_list(claim.get("citation_need_ids"), f"{label}.citation_need_ids", errors)
         limitations = substantive_string_list(claim.get("limitations"), f"{label}.limitations", errors)
         missing = substantive_string_list(claim.get("missing_evidence"), f"{label}.missing_evidence", errors)
+        if "value_bindings" in claim:
+            validate_value_bindings(claim["value_bindings"], f"{label}.value_bindings", audit_ids, errors)
+        elif complete and evidence_mode in {"empirical", "mixed"} and support in {"supported", "partial"} and audit_ids:
+            warnings.append(
+                f"{label}: no value_bindings; name the gate_id and value_slot each reported value comes from "
+                "(bindings without them still validate)"
+            )
         excluded_ids = {item["audit_id"] for item in audit_exclusions if item.get("audit_id")}
         overlap = set(audit_ids) & excluded_ids
         if overlap:
@@ -412,25 +590,18 @@ def rerun_results_audit_validator(
     narrative: Path,
     commitment: Path,
     claim_map: Path,
-    work_items: Path,
+    work_items: Path | None,
     errors: list[str],
 ) -> None:
-    command = [
-        sys.executable,
-        str(validator),
-        "--audit",
-        str(audit),
-        "--narrative",
-        str(narrative),
-        "--assurance-profile",
-        "linked",
-        "--commitment",
-        str(commitment),
-        "--claim-map",
-        str(claim_map),
-        "--work-items",
-        str(work_items),
-    ]
+    """Revalidate the upstream audit: linked with work items, structural for standalone audits."""
+    command = [sys.executable, str(validator), "--audit", str(audit), "--narrative", str(narrative)]
+    if work_items is not None:
+        command += [
+            "--assurance-profile", "linked",
+            "--commitment", str(commitment),
+            "--claim-map", str(claim_map),
+            "--work-items", str(work_items),
+        ]
     completed = subprocess.run(command, text=True, capture_output=True)
     if completed.returncode != 0:
         detail = (completed.stdout + "\n" + completed.stderr).strip()
@@ -444,6 +615,8 @@ def validate_linked(
     claim_map: Any,
     results_audit: Any,
     errors: list[str],
+    *,
+    standalone: bool = False,
 ) -> None:
     if not isinstance(commitment, dict):
         errors.append("linked profile requires commitment JSON object")
@@ -466,7 +639,9 @@ def validate_linked(
         return
     if results_audit.get("status") != "complete":
         errors.append("linked paper plan requires results-audit.status=complete")
-    if results_audit.get("paper_id") != data.get("paper_id"):
+    if results_audit.get("paper_id") != data.get("paper_id") and not (
+        standalone and not meaningful(results_audit.get("paper_id"))
+    ):
         errors.append("results-audit paper_id does not match paper binding")
     if results_audit.get("identity_version") != data.get("identity_version"):
         errors.append("results-audit identity_version does not match paper binding")
@@ -621,12 +796,18 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--results-audit-narrative", type=Path)
     parser.add_argument("--work-items", type=Path)
     parser.add_argument("--results-audit-validator", type=Path)
+    parser.add_argument(
+        "--report", action="store_true",
+        help="print the bindings as a table: claim, sentence anchor, audit, gate, value slot, status",
+    )
     return parser.parse_args()
 
 
 def main() -> int:
     args = parse_args()
     errors: list[str] = []
+    warnings: list[str] = []
+    audit_index: dict[str, dict[str, Any]] | None = None
     plan = read_text(args.plan, "paper plan", errors)
     matrix = read_text(args.matrix, "claims-evidence matrix", errors)
     figure = read_text(args.figure_plan, "figure plan", errors)
@@ -650,8 +831,17 @@ def main() -> int:
         complete = status == "complete"
         if complete and not meaningful(data.get("paper_id")):
             errors.append("complete claim-evidence bindings require substantive paper_id")
-        claims = validate_claims(data, complete, errors)
+        claims = validate_claims(data, complete, errors, warnings)
         validate_markdown_views(claims, matrix, figure, citation, complete, errors)
+        if args.assurance_profile == "structural":
+            if args.results_audit is not None:
+                results_audit = read_json(args.results_audit, "results-audit", errors)
+                audit_index = audit_index_of(results_audit)
+                resolve_bindings(claims, audit_index, errors, warnings, check_audit_ids=True)
+            elif complete and any(claim.get("audit_ids") for claim in claims):
+                warnings.append(
+                    "audit links were not checked; pass --results-audit to reject links that do not resolve"
+                )
         if args.assurance_profile == "linked":
             if status != "complete":
                 errors.append("linked assurance profile requires claim-evidence-bindings.status=complete")
@@ -660,14 +850,30 @@ def main() -> int:
                 args.claim_map,
                 args.results_audit,
                 args.results_audit_narrative,
-                args.work_items,
             )
+            standalone = False
+            if all(required_paths) and args.work_items is None:
+                # --work-items is optional when every bound audit is a standalone audit: there is no
+                # harness work item to bind, and the upstream audit is revalidated structurally.
+                preview = audit_index_of(read_json(args.results_audit, "results-audit", errors))
+                bound = {
+                    str(audit_id)
+                    for claim in claims
+                    for audit_id in claim.get("audit_ids", []) or []
+                }
+                standalone = bool(bound) and all(
+                    preview.get(audit_id, {}).get("source_mode") == "standalone" for audit_id in bound
+                )
+                if not standalone:
+                    errors.append(
+                        "linked profile requires --work-items unless every bound audit has source_mode standalone"
+                    )
             if not all(required_paths):
                 errors.append(
                     "linked profile requires --commitment, --claim-map, --results-audit, "
-                    "--results-audit-narrative, and --work-items"
+                    "--results-audit-narrative, and --work-items (optional when every bound audit is standalone)"
                 )
-            else:
+            elif args.work_items is not None or standalone:
                 validator = args.results_audit_validator or (
                     Path(__file__).resolve().parents[2]
                     / "research-results-auditor"
@@ -686,11 +892,16 @@ def main() -> int:
                 commitment = read_json(args.commitment, "commitment", errors)
                 claim_map = read_json(args.claim_map, "claim-map", errors)
                 results_audit = read_json(args.results_audit, "results-audit", errors)
-                validate_linked(data, claims, commitment, claim_map, results_audit, errors)
+                validate_linked(data, claims, commitment, claim_map, results_audit, errors, standalone=standalone)
+                audit_index = audit_index_of(results_audit)
+                resolve_bindings(claims, audit_index, errors, warnings, check_audit_ids=False)
+    if args.report and isinstance(data, dict):
+        print_report(report_rows(claims, audit_index))
     if errors:
         print("Validation failed:")
         for error in errors:
             print(f"- {error}")
+        print_warnings(warnings)
         return 1
     if args.assurance_profile == "linked":
         print(
@@ -704,7 +915,15 @@ def main() -> int:
             "Validation passed: the paper-planning pack and claim-evidence bindings are structurally consistent. "
             "This does not establish evidential sufficiency, citation correctness, or manuscript validity."
         )
+    print_warnings(warnings)
     return 0
+
+
+def print_warnings(warnings: list[str]) -> None:
+    if warnings:
+        print("Warnings:")
+        for warning in warnings:
+            print(f"- {warning}")
 
 
 if __name__ == "__main__":

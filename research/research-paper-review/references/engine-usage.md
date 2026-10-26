@@ -4,10 +4,11 @@ This skill keeps the research-stack integration local while delegating the heavy
 
 ## Bootstrap
 
-Install the engine once:
+The engine is pinned to OpenAIReview 0.3.0 (release tag `v0.3.0`, commit `27740f8434cf18bd2d66d228291d9dcc3e046bc2`), which needs Python 3.12 or newer. Install it once:
 
 ```bash
-python3 scripts/install_engine.py
+python3 scripts/install_engine.py               # the pinned release commit from GitHub
+python3 scripts/install_engine.py --source pypi # the same version from PyPI
 ```
 
 Install optional OCR extras:
@@ -20,14 +21,18 @@ python3 scripts/install_engine.py --with deepseek
 Useful flags:
 
 - `--source github|pypi`
-- `--ref <branch-or-sha>` when using GitHub
+- `--ref <branch-or-sha>` when using GitHub. Any ref other than the pinned commit or tag installs an unpinned engine; the installer warns and records the choice, and the wrappers then accept it.
 - `--reinstall`
 - `--venv <path>`
 
-Default virtualenv:
+Default virtualenv, always outside the skill directory so packaging or updating the skill never carries or overwrites it:
 
 - `OPENAIREVIEW_VENV` if set
-- otherwise `./.openaireview-venv` inside this skill directory
+- otherwise `$XDG_DATA_HOME/codex-skills/openaireview-0.3.0/`, or `~/.local/share/codex-skills/openaireview-0.3.0/` when `XDG_DATA_HOME` is unset
+
+The installer writes `codex-skills-engine.json` into the virtualenv with the version, source, ref, and whether the install is pinned. Every wrapper checks it: an installed version that differs from the pin stops with the reinstall command, unless the marker records a deliberate unpinned install. An older install at `./.openaireview-venv` inside the skill is no longer used and can be deleted.
+
+To move to a newer upstream release, change `ENGINE_VERSION`, `ENGINE_TAG`, and `ENGINE_COMMIT` in `scripts/_engine.py` together, reinstall, and rerun the skill's tests.
 
 ## Mirror CLI
 

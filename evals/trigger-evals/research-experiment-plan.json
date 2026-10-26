@@ -1,0 +1,29 @@
+[
+  {
+    "query": "design the minimum set of experiments that would falsify the claim that our calibration method helps under distribution shift, 3 baselines max",
+    "should_trigger": true
+  },
+  {
+    "query": "set up an overnight loop that edits only train.py, runs the 5-minute eval, and keeps changes that lower val_bpb",
+    "should_trigger": true
+  },
+  {
+    "query": "optimize the support agent's system prompt against the frozen 10-case test suite, keep what improves the score",
+    "should_trigger": true
+  },
+  {
+    "query": "audit these pilot results before I decide anything",
+    "should_trigger": false,
+    "expected_skill": "research-results-auditor"
+  },
+  {
+    "query": "what research direction should we take after the negative result on route B?",
+    "should_trigger": false,
+    "expected_skill": "research-idea-discovery"
+  },
+  {
+    "query": "plan the whole project from literature review to paper",
+    "should_trigger": false,
+    "expected_skill": "research-pipeline-planner"
+  }
+]

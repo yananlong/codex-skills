@@ -1,6 +1,6 @@
 ---
 name: research-paper-plan
-description: Turn supported claims and evidence into a research paper plan that works either as a standalone manuscript-structuring pass or as the paper stage inside a coordinated research workflow. Use when asked to outline a paper, map claims to evidence, bind audited results to manuscript claims, plan figures and citations, align experiments to manuscript language, or keep limitations and threats to validity explicit.
+description: Turn supported claims and evidence into a research paper plan that works either as a standalone manuscript-structuring pass or as the paper stage inside a coordinated research workflow. Use when asked to outline a paper, map claims to evidence, bind audited results to manuscript claims, plan figures and citations, align experiments to manuscript language, port a paper between venues or page budgets, or keep limitations and threats to validity explicit. A plain outline or a related-work outline with no results audit is a lightweight pass that needs no JSON pack. Not for revising existing prose (technical-writing-reviser), reviewing a draft (research-paper-review), or answering reviewers (research-rebuttal).
 ---
 
 # Research Paper Plan
@@ -44,12 +44,14 @@ Prefer:
 - validated result-audit JSON;
 - source experiment claim map;
 - commitment identity;
-- target venue and page budget;
+- target venue and page budget (look the venue up with `scripts/venue_table.py show <venue_id>`; never write venue numbers from memory);
 - known weaknesses and reviewer objections;
 - desired exhibits;
 - verified citation exports or Zotero artifacts.
 
 ## Output contract
+
+Reader-facing prose in these artifacts is written under the drafting contract (`writing/technical-writing-drafter/references/drafting-contract.md`): claims listed with their support before writing, no machine-prose tells, and `prose_tells.py --max-density 20` run on the draft before handoff, with its summary line recorded in the artifact index. Do not draft first and patch later. Manuscript prose itself is not this skill's output; `technical-writing-drafter` drafts it from the bindings below and `technical-writing-reviser` revises it.
 
 ### Canonical machine binding
 
@@ -178,7 +180,16 @@ For theoretical claims, link concrete proof or argument artifacts. For citation 
 - Ensure the Markdown matrix contains exactly the canonical claims.
 - Ensure exhibit and citation references are reciprocal.
 - Run structural validation for standalone packs and linked validation for orchestrated packs.
-- Hand the validated pack to drafting or `research-review-loop`; missing evidence remains a block.
+- Hand the validated pack to `technical-writing-drafter`, which builds its claim ledger from the bindings and writes the manuscript sections under the drafting contract (evidence-bearing sections first, framing last, `[EVIDENCE NEEDED]` markers where a claim is blocked), or to `research-review-loop` when a draft already exists; missing evidence remains a block in either case.
+
+## Stage gate
+
+This skill owns its stage gate. Standalone, it is the proceed, revise, or stop test for the request. In an orchestrated project the planner applies it, together with the paper-identity and evidence-promotion gates in `research-pipeline-planner/SKILL.md`, before work enters or leaves this stage.
+
+- Proceed when supported evidence can sustain the committed minimum publishable claim.
+- Revise when claims outrun evidence or the plan prioritizes optional extensions over the minimum sufficient paper.
+- Stop when there is no credible support for the main claim or when the outline changes the paper identity without authorization.
+- Mark every section and exhibit as `submission-critical`, `defensive`, or `optional`.
 
 ## Validation
 
@@ -221,10 +232,11 @@ A passing validator establishes declared linkage and consistency, not scientific
 - `references/venue-adapters.md`
 - `references/exhibit-plan-checklist.md`
 - `references/citation-verification-rules.md`
-- `references/tabmol-ddi-ood-adapter.md`
+- `references/domain-adapters.md`: optional checks for LLM evaluation, Bayesian measurement, recomputation audits, theory, conceptual work, and the TabMol DDI/OOD agenda, with the rule for choosing one
 - `../research-pipeline-planner/references/result-audit-paper-binding-contract.md`
 
 ## Scripts
 
 - `scripts/init_paper_pack.py`: initialize the four Markdown views plus canonical `claim-evidence-bindings.json`.
-- `scripts/validate_paper_pack.py`: validate binding structure, status/action rules, matrix/exhibit/citation reciprocity, paper identity, source claims, result-audit thresholds, and audited artifact paths.
+- `scripts/validate_paper_pack.py`: validate binding structure, status/action rules, matrix/exhibit/citation reciprocity, paper identity, source claims, result-audit thresholds, and audited artifact paths. Value bindings name the gate and value slot each reported value comes from; audit links that do not resolve are errors (pass `--results-audit` under the structural profile to check them); `--work-items` is optional when every bound audit is standalone; `--report` prints the bindings as a table.
+- `scripts/venue_table.py`: show, diff, and check rows of the shared venue table `references/venues.json` (shared with `research-rebuttal`); rows older than a year or not verified are flagged.

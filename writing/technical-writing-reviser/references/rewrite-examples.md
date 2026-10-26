@@ -73,10 +73,31 @@ After:
 Before:
 "These results prove that the model has semantic-pragmatic competence."
 
-After:
-"These results are consistent with semantic-pragmatic competence under the evaluated conditions."
+After, when the evaluation discriminates competence from the controlled shortcuts:
+"These results show semantic-pragmatic competence on the evaluated task families once the controlled shortcut strategies are ruled out."
 
-If ruling out shortcut explanations is itself part of the experimental claim, state the surviving alternatives explicitly. Otherwise, do not append a generic sentence saying the results fail to rule out every possible shortcut.
+After, only when named alternatives remain live:
+"These results are consistent with semantic-pragmatic competence, although a frequency-based strategy remains a live alternative on two task families."
+
+Move down one rung at a time and stop at the first supported form. Do not jump from "prove" to "consistent with" by default. If ruling out shortcut explanations is itself part of the experimental claim, state the surviving alternatives explicitly. Otherwise, do not append a generic sentence saying the results fail to rule out every possible shortcut.
+
+## Evidence Conflict
+
+Before:
+"The two conditions are equivalent." (the source's own analysis shows the conditions cannot be distinguished by the data, which is non-identifiability, not equivalence)
+
+After:
+Do not weaken to "the conditions appear equivalent", which is still false. Flag: the evidence shows the data cannot distinguish the conditions; the sentence should state non-identifiability or be removed.
+
+## Formal Statement
+
+Before (reviser-damaged):
+"Under the evaluated conditions, the construction appears to preserve exactness."
+
+After (restored):
+"Under hypotheses (H1) and (H2), the construction preserves exactness (Theorem 3)."
+
+The hypotheses are the scope. An empirical hedge on a proved statement is an error, not caution.
 
 ## Limitation Prose
 
@@ -84,7 +105,9 @@ Before:
 "This is probably narrow and we have not really checked everything yet."
 
 After:
-"This analysis covers the evaluated task families and settings, so broader generalization requires additional evaluation."
+"The analysis covers three task families in English with one model family, so transfer to morphologically rich languages and to instruction-tuned variants remains untested."
+
+Name the actual boundary and its consequence. A stock sentence about "broader generalization" is the generic disclaimer the skill elsewhere removes.
 
 ## Manufactured Contrastive Negation
 

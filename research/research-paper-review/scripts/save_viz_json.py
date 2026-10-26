@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the packaged OpenAIReview viz-json helper with Codex-safe defaults."""
+"""Run the packaged OpenAIReview viz-json helper with runtime-labelled defaults."""
 
 from __future__ import annotations
 
@@ -10,8 +10,15 @@ from pathlib import Path
 from _engine import DEFAULT_VENV, run_packaged_skill_script
 
 
-DEFAULT_METHOD_KEY = "openaireview__codex"
-DEFAULT_METHOD_LABEL = "OpenAIReview (Codex)"
+DEFAULT_RUNTIME = "agent"
+
+
+def method_key(runtime: str) -> str:
+    return f"openaireview__{runtime}"
+
+
+def method_label(runtime: str) -> str:
+    return f"OpenAIReview ({runtime})"
 
 
 def _impact_to_severity(value: object) -> str:
@@ -39,29 +46,35 @@ def parse_args() -> tuple[argparse.Namespace, list[str]]:
             "values before running the packaged viz helper."
         ),
     )
+    parser.add_argument(
+        "--runtime",
+        default=DEFAULT_RUNTIME,
+        help="Runtime label for the viz method key (openaireview__<runtime>), method label, "
+        "and model field. Default: agent.",
+    )
     args, remainder = parser.parse_known_args()
     if remainder and remainder[0] == "--":
         remainder = remainder[1:]
     return args, remainder
 
 
-def _parse_helper_args(remainder: list[str]) -> argparse.Namespace:
+def _parse_helper_args(remainder: list[str], runtime: str = DEFAULT_RUNTIME) -> argparse.Namespace:
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument("review_dir", nargs="?")
     parser.add_argument("--output-dir", default="./review_results")
-    parser.add_argument("--method-key", default=DEFAULT_METHOD_KEY)
-    parser.add_argument("--method-label", default=DEFAULT_METHOD_LABEL)
+    parser.add_argument("--method-key", default=method_key(runtime))
+    parser.add_argument("--method-label", default=method_label(runtime))
     parser.add_argument("--slug-suffix", default="")
     parsed, _unknown = parser.parse_known_args(remainder)
     return parsed
 
 
-def _with_codex_defaults(remainder: list[str]) -> list[str]:
+def _with_runtime_defaults(remainder: list[str], runtime: str = DEFAULT_RUNTIME) -> list[str]:
     updated = list(remainder)
     if "--method-key" not in updated:
-        updated.extend(["--method-key", DEFAULT_METHOD_KEY])
+        updated.extend(["--method-key", method_key(runtime)])
     if "--method-label" not in updated:
-        updated.extend(["--method-label", DEFAULT_METHOD_LABEL])
+        updated.extend(["--method-label", method_label(runtime)])
     return updated
 
 
@@ -92,7 +105,7 @@ def _restore_final_issues(review_dir: Path, original: str | None) -> None:
         (review_dir / "final_issues.json").write_text(original, encoding="utf-8")
 
 
-def _mark_viz_model_codex(helper_args: argparse.Namespace) -> None:
+def _mark_viz_model(helper_args: argparse.Namespace, runtime: str = DEFAULT_RUNTIME) -> None:
     if not helper_args.review_dir:
         return
     review_dir = Path(helper_args.review_dir)
@@ -108,14 +121,14 @@ def _mark_viz_model_codex(helper_args: argparse.Namespace) -> None:
     data = json.loads(output_path.read_text(encoding="utf-8"))
     method = data.get("methods", {}).get(helper_args.method_key)
     if isinstance(method, dict):
-        method["model"] = "codex"
+        method["model"] = runtime
         output_path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
 
 
 def main() -> int:
     args, remainder = parse_args()
-    remainder = _with_codex_defaults(remainder)
-    helper_args = _parse_helper_args(remainder)
+    remainder = _with_runtime_defaults(remainder, args.runtime)
+    helper_args = _parse_helper_args(remainder, args.runtime)
     review_dir = Path(helper_args.review_dir) if helper_args.review_dir else None
     original_final_issues = None
 
@@ -128,7 +141,7 @@ def main() -> int:
             _restore_final_issues(review_dir, original_final_issues)
 
     if result == 0:
-        _mark_viz_model_codex(helper_args)
+        _mark_viz_model(helper_args, args.runtime)
     return result
 
 

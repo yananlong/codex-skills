@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 
 from review_pack_coverage import validate_coverage_questions
+from search_log_rules import check_row, is_legacy, legacy_warning, query_count
 
 PROFILES = {
     "comprehensive-systematic",
@@ -329,25 +330,34 @@ def validate_search(
     manifest_seeds: set[str],
     coverage_enabled: bool,
     errors: list[str],
+    warnings: list[str] | None = None,
 ) -> list[dict[str, str]]:
+    warnings = [] if warnings is None else warnings
     query_header, query_rows = parse_table(text, "## Source queries", errors, "search log")
-    require_columns(
-        query_header,
-        ({"run_id", "channel", "source", "coverage_target", "query_or_seed", "records_returned", "unique_candidates", "included_yield", "question_ids"}
-         if coverage_enabled else
-         {"run_id", "channel", "source", "coverage_target", "query_or_seed", "records_returned", "unique_candidates", "included_yield"}),
-        "search log source queries",
-        errors,
-    )
+    legacy = is_legacy(query_header) and "records_returned" in query_header
+    counts = ("records_returned",) if legacy else ("results_inspected",)
+    required = {"run_id", "channel", "source", "coverage_target", "query_or_seed", "unique_candidates", "included_yield"}
+    required |= {"records_returned"} if legacy else {"tool", "results_inspected", "spot_checked"}
+    if coverage_enabled:
+        required.add("question_ids")
+    require_columns(query_header, required, "search log source queries", errors)
+    if legacy:
+        warnings.append(legacy_warning("search log source queries"))
     substantive_queries = []
     for index, row in enumerate(query_rows, 1):
         if not substantive(row.get("run_id")):
             continue
+        label = f"source query row {index}"
         for field in ("channel", "source", "coverage_target", "query_or_seed"):
             if not substantive(row.get(field)):
-                errors.append(f"source query row {index}.{field} must be substantive")
-        for field in ("records_returned", "unique_candidates", "included_yield"):
-            parse_non_negative(row.get(field, ""), f"source query row {index}.{field}", errors)
+                errors.append(f"{label}.{field} must be substantive")
+        if legacy:
+            if query_count(row.get("query_or_seed", "")) > 1:
+                warnings.append(f"{label}.query_or_seed holds more than one query; write one query per row")
+        else:
+            check_row(row, "query_or_seed", label, errors)
+        for field in (*counts, "unique_candidates", "included_yield"):
+            parse_non_negative(row.get(field, ""), f"{label}.{field}", errors)
         substantive_queries.append(row)
     if not substantive_queries:
         errors.append("search log must contain at least one substantive source query")
@@ -483,6 +493,9 @@ def validate_evidence(text: str, studies_included: int | None, errors: list[str]
             errors.append(f"evidence row {index}.publication_url must be an http(s) URL")
         if not substantive(row.get("publication_status")):
             errors.append(f"evidence row {index}.publication_status must be substantive")
+        for column, value in row.items():
+            if value.strip().upper() == "TODO":
+                errors.append(f"evidence row {index}.{column} is still a TODO placeholder")
     if studies_included is not None and len(data_rows) != studies_included:
         errors.append(
             f"evidence rows ({len(data_rows)}) must equal studies_included ({studies_included})"
@@ -528,6 +541,7 @@ def main() -> int:
     args = parser.parse_args()
     paths = {key: Path(value).expanduser().resolve() for key, value in vars(args).items()}
     errors: list[str] = []
+    warnings: list[str] = []
     texts = {
         key: read_text(path, key.replace("_", "-"), errors)
         for key, path in paths.items()
@@ -556,7 +570,7 @@ def main() -> int:
     counts = parse_prisma(texts.get("screening_log", ""), errors)
     coverage_enabled = isinstance(manifest, dict) and manifest.get("schema_version") == "1.1"
     query_rows = validate_search(
-        texts.get("search_log", ""), profile, verdict, manifest_seeds, coverage_enabled, errors
+        texts.get("search_log", ""), profile, verdict, manifest_seeds, coverage_enabled, errors, warnings
     )
     validate_coverage_questions(manifest, query_rows, profile, verdict, record_ids, errors)
     validate_recall(texts.get("recall_audit", ""), profile, verdict, challenge_ids, errors)
@@ -571,13 +585,20 @@ def main() -> int:
         print("Validation failed:")
         for error in errors:
             print(f"- {error}")
+        print_warnings(warnings)
         return 1
     print(
         f"Validation passed: review artifacts satisfy the declared {profile} process profile "
         f"with verdict {verdict}. This validates recorded structure, consistency, and declared "
         "recall controls; it does not prove actual completeness, source independence, or scientific validity."
     )
+    print_warnings(warnings)
     return 0
+
+
+def print_warnings(warnings: list[str]) -> None:
+    for warning in warnings:
+        print(f"warning: {warning}")
 
 
 if __name__ == "__main__":

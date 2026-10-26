@@ -49,7 +49,7 @@ Use new projects, new literature topics, and reviewers who did not tune the impl
 - time to execute, submit, split, park, or kill;
 - whether projects reopen ideation less often without evidential triggers.
 
-Only this prospective stage can support a broader claim that the suite improves research outcomes beyond the locked regression set.
+Only this prospective stage can support a broader claim that the suite improves research outcomes beyond the locked regression set. The study protocol and its tooling live in the repository's `evals/prospective/`, outside the skill package.
 
 ## Commitment transition authority
 

@@ -49,15 +49,24 @@ Use when `research-paper-review` needs external context for one paper's novelty,
 - Inputs should come from `research-paper-review/summary.md` when available: title/domain, one-sentence contribution, novelty dimensions, cited closest prior work, benchmark context, and targeted context questions.
 - When invoked from a paper-review workspace, write outputs under `<review_dir>/context/`; otherwise use one explicit output directory.
 - Required outputs are `literature-context.md`, `literature-context-search-log.md`, `literature-context-evidence-table.md`, and `literature-context-decision.json`.
-- Use `scripts/paper_context_artifacts.py init` and `validate` when useful.
+- Use `scripts/paper_context_artifacts.py init` and `validate` when useful. `init` leaves ratings `null` and cells as `TODO`; `validate` rejects any remaining `TODO`, unset rating, non-list list field, or wrong `mode`. Pass `validate --draft` only to check an in-progress bundle.
 - Preserve original paths and provenance when later stages consume the context bundle.
+
+## Manuscript citation audit
+
+Use for the quick path on a draft: "what am I missing?" or "are my citations consistent?". Run it before any search so the cited set is the baseline.
+
+- Run `scripts/bib_inventory.py --tex <root.tex> --out-md citation-audit.md --out-json bib-inventory.json`. It follows `\input`, `\include`, and `\subfile`, reads the files named in `\bibliography{}` or `\addbibresource{}` (or `--bib`), and lists every cited key as `resolved`, `missing-entry`, or `unused`, with DOI, URL, or eprint where the entry has one.
+- Fix `missing-entry` keys and case mismatches first. Treat entries without DOI, URL, or eprint as unresolved citations.
+- Use the JSON `records` as visible seeds or candidate corpus-manifest records. Their `question_ids` are empty and `publication_status` is a heuristic, so link and verify them before they enter a validated manifest. Log the source in the search log's Zotero ledger with `access_mode` `local-bib`.
+- The audit checks consistency only. It does not show that the bibliography covers the relevant literature; use paper-context mode or a review profile for that.
 
 ## Relationship to sibling skills
 
 - `research-pipeline-planner` owns whether literature assurance is sufficient for commitment or route advancement.
 - `research-paper-review` owns technical critique of one paper; this skill supplies bounded context or a full review.
 - `research-idea-discovery` consumes landscape evidence but owns idea generation and ranking.
-- `research-novelty-review` owns adversarial novelty and positioning decisions and should consume this skill's recall-audited corpus when available.
+- `research-novelty-review` owns adversarial novelty and positioning decisions and should consume this skill's recall-audited corpus when available. Its unlinked mode caps the novelty rating at 3; a validated paper context or seven-file pack bound to the decision lifts the cap.
 - `research-zotero` owns library sync and citation export; Zotero records remain candidates until screened.
 - `research-review-loop` tracks whether literature omissions and overclaims are actually repaired.
 - `research-paper-plan` uses the narrowest claims supported by the review and its assurance verdict.
@@ -96,6 +105,8 @@ Prefer:
 
 ## Output contract
 
+Reader-facing prose in these artifacts is written under the drafting contract (`writing/technical-writing-drafter/references/drafting-contract.md`): claims listed with their support before writing, no machine-prose tells, and `prose_tells.py --max-density 20` run on the draft before handoff, with its summary line recorded in the artifact index. Do not draft first and patch later.
+
 Full review packs produce:
 
 - `<topic>.protocol.md`
@@ -116,7 +127,7 @@ Every included record must have a canonical publication URL and explicit publica
 ### 1) Define protocol and domain adapter
 
 - Record the review profile, research question, intended decision, inclusion/exclusion criteria, foundational horizon, current-evidence horizon, update horizon, language, publication types, outcomes or conceptual questions, and quality threshold.
-- Select an adapter: empirical intervention, methodological, theoretical/mathematical, benchmark/dataset, software/system, interdisciplinary conceptual, novelty/prior-art, or emerging-field.
+- Select an adapter from `references/domain-adapters.md`: `ai-ml`, `biomedical`, `social-science`, `policy-governance`, `theoretical-mathematical`, or `conceptual-interdisciplinary`. For benchmark/dataset, software/system, or emerging-field reviews, name the closest adapter and record the deviations.
 - Record defaults and deviations.
 - If `technical_exposition=detailed_math`, require formal definitions, notation, key equations/objectives, and theorem statements or proof sketches where relevant.
 
@@ -142,7 +153,7 @@ Record decisions and yields for:
 - grey literature and repository search
 - Zotero or user-corpus cross-check
 
-For each query or expansion, log the coverage target, linked coverage-question IDs, exact query or seed, filters, retrieval date, records returned, unique candidates, included yield, new vocabulary, and next repair action.
+For each query or expansion, log the coverage target, linked coverage-question IDs, exact query or seed, filters, retrieval date, the tool used, results inspected, the results spot-checked, unique candidates, included yield, new vocabulary, and next repair action. Write one query per row. Record what the tool actually showed: `results_inspected` counts the results looked at and `spot_checked` names the ones opened and checked. A web-search tool does not report a database's total hit count, so the log has no `records_returned` column; older logs that have one validate with a warning. The paper-context search log follows the same rule.
 
 For major ML conferences hosted on OpenReview, use accepted venue records when venue status is clear; do not treat rejected, withdrawn, or merely submitted records as canonical publications.
 
@@ -202,6 +213,16 @@ For major ML conferences hosted on OpenReview, use accepted venue records when v
 - State source and access limitations prominently.
 - A passing validator establishes recorded structural and process consistency, not actual completeness, independent screening, or scientific validity.
 
+## Stage gate
+
+This skill owns its stage gate. Standalone, it is the proceed, revise, or stop test for the request. In an orchestrated project the planner applies it, together with the paper-identity and evidence-promotion gates in `research-pipeline-planner/SKILL.md`, before work enters or leaves this stage.
+
+- Proceed when the review profile, question, scope boundaries, source plan, and expected assurance level are explicit.
+- For `comprehensive-systematic` and `bounded-systematic`, also require a visible seed set, citation-search decisions, recall audit, corpus manifest, and stopping rationale before expensive extraction and synthesis.
+- Revise when the topic is broad enough that search terms collapse into noise, known relevant seeds are missed, citation searching yields material additions that expose a deficient original strategy, or important coverage cells remain unexplained.
+- Stop comprehensive claims when retrieval assurance is insufficient. Continue as a bounded review, critical evidence map, rapid scan, or novelty-oriented prior-art search with an honest label.
+- Never infer adequate recall from PRISMA counts, canonical URLs, file presence, or validator success alone.
+
 ## References
 
 - `references/recall-assurance-contract.md`
@@ -209,6 +230,7 @@ For major ML conferences hosted on OpenReview, use accepted venue records when v
 - `references/search-strategy-template.md`
 - `references/screening-template.md`
 - `references/evidence-table-template.md`
+- `references/claim-cards-and-source-ladder.md`: fetch status per source, source ladder, claim cards with verbatim quotes, synthesis bins, and derived confidence; read before any model-performed search pass.
 - `references/adversarial-literature-checklist.md`
 - `references/domain-adapters.md`
 - `references/report-template.md`
@@ -218,7 +240,8 @@ For major ML conferences hosted on OpenReview, use accepted venue records when v
 ## Scripts
 
 - `scripts/init_review_pack.py`: initialize a profile-aware review pack, recall audit, and corpus manifest while preserving the previous protocol-scope CLI inputs.
-- `scripts/paper_context_artifacts.py`: initialize and validate the four-file paper-context evidence-map exchange bundle.
+- `scripts/paper_context_artifacts.py`: initialize and validate the four-file paper-context evidence-map exchange bundle; `validate --draft` tolerates `TODO` cells and unset ratings. `promote --out-dir <context> --pack-dir <dir>` turns the context into a seven-file pack skeleton: evidence rows and search runs are copied as written, everything else is a `TODO` placeholder, and the pack fails validation until a real search fills them. `research-novelty-review` binds a validated context as `literature_assurance.mode: context`, which lets a novelty rating of 4 or 5 stand without the seven-file pack.
+- `scripts/bib_inventory.py`: inventory a manuscript's cited keys against its `.bib` files and write `citation-audit.md` plus corpus-manifest-shaped JSON records (stdlib only).
 - `scripts/prisma_flow_md.py`: generate PRISMA flow accounting.
 - `scripts/review_pack_coverage.py`: validate coverage-question states and reciprocal question/search/record/amendment links; shared with novelty assurance.
 - `scripts/validate_review_pack.py`: validate headings, table fields, PRISMA consistency, canonical URLs, seed recovery, channel completion, coverage-question closure, corpus freeze, and verdict consistency without claiming actual completeness.

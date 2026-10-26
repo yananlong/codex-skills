@@ -34,11 +34,13 @@ Add one section per JSON audit record using the exact heading `## Audit <audit_i
 
 ### Example structure
 
-## Audit A1
+Copy this block per audit and replace each `<placeholder>`; the placeholder heading and verdict never satisfy the validator.
+
+## Audit <audit_id>
 
 - Claim ID:
-- Bounded verdict: inconclusive
-- Attained assurance class: none
+- Bounded verdict: <verdict>
+- Attained assurance class: <attained_assurance_class>
 - Audited claim effect: inconclusive
 - Source run IDs:
 - Evidence artifacts:

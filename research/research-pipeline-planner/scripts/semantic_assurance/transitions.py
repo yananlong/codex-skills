@@ -246,12 +246,18 @@ def validate_commitment_transitions(
         current_identity = (latest.get("paper_id"), latest.get("identity_version"))
         if isinstance(work_items, dict):
             for item in work_items.get("items", []):
-                if not isinstance(item, dict) or item.get("status") not in ACTIVE_WORK_STATUSES:
+                if not isinstance(item, dict):
+                    continue
+                # harness_runtime.py projections write "state"; accept "status" from older hand-built ledgers.
+                item_state = item.get("state", item.get("status"))
+                if item_state not in ACTIVE_WORK_STATUSES:
                     continue
                 item_identity = (item.get("paper_id"), item.get("identity_version"))
                 binding = item.get("experiment_binding")
                 if isinstance(binding, dict):
                     item_identity = (binding.get("paper_id"), binding.get("identity_version"))
+                if item_identity == (None, None):
+                    continue  # not bound to any paper identity
                 if item_identity != current_identity:
                     errors.append(
                         f"active work item {item.get('work_item_id', '<unknown>')} is bound to stale paper identity {item_identity}"

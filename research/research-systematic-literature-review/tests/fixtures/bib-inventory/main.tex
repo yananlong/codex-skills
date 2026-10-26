@@ -1,0 +1,12 @@
+\documentclass{article}
+\usepackage{graphicx}
+\begin{document}
+% \cite{commented:out} must not count
+\input{sections/intro}
+\include{sections/methods}
+\subfile{appendix/proofs}
+\includegraphics{figure-not-a-tex-file}
+\input{sections/missing-section}
+\bibliographystyle{plain}
+\bibliography{refs-a,refs-b}
+\end{document}

@@ -1,0 +1,87 @@
+[
+  {
+    "query": "we have results-audit.json and the tables under results/ for the calibration paper, write the results section from them",
+    "should_trigger": true
+  },
+  {
+    "query": "turn the literature review in lit/calibration.evidence-table.md and the novelty report into a related-work section",
+    "should_trigger": true
+  },
+  {
+    "query": "before we write anything, outline the ICLR paper from paper-plan/ and the audits, one line per paragraph, I want to edit it first",
+    "should_trigger": true
+  },
+  {
+    "query": "we have the data and the lit review but no claims decided yet, what would the paper's skeleton look like? check with me before drafting",
+    "should_trigger": false,
+    "expected_skill": "research-paper-plan"
+  },
+  {
+    "query": "the paper plan and claim-evidence bindings are validated, start drafting the paper, methods and results first",
+    "should_trigger": true
+  },
+  {
+    "query": "draft the response to reviewer 2 from rebuttal/issue-board.md, the strategies are decided",
+    "should_trigger": true
+  },
+  {
+    "query": "there's no draft yet, just the experiment plan, the audit, and my notes. kick off the writing",
+    "should_trigger": true
+  },
+  {
+    "query": "write a short technical report for the team from the results folder, numbers must match the csvs exactly",
+    "should_trigger": true
+  },
+  {
+    "query": "write the abstract now that the body is drafted",
+    "should_trigger": true
+  },
+  {
+    "query": "what can we actually claim from these results, and which figures do we need before writing?",
+    "should_trigger": false,
+    "expected_skill": "research-paper-plan"
+  },
+  {
+    "query": "the results section overclaims, rewrite it so the claims match what table 2 supports",
+    "should_trigger": false,
+    "expected_skill": "technical-writing-reviser"
+  },
+  {
+    "query": "tighten the intro in sections/intro.tex, it apologizes for three things nobody asked about",
+    "should_trigger": false,
+    "expected_skill": "technical-writing-reviser"
+  },
+  {
+    "query": "the discussion reads choppy, smooth the flow without changing any claim",
+    "should_trigger": false,
+    "expected_skill": "prose-flow-improver"
+  },
+  {
+    "query": "audit whether the runs under results/ actually support the claim about family C",
+    "should_trigger": false,
+    "expected_skill": "research-results-auditor"
+  },
+  {
+    "query": "decide what we should concede to reviewer 2 and what we push back on",
+    "should_trigger": false,
+    "expected_skill": "research-rebuttal"
+  },
+  {
+    "query": "is our positioning against the two closest prior papers defensible?",
+    "should_trigger": false,
+    "expected_skill": "research-novelty-review"
+  },
+  {
+    "query": "turn these meeting notes into a paragraph for the status update, the facts are all there already",
+    "should_trigger": false,
+    "expected_skill": "prose-flow-improver"
+  },
+  {
+    "query": "the audit for family C changed everything, throw away the old results section and redraft it from results-audit.json",
+    "should_trigger": true
+  },
+  {
+    "query": "turn my bullet notes on the method into the methods section, the hyperparameters are in configs/ and the baselines need citing",
+    "should_trigger": true
+  }
+]

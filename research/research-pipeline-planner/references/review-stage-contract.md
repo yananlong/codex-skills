@@ -112,8 +112,10 @@ Paper-review should convert `review_findings_to_add` into raw comment JSON befor
 
 ## Review-loop consumption rules
 
-- Initialize the first tracked issue set from `paper-review/final_issues.json` when available.
-- Use `paper-review/review_summary.json` as the numeric first-pass summary for round initialization and routing.
+- Locate review artifacts with `research-paper-review/scripts/resolve_review_artifacts.py --root <suite>`; it reads every known layout and reports the latest round and first-pass bundle. Never assume a literal `paper-review/` path.
+- Initialize the first tracked issue set from the first-pass bundle's `final_issues.json` when available.
+- Use the bundle's `review_summary.json` (or, in a review-loop hybrid, the newest valid round summary) as the numeric first-pass summary for round initialization and routing.
+- New rounds go to the next integer `round-<N>/` in the review's home; for a review started now that home is `review_results/<slug>_review/`, which also holds the first-pass bundle. Issues and summaries follow `research-paper-review/references/review-schema.md`, and every new `REVIEW_STATE.json` passes `validate_review_state.py --strict`.
 - Preserve source paths back to the original paper-review artifacts.
 - Do not silently rewrite issue titles or impact/confidence ratings unless new evidence justifies the change.
 - Record what changed between rounds and whether each inherited issue is now resolved, still open, or accepted as a risk.
@@ -122,7 +124,7 @@ Paper-review should convert `review_findings_to_add` into raw comment JSON befor
 
 - External reviewer comments are primary. Paper-review artifacts are supporting internal evidence, not substitutes for reviewer text.
 - Use `summary.md`, `final_issues.json`, and `review_summary.json` to cross-check reviewer concerns, locate evidence quickly, and detect contradictions.
-- If `review-loop/REVIEW_STATE.json` exists, use it to avoid re-opening already-resolved internal issues without cause.
+- If the resolver finds a review-loop `REVIEW_STATE.json`, use it to avoid re-opening already-resolved internal issues without cause.
 - Keep a clear distinction between:
   - internal diagnosis
   - reviewer complaint

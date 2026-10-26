@@ -1,0 +1,33 @@
+[
+  {
+    "query": "before I scale the HMC sweep to all configs, are the pilot numbers in results/A_pilot/ sane? check seeds, diagnostics, and whether the gate actually passed",
+    "should_trigger": true
+  },
+  {
+    "query": "audit the B17 claim against the parquet outputs and tell me which runs were excluded and why",
+    "should_trigger": true
+  },
+  {
+    "query": "we have results from 3 seeds and the paper says the method wins; does the evidence support 'wins' or just 'is competitive'?",
+    "should_trigger": true
+  },
+  {
+    "query": "make a LaTeX table from results/A3_smoke/paired_delta_summary.csv",
+    "should_trigger": false,
+    "expected_skill": null
+  },
+  {
+    "query": "summarize what's in this parquet file",
+    "should_trigger": false,
+    "expected_skill": null
+  },
+  {
+    "query": "which ablation should I add after this pilot?",
+    "should_trigger": false,
+    "expected_skill": "research-experiment-plan"
+  },
+  {
+    "query": "should I scale the sweep given this pilot? (audit first, then plan)",
+    "should_trigger": true
+  }
+]

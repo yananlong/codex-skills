@@ -81,18 +81,50 @@ def validate_shape(root: Path, catalog: dict) -> list[str]:
 
 
 def validate_current(root: Path, catalog: dict) -> list[str]:
-    expected = build_catalog(root)
+    """Compare all generated metadata, not just skill membership.
+
+    Records are matched by source path, so record ordering is immaterial.
+    New domains, capabilities, and sidecar fields remain supported because
+    the source generator, rather than a closed list of values, is authoritative.
+    """
+    shape_errors = validate_shape(root, catalog)
+    if shape_errors:
+        return shape_errors
+    try:
+        expected = build_catalog(root)
+    except (OSError, ValueError, TypeError) as exc:
+        return [f"cannot regenerate catalog for comparison: {exc}"]
+
     errors: list[str] = []
-    expected_paths = {skill["skill_file"] for skill in expected["skills"]}
-    actual_paths = {skill.get("skill_file") for skill in catalog.get("skills", []) if isinstance(skill, dict)}
-    missing = sorted(expected_paths - actual_paths)
-    stale = sorted(actual_paths - expected_paths)
+    expected_records = {skill["skill_file"]: skill for skill in expected["skills"]}
+    actual_records = {skill["skill_file"]: skill for skill in catalog["skills"]}
+    missing = sorted(expected_records.keys() - actual_records.keys())
+    stale = sorted(actual_records.keys() - expected_records.keys())
     if missing:
         errors.append("catalog missing skills: " + ", ".join(missing))
     if stale:
         errors.append("catalog contains stale skills: " + ", ".join(stale))
-    if catalog.get("skill_count") != len(catalog.get("skills", [])):
-        errors.append("skill_count does not match number of skills")
+
+    def changed_fields(actual: dict, fresh: dict, excluded: set[str]) -> list[str]:
+        # JSON comparison preserves the distinction between true and 1, which
+        # Python's ordinary equality would otherwise erase (including nested values).
+        return [
+            field
+            for field in sorted((actual.keys() | fresh.keys()) - excluded)
+            if field not in actual or field not in fresh
+            or json.dumps(actual[field], sort_keys=True)
+            != json.dumps(fresh[field], sort_keys=True)
+        ]
+
+    top_level = changed_fields(catalog, expected, {"skills"})
+    if top_level:
+        errors.append("catalog metadata is stale: " + ", ".join(top_level))
+    for skill_file in sorted(expected_records.keys() & actual_records.keys()):
+        changed = changed_fields(actual_records[skill_file], expected_records[skill_file], set())
+        if changed:
+            errors.append(f"{skill_file}: stale metadata fields: " + ", ".join(changed))
+    if errors:
+        errors.append("regenerate with scripts/generate_skill_catalog.py for this repository root")
     return errors
 
 
@@ -104,7 +136,7 @@ def main() -> int:
 
     root = Path(args.root).resolve()
     catalog = load_catalog(root / args.catalog)
-    errors = validate_shape(root, catalog) + validate_current(root, catalog)
+    errors = validate_current(root, catalog)
     if errors:
         for error in errors:
             print(f"[ERROR] {error}", file=sys.stderr)

@@ -1,0 +1,17 @@
+{
+  "capabilities": [
+    "technical-writing",
+    "multi-agent"
+  ],
+  "inputs": [
+    "existing explanatory prose or notes (Markdown, LaTeX source, or plain text)",
+    "optional shape brief from technical-writing-reviser when both skills run"
+  ],
+  "outputs": [
+    "revised prose in the source format with substance, constraints, and connective logic preserved"
+  ],
+  "related_skills": [
+    "technical-writing-drafter",
+    "technical-writing-reviser"
+  ]
+}

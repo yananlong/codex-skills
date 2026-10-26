@@ -159,7 +159,9 @@ class ResultsAuditTests(unittest.TestCase):
         self.claim_map_path.write_text(json.dumps(self.claim_map), encoding="utf-8")
         self.work_items_path.write_text(json.dumps(self.work_items), encoding="utf-8")
 
-    def validate(self, profile: str = "linked", expect: int = 0) -> subprocess.CompletedProcess[str]:
+    def validate(
+        self, profile: str = "linked", expect: int = 0, extra: tuple[str, ...] = ()
+    ) -> subprocess.CompletedProcess[str]:
         cmd = [
             sys.executable,
             str(VALIDATE),
@@ -179,6 +181,7 @@ class ResultsAuditTests(unittest.TestCase):
                 "--work-items",
                 str(self.work_items_path),
             ]
+        cmd += list(extra)
         cp = subprocess.run(cmd, text=True, capture_output=True)
         self.assertEqual(cp.returncode, expect, msg=f"stdout:\n{cp.stdout}\nstderr:\n{cp.stderr}")
         return cp
@@ -200,6 +203,154 @@ class ResultsAuditTests(unittest.TestCase):
             capture_output=True,
         )
         self.assertEqual(cp.returncode, 0, cp.stdout + cp.stderr)
+
+    def measurement(self, **extra):
+        item = {
+            "measurement_id": "M1",
+            "quantity": "accuracy difference on the synthetic held-out split",
+            "estimate": 0.04,
+            "interval": {"lower": 0.01, "upper": 0.07, "level": 0.95, "method": "bootstrap"},
+            "diagnostics": [{"name": "label_balance", "status": "pass"}],
+            "judge": {"kind": "llm", "identity": "synthetic-judge", "version": "v1", "blinded": True},
+            "multiplicity": {"comparisons": 3, "correction": "holm"},
+            "run_ids": ["RUN1"],
+        }
+        item.update(extra)
+        return item
+
+    def test_extended_evidence_sources(self) -> None:
+        audit = self.audit["audits"][0]
+        audit["evidence_artifacts"].append({"path": "proofs/lemma.md", "kind": "proof", "source": "derivation", "digest": ""})
+        self.write_all()
+        self.validate()
+        audit["evidence_artifacts"][-1]["source"] = "hearsay"
+        self.write_all()
+        cp = self.validate(expect=1)
+        self.assertIn("source must be one of", cp.stdout)
+
+    def test_standalone_runs_are_checked_when_present(self) -> None:
+        audit = self.audit["audits"][0]
+        audit["standalone_runs"] = [
+            {"run_id": "S1", "path": "results/s1.json", "produced_by": "python rerun.py", "run_kind": "diagnostic"}
+        ]
+        self.write_all()
+        self.validate()
+        audit["standalone_runs"].append({"run_id": "RUN1", "path": "x", "produced_by": "y", "digest": "zz"})
+        audit["standalone_runs"][0]["run_kind"] = "sideways"
+        self.write_all()
+        cp = self.validate(expect=1)
+        self.assertIn("appears more than once", cp.stdout)
+        self.assertIn("digest must be empty or a lowercase SHA-256", cp.stdout)
+        self.assertIn("run_kind must be one of", cp.stdout)
+
+    def test_measurement_shapes(self) -> None:
+        audit = self.audit["audits"][0]
+        audit["measurements"] = [self.measurement()]
+        self.write_all()
+        self.validate()
+        audit["measurements"] = [self.measurement(
+            estimate=0.2,
+            interval={"lower": 0.01, "upper": 0.07, "level": 95},
+            judge={"kind": "oracle", "identity": "", "blinded": "yes"},
+            multiplicity={"comparisons": 4, "correction": "none"},
+            run_ids=["R9"],
+        )]
+        self.write_all()
+        cp = self.validate(expect=1)
+        for text in ("does not contain the estimate", "level must be a number strictly between 0 and 1",
+                     "judge.kind must be one of", "judge.blinded must be true or false",
+                     "needs a rationale", "run_ids reference runs this audit does not list"):
+            self.assertIn(text, cp.stdout)
+
+    def test_audit_kind_needs_matching_evidence(self) -> None:
+        audit = self.audit["audits"][0]
+        audit["audit_kind"] = "recomputation"
+        self.write_all()
+        cp = self.validate(expect=1)
+        self.assertIn("source recomputation", cp.stdout)
+        audit["evidence_artifacts"].append({"path": "recompute/table.csv", "kind": "table", "source": "recomputation"})
+        self.write_all()
+        self.validate()
+        audit["audit_kind"] = "replication"
+        self.write_all()
+        self.validate()
+        audit["audit_kind"] = "vibes"
+        self.write_all()
+        cp = self.validate(expect=1)
+        self.assertIn("audit_kind must be one of", cp.stdout)
+
+    def test_abstention_names_failed_diagnostics(self) -> None:
+        audit = self.audit["audits"][0]
+        audit["verdict"] = "abstained_diagnostics_failed"
+        audit["attained_assurance_class"] = "exploratory"
+        audit["audited_claim_effect"] = "inconclusive"
+        audit["measurements"] = [self.measurement(diagnostics=[{"name": "judge_agreement", "status": "fail"}])]
+        self.narrative_path.write_text("# Results Audit\n\n## Audit A1\n\n- Bounded verdict: abstained_diagnostics_failed\n")
+        self.audit_path.write_text(__import__("json").dumps(self.audit))
+        cp = self.validate(profile="structural", expect=1)
+        self.assertIn("must list failed_diagnostics", cp.stdout)
+        audit["failed_diagnostics"] = ["label_balance"]
+        self.audit_path.write_text(__import__("json").dumps(self.audit))
+        cp = self.validate(profile="structural", expect=1)
+        self.assertIn("must each match a measurement diagnostic", cp.stdout)
+        audit["failed_diagnostics"] = ["judge_agreement"]
+        self.audit_path.write_text(__import__("json").dumps(self.audit))
+        self.validate(profile="structural")
+        audit["audited_claim_effect"] = "strengthen"
+        self.audit_path.write_text(__import__("json").dumps(self.audit))
+        cp = self.validate(profile="structural", expect=1)
+        self.assertIn("inconclusive or unchanged claim effect", cp.stdout)
+
+    def test_confirmatory_verdict_with_failed_diagnostic_fails(self) -> None:
+        self.audit["audits"][0]["measurements"] = [
+            self.measurement(diagnostics=[{"name": "judge_agreement", "status": "fail"}])
+        ]
+        self.write_all()
+        cp = self.validate(expect=1)
+        self.assertIn("failed measurement diagnostics", cp.stdout)
+
+    def test_source_run_kind_is_checked_when_present(self) -> None:
+        self.audit["audits"][0]["source_runs"][0]["run_kind"] = "retry"
+        self.write_all()
+        self.validate()
+        self.audit["audits"][0]["source_runs"][0]["run_kind"] = "bonus"
+        self.write_all()
+        cp = self.validate(expect=1)
+        self.assertIn("run_kind must be one of", cp.stdout)
+
+    def test_accepted_narrowing_requires_a_trajectory_record(self) -> None:
+        audit = self.audit["audits"][0]
+        audit["predecessor_failures"] = [
+            {"failure_id": "F1", "status": "accepted_with_narrowing", "rationale": "the second shift is dropped"}
+        ]
+        self.write_all()
+        cp = self.validate(expect=1)
+        self.assertIn("needs a trajectory record", cp.stdout)
+        cp = self.validate(profile="structural")
+        self.assertIn("the linked profile requires it", cp.stdout)
+        audit["trajectory"] = {"claim_id": audit["claim_id"], "change_class": "precision"}
+        self.write_all()
+        cp = self.validate(expect=1)
+        self.assertIn("cannot be precision", cp.stdout)
+        audit["trajectory"] = {
+            "claim_id": audit["claim_id"],
+            "change_class": "scope_narrowing",
+            "content_lost": "coverage of the second shift",
+            "alternatives_considered": ["lower_assurance: keep the claim as exploratory"],
+            "restoring_evidence": "a matched second-shift benchmark",
+        }
+        self.write_all()
+        self.validate()
+
+    def test_free_text_corrective_action_warns(self) -> None:
+        self.audit["audits"][0]["minimum_corrective_action"] = "look into it"
+        self.write_all()
+        cp = self.validate()
+        self.assertIn("free text without a repair action", cp.stdout)
+        self.audit["audits"][0]["minimum_corrective_action"] = "add_evidence: run the held-out shift"
+        self.write_all()
+        cp = self.validate()
+        self.assertNotIn("free text without a repair action", cp.stdout)
 
     def test_valid_linked_audit_passes(self) -> None:
         cp = self.validate()
@@ -365,6 +516,117 @@ class ResultsAuditTests(unittest.TestCase):
         self.write_all()
         cp = self.validate(expect=1)
         self.assertIn("submitted_claim_scope disagrees", cp.stdout)
+
+
+    def init_fresh(self) -> Path:
+        fresh = self.root / "fresh"
+        cp = subprocess.run([sys.executable, str(INIT), str(fresh)], text=True, capture_output=True)
+        self.assertEqual(cp.returncode, 0, cp.stderr)
+        return fresh
+
+    def run_validator(self, audit: Path, narrative: Path, *extra: str, expect: int = 0):
+        cp = subprocess.run(
+            [sys.executable, str(VALIDATE), "--audit", str(audit), "--narrative", str(narrative), *extra],
+            text=True,
+            capture_output=True,
+        )
+        self.assertEqual(cp.returncode, expect, msg=f"stdout:\n{cp.stdout}\nstderr:\n{cp.stderr}")
+        return cp
+
+    def test_empty_draft_reports_zero_audits_not_pass(self) -> None:
+        fresh = self.init_fresh()
+        cp = self.run_validator(fresh / "results-audit.json", fresh / "results-audit.md")
+        self.assertIn("Draft: 0 audits", cp.stdout)
+        self.assertNotIn("Validation passed", cp.stdout)
+
+    def test_untouched_init_narrative_does_not_anchor_a_real_audit(self) -> None:
+        fresh = self.init_fresh()
+        record = self.audit_record()
+        record.update(verdict="inconclusive", audited_claim_effect="inconclusive")
+        self.audit["audits"] = [record]
+        (fresh / "results-audit.json").write_text(json.dumps(self.audit), encoding="utf-8")
+        cp = self.run_validator(fresh / "results-audit.json", fresh / "results-audit.md", expect=1)
+        self.assertIn("missing exact heading '## Audit A1'", cp.stdout)
+
+    def write_evidence(self, content: bytes = b'{"metric": 0}\n') -> str:
+        import hashlib
+
+        target = self.root / "results" / "B1.json"
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(content)
+        return hashlib.sha256(content).hexdigest()
+
+    def test_root_accepts_matching_digest(self) -> None:
+        self.audit["audits"][0]["evidence_artifacts"][0]["digest"] = self.write_evidence()
+        self.write_all()
+        cp = self.validate(profile="structural", extra=("--root", str(self.root)))
+        self.assertIn("checked against files", cp.stdout)
+
+    def test_root_rejects_mismatched_digest(self) -> None:
+        self.write_evidence()
+        cp = self.validate(profile="structural", expect=1, extra=("--root", str(self.root)))
+        self.assertIn("digest does not match file bytes for results/B1.json", cp.stdout)
+
+    def test_root_rejects_missing_evidence_path(self) -> None:
+        cp = self.validate(profile="structural", expect=1, extra=("--root", str(self.root)))
+        self.assertIn("does not exist under --root: results/B1.json", cp.stdout)
+
+    def test_without_root_pass_message_discloses_unchecked_digests(self) -> None:
+        cp = self.validate(profile="structural")
+        self.assertIn("digests not checked against files", cp.stdout)
+
+    def test_older_source_revision_downgrades_digest_mismatch(self) -> None:
+        git = ["git", "-C", str(self.root), "-c", "user.name=t", "-c", "user.email=t@example.invalid"]
+        if subprocess.run(["git", "--version"], capture_output=True).returncode != 0:
+            self.skipTest("git unavailable")
+        subprocess.run(["git", "init", "-q", str(self.root)], check=True)
+        self.audit["audits"][0]["evidence_artifacts"][0]["digest"] = self.write_evidence(b"old\n")
+        subprocess.run([*git, "add", "-A"], check=True)
+        subprocess.run([*git, "commit", "-q", "-m", "old"], check=True)
+        old = subprocess.run([*git, "rev-parse", "HEAD"], check=True, capture_output=True, text=True).stdout.strip()
+        self.write_evidence(b"new\n")
+        subprocess.run([*git, "commit", "-q", "-am", "new"], check=True)
+        self.audit["source_revision"] = old
+        self.write_all()
+        cp = self.validate(profile="structural", extra=("--root", str(self.root)))
+        self.assertIn(f"warning: audit A1 experiment evidence digest does not match", cp.stdout)
+        self.assertIn(old, cp.stdout)
+        self.audit["source_revision"] = subprocess.run(
+            [*git, "rev-parse", "HEAD"], check=True, capture_output=True, text=True
+        ).stdout.strip()
+        self.write_all()
+        self.validate(profile="structural", expect=1, extra=("--root", str(self.root)))
+
+    def lightweight_audit(self) -> None:
+        record = self.audit_record()
+        record.update(
+            source_mode="standalone",
+            requested_assurance_class="exploratory",
+            attained_assurance_class="exploratory",
+            verdict="inconclusive",
+            audited_claim_effect="inconclusive",
+            source_runs=[],
+        )
+        record["check_results"] = [
+            check for check in record["check_results"]
+            if check["check_id"] not in {"snapshot_continuity", "independence"}
+        ]
+        self.audit["audits"] = [record]
+        del self.audit["paper_id"]
+        self.narrative_path.write_text("## Audit A1\n\n- Bounded verdict: inconclusive\n", encoding="utf-8")
+        self.audit_path.write_text(json.dumps(self.audit), encoding="utf-8")
+
+    def test_standalone_exploratory_audit_needs_no_paper_id_or_solo_checks(self) -> None:
+        self.lightweight_audit()
+        self.validate(profile="structural")
+
+    def test_confirmatory_standalone_audit_still_requires_paper_id_and_all_checks(self) -> None:
+        self.lightweight_audit()
+        self.audit["audits"][0]["requested_assurance_class"] = "confirmatory"
+        self.audit_path.write_text(json.dumps(self.audit), encoding="utf-8")
+        cp = self.validate(profile="structural", expect=1)
+        self.assertIn("requires substantive paper_id", cp.stdout)
+        self.assertIn("missing required checks: independence, snapshot_continuity", cp.stdout)
 
 
 if __name__ == "__main__":

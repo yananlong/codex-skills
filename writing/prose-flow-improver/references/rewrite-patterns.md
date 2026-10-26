@@ -66,7 +66,7 @@ Merge paragraphs with the same job:
 If two adjacent paragraphs are both explaining the same claim, result, or recommendation, combine them unless the split improves emphasis or scanning.
 
 Add the missing relation:
-State whether the next sentence explains cause, contrast, consequence, constraint, or emphasis.
+State whether the next sentence explains cause, contrast, consequence, constraint, or emphasis, when the source states or clearly implies that relation. In technical or research prose, do not supply a causal or contrastive relation that the source does not assert; join with "and" or keep the sentences separate.
 
 Prefer conjunctions over punctuation tricks:
 If two bullets belong in one sentence, first try joining them with "and," "but," "so," "because," or "while" before reaching for a semicolon.
@@ -77,8 +77,8 @@ When the actor is clear and the second sentence names a direct result, condition
 Expand only where the reader would otherwise have to infer:
 Do not add padding, scene-setting, or generic transitions that say little.
 
-End with the practical implication:
-If the paragraph explains a decision or result, finish by stating what follows from it.
+End on the evidence or the consequence:
+If the paragraph explains a decision or result, make what follows from it clear, in a sentence of ordinary length. Do not end every paragraph this way, and do not close on a short sentence that lands a point.
 
 Keep one sharp list when it earns its place:
 If a short list materially improves scanning, keep it and write a paragraph around it instead of flattening everything.
@@ -93,7 +93,9 @@ Before:
 - Tail latency still spikes during batch imports.
 
 After:
-Latency improved because caching removed many repeated lookups from the hot path. The gain is real, but it is not uniform because tail latency still spikes during batch imports, so the system remains sensitive to bursty write-heavy workloads.
+Latency improved, and caching reduced repeated lookups on the hot path. Tail latency still spikes during batch imports, so the system remains sensitive to bursty write-heavy workloads.
+
+The source lists the latency gain and the caching change side by side without saying one caused the other, so the rewrite keeps "and" rather than asserting "because". Write "because" only when the source states the causal link.
 
 Example 2:
 
@@ -103,7 +105,7 @@ Before:
 - Reader cannot see why the choice matters.
 
 After:
-This section needs more detail because it states the choice without explaining why it matters. The core problem is not length by itself, but that the reader cannot see the consequence of the decision or the tradeoff it resolves.
+This section needs more detail. It is too short, and the reader cannot see why the choice matters.
 
 Example 3:
 
@@ -129,7 +131,7 @@ Before:
 - If we split it, rollback is easier.
 
 After:
-We should keep this migration small because the schema rename is the only meaningfully risky part, while most of the remaining work is mechanical. Splitting the change also makes rollback easier, which reduces the cost of discovering a problem late.
+We should keep this migration small. The schema rename is the risky part, and the rest is mechanical. Splitting the change makes rollback easier.
 
 Example 5:
 
@@ -140,7 +142,24 @@ Before:
 - Churn is still elevated in SMB.
 
 After:
-Revenue increased, and margin improved after the pricing changes took effect. The result is positive overall, but it is not clean: SMB churn remains elevated, so the improvement still depends on fixing retention rather than only leaning on pricing.
+Revenue was up, and margin improved after the pricing changes. Churn is still elevated in SMB.
+
+## Machine-Prose Tells to Avoid While Smoothing
+
+Joining sentences is where these habits enter. Each line names the habit and the plain alternative:
+
+- Em dash as the joint: comma, period, parentheses, or colon instead; the dash policy in the drafter's `drafting-contract.md` (one pair per page at most, `---` in LaTeX) is the single statement.
+- "Not X but Y", "not just X", "rather than X, Y": state Y precisely; keep the contrast only when X is a real position the reader holds.
+- Sentence-opening Importantly, Notably, Crucially, Interestingly, Ultimately, Moreover, Furthermore, Additionally: delete, or use "and", a new sentence, or a real ordinal.
+- Crucial, robust, nuanced, pivotal, comprehensive, seamless, leverage, landscape, underscore, delve, foster: the measurement or mechanism the word stands in for, or nothing.
+- ", highlighting / underscoring / suggesting / enabling / paving the way for ..." tails: end at the fact; a real implication gets its own sentence and its own support.
+- Three parallel items for two-item content; three short parallel sentences; antithesis for effect: write the number of items the content has.
+- "This suggests / This means / This highlights" chains: one interpretation per piece of evidence, next to it.
+- A short closing sentence after long ones, and one-sentence drumbeat paragraphs: end on the evidence, vary paragraph endings.
+- Paragraphs all of the same length and shape: let length follow the argument.
+- "It is worth noting", "it is important to note", "the key insight is": delete the frame.
+- Rhetorical questions and "Let's": ask the question of yourself, write the answer.
+- Bolded lead-ins and bullets for argument: prose for argument, lists for list-shaped content.
 
 ## Default Heuristics
 

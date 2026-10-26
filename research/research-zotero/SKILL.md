@@ -59,7 +59,7 @@ description: Sync, inspect, and export Zotero user or group libraries for litera
 
 - If no explicit `user` or `group` library is provided and an API key is available, resolve the current key via `/keys/current` and use that user library by default.
 - Do not ask the user for a library ID if the API key already resolves it.
-- If the key lacks the necessary library access, stop and report the permission gap explicitly.
+- If the key lacks the necessary library access, stop and report the permission gap explicitly. The scripts exit with a specific message for HTTP 403 (key invalid or lacks read access) and 404 (wrong library or collection), and retry 429/503 after `Retry-After`.
 
 ## Output contract
 
@@ -78,7 +78,10 @@ description: Sync, inspect, and export Zotero user or group libraries for litera
   - collection key if used
   - tags/query/item type filters
   - item count
+  - `total_results` from Zotero's `Total-Results` header and a `partial` flag
   - original Zotero item payloads
+- Treat a `zotero-items.json` with `partial: true` as a sample, never as the full library or collection.
+- `zotero-account.json` never contains the API key; `inspect_zotero_account.py` strips `key` from the `/keys/current` payload.
 - Record output paths in `artifact-index.md` when used inside an orchestrated pack.
 
 ## Workflow
@@ -103,6 +106,7 @@ description: Sync, inspect, and export Zotero user or group libraries for litera
 
 - Use `scripts/fetch_zotero_items.py`.
 - If no library is specified, let the script resolve the default user library from the key.
+- The script paginates the whole slice by default. Pass `--max-items N` only for a deliberate sample; the output then records `partial: true`.
 - Preserve the raw Zotero item payloads rather than flattening away useful metadata too early.
 - When helpful, write `zotero-sync.md` alongside the JSON output.
 
@@ -135,5 +139,6 @@ description: Sync, inspect, and export Zotero user or group libraries for litera
 ## Scripts
 
 - `scripts/inspect_zotero_account.py`: resolve the default library and accessible groups for the current API key
-- `scripts/fetch_zotero_items.py`: sync Zotero items into normalized JSON, defaulting to the current user's library when possible
-- `scripts/export_zotero_items.py`: export library items in BibTeX, CSL-JSON, RIS, or JSON formats
+- `scripts/fetch_zotero_items.py`: sync Zotero items into normalized JSON, defaulting to the current user's library when possible. Paginates fully by default (`--all` is accepted and redundant), writes `total_results` and `partial`, and takes `--max-items` to cap a sample.
+- `scripts/export_zotero_items.py`: export library items in BibTeX, CSL-JSON, RIS, or JSON formats. Paginates fully by default using `Total-Results`; `--max-items` caps the export and warns on stderr.
+- `ZOTERO_API_ROOT` overrides `https://api.zotero.org` for offline tests against a mock server (`tests/test_zotero_scripts.py`).

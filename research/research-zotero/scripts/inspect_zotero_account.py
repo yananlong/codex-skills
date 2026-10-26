@@ -22,6 +22,9 @@ def main() -> int:
     api_key = resolve_api_key(args.api_key)
     library_type, library_id, key_info = default_user_library(api_key)
     groups = list_groups(library_id, api_key)
+    # /keys/current echoes the key itself; never persist it into zotero-account.json.
+    if isinstance(key_info, dict):
+        key_info = {field: value for field, value in key_info.items() if field != "key"}
     payload = {
         "default_library": {
             "library_type": library_type,

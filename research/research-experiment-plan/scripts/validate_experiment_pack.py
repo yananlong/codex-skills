@@ -8,6 +8,8 @@ import re
 from pathlib import Path
 from typing import Any
 
+from claim_trajectory import check_repair, parse_action_text
+
 REQUIRED_PLAN_HEADINGS = [
     "# Experiment Plan", "## Context", "## Claim Map", "## Experimental Storyline",
     "## Non-Vacuity Preflight", "## Experiment Blocks", "## Run Order",
@@ -15,7 +17,8 @@ REQUIRED_PLAN_HEADINGS = [
 ]
 TRACKER_STATUSES = {"planned", "ready", "blocked", "running", "analyzed", "decisive", "inconclusive", "dropped"}
 BLOCK_PRIORITIES = {"must-run", "nice-to-have", "defer"}
-DECISION_IF_UNPROVEN = {"reframe", "drop", "defer"}
+# D7: how a run relates to the plan. A tracker row without a Kind column, or with an empty cell, is planned.
+RUN_KINDS = {"planned", "unplanned", "precursor", "diagnostic", "retry"}
 EVIDENCE_CLASSES = {"exploratory", "confirmatory", "independently_verified", "operational_high_stakes"}
 EVIDENCE_RANK = {name: rank for rank, name in enumerate(("exploratory", "confirmatory", "independently_verified", "operational_high_stakes"))}
 PLACEHOLDERS = {"", "n/a", "na", "none", "null", "tbd", "todo", "unknown", "-"}
@@ -63,32 +66,77 @@ def require_list(entry: dict, field: str, label: str, errors: list[str], *, none
     return value
 
 
-def table_rows(markdown: str, heading: str) -> list[list[str]]:
+def _split_cells(line: str) -> list[str]:
+    return [cell.strip() for cell in line.strip().strip("|").split("|")]
+
+
+def table_rows(markdown: str, heading: str, header_first_cell: str | None = None) -> list[list[str]]:
+    """Return data rows under a heading.
+
+    When ``header_first_cell`` is given, only the first table whose header row starts with that
+    canonical column is parsed, so appended history tables under the same heading are ignored.
+    Without a matching header, every table row under the heading is parsed (legacy behaviour).
+    """
     start = markdown.find(heading)
     if start < 0:
         return []
     tail = markdown[start + len(heading):]
     next_heading = tail.find("\n#")
     section = tail if next_heading < 0 else tail[:next_heading]
-    rows: list[list[str]] = []
+    tables: list[list[list[str]]] = []
+    current: list[list[str]] = []
     for line in section.splitlines():
         stripped = line.strip()
         if not stripped.startswith("|"):
+            if current:
+                tables.append(current)
+                current = []
             continue
-        cells = [cell.strip() for cell in stripped.strip("|").split("|")]
-        if not cells or all(set(cell) <= {"-", ":"} for cell in cells):
-            continue
-        if cells[0].lower() in {"run id", "gate id", "order", "claim id", "block"}:
-            continue
-        rows.append(cells)
+        current.append(_split_cells(stripped))
+    if current:
+        tables.append(current)
+    if header_first_cell is not None:
+        for table in tables:
+            if table and table[0] and table[0][0].lower() == header_first_cell:
+                tables = [table[1:]]
+                break
+    rows: list[list[str]] = []
+    for table in tables:
+        for cells in table:
+            if not cells or all(set(cell) <= {"-", ":"} for cell in cells):
+                continue
+            if cells[0].lower() in {"run id", "gate id", "order", "claim id", "block"}:
+                continue
+            rows.append(cells)
     return rows
 
 
-def validate_claims(data, errors: list[str], confirmatory: bool) -> tuple[dict[str, dict], dict[str, set[str]]]:
+ENVELOPE_KEYS = {"claim-map.json": "claims", "run-blocks.json": "blocks"}
+
+
+def unwrap_envelope(data: Any, label: str, errors: list[str]) -> Any:
+    """Accept a bare array or a versioned envelope {schema_version, plan_version, claims|blocks: [...]}."""
+    if not isinstance(data, dict):
+        return data
+    key = ENVELOPE_KEYS[label]
+    entries = data.get(key)
+    if not isinstance(entries, list):
+        errors.append(f"{label} envelope must contain a '{key}' array")
+        return None
+    for field in ("schema_version", "plan_version"):
+        if field in data and not isinstance(data[field], (str, int)):
+            errors.append(f"{label}.{field} must be a string or integer")
+    return entries
+
+
+def validate_claims(
+    data, errors: list[str], confirmatory: bool, warnings: list[str] | None = None
+) -> tuple[dict[str, dict], dict[str, set[str]]]:
+    warnings = [] if warnings is None else warnings
     claims: dict[str, dict] = {}
     links: dict[str, set[str]] = {}
     if not isinstance(data, list) or not data:
-        errors.append("claim-map.json must be a non-empty JSON array")
+        errors.append("claim-map.json must be a non-empty JSON array or a {schema_version, plan_version, claims: [...]} envelope")
         return claims, links
     for index, entry in enumerate(data, 1):
         label = f"claim-map.json[{index}]"
@@ -103,8 +151,7 @@ def validate_claims(data, errors: list[str], confirmatory: bool) -> tuple[dict[s
             errors.append(f"duplicate claim_id: {claim_id}")
             continue
         claims[claim_id] = entry
-        if entry.get("decision_if_unproven") not in DECISION_IF_UNPROVEN:
-            errors.append(f"{label}.decision_if_unproven must be one of {sorted(DECISION_IF_UNPROVEN)}")
+        check_repair(entry.get("decision_if_unproven"), f"{label}.decision_if_unproven", errors, warnings)
         links[claim_id] = {str(value) for value in require_list(entry, "linked_blocks", label, errors, nonempty=True)}
         if confirmatory:
             evidence = entry.get("evidence_class")
@@ -215,7 +262,7 @@ def validate_blocks(data, claims: dict[str, dict], errors: list[str], confirmato
     blocks: dict[str, dict] = {}
     links: dict[str, set[str]] = {}
     if not isinstance(data, list) or not data:
-        errors.append("run-blocks.json must be a non-empty JSON array")
+        errors.append("run-blocks.json must be a non-empty JSON array or a {schema_version, plan_version, blocks: [...]} envelope")
         return blocks, links
     for index, entry in enumerate(data, 1):
         label = f"run-blocks.json[{index}]"
@@ -328,8 +375,27 @@ def validate_links(claims: dict[str, dict], claim_links: dict[str, set[str]], bl
                 errors.append(f"claim/block links are not reciprocal: {block_id} -> {claim_id}")
 
 
-def validate_gates(markdown: str, block_ids: set[str], errors: list[str], confirmatory: bool) -> dict[str, str]:
-    rows = table_rows(markdown, "# Decision Gates")
+def validate_exploratory_content(claim_map: Any, run_blocks: Any, errors: list[str]) -> None:
+    """Reject the untouched init scaffold: claims, falsifiers, metrics, and success criteria must be real."""
+    for index, entry in enumerate(claim_map if isinstance(claim_map, list) else [], 1):
+        if isinstance(entry, dict):
+            for field in ("claim", "falsifier"):
+                require_string(entry, field, f"claim-map.json[{index}]", errors)
+    for index, entry in enumerate(run_blocks if isinstance(run_blocks, list) else [], 1):
+        if not isinstance(entry, dict):
+            continue
+        label = f"run-blocks.json[{index}]"
+        require_string(entry, "success_criterion", label, errors)
+        metrics = entry.get("metrics")
+        if not isinstance(metrics, list) or not metrics or any(not meaningful(value) for value in metrics):
+            errors.append(f"{label}.metrics must be a non-empty list of substantive metric names")
+
+
+def validate_gates(
+    markdown: str, block_ids: set[str], errors: list[str], confirmatory: bool, warnings: list[str] | None = None
+) -> dict[str, str]:
+    warnings = [] if warnings is None else warnings
+    rows = table_rows(markdown, "# Decision Gates", "gate id")
     if not rows:
         errors.append("decision-gates.md has no gate rows")
         return {}
@@ -351,6 +417,12 @@ def validate_gates(markdown: str, block_ids: set[str], errors: list[str], confir
             for cell_name, cell in zip(("decision question", "proceed if", "revise if", "stop if", "owner"), row[2:7]):
                 if not meaningful(cell):
                     errors.append(f"decision-gates.md row {index} {cell_name} must be substantive")
+        revise = row[4]
+        if meaningful(revise) and parse_action_text(revise)[0] is None:
+            warnings.append(
+                f"decision-gates.md row {index} 'Revise if' does not name a repair action; start it with one of "
+                "add_evidence, sharpen_comparator, lower_assurance, reframe, narrow, pivot, stop and a colon"
+            )
     return gate_map
 
 
@@ -367,27 +439,59 @@ def validate_block_gate_links(blocks: dict[str, dict], gate_map: dict[str, str],
             errors.append(f"block {block_id} gate {gate_id} opens after {gate_map[gate_id]}, not {block_id}")
 
 
+def tracker_kind_column(markdown: str) -> int | None:
+    """Index of the optional Kind column in the tracker's header row, or None."""
+    start = markdown.find("# Experiment Tracker")
+    if start < 0:
+        return None
+    for line in markdown[start:].splitlines():
+        stripped = line.strip()
+        if stripped.startswith("|"):
+            cells = _split_cells(stripped)
+            if cells and cells[0].lower() == "run id":
+                lowered = [cell.lower() for cell in cells]
+                return lowered.index("kind") if "kind" in lowered else None
+    return None
+
+
+def tracker_run_kind(row: list[str], kind_column: int | None) -> str:
+    if kind_column is None or kind_column >= len(row) or not row[kind_column].strip():
+        return "planned"
+    return row[kind_column].strip().strip("`").lower()
+
+
 def validate_tracker(markdown: str, block_ids: set[str], gate_ids: set[str], errors: list[str]) -> None:
-    rows = table_rows(markdown, "# Experiment Tracker")
+    rows = table_rows(markdown, "# Experiment Tracker", "run id")
     if not rows:
         errors.append("experiment-tracker.md has no tracker rows")
         return
+    kind_column = tracker_kind_column(markdown)
     for index, row in enumerate(rows, 1):
         if len(row) < 10:
             errors.append(f"experiment-tracker.md row {index} is too short")
             continue
-        if row[1] not in block_ids:
-            errors.append(f"experiment-tracker.md row {index} references unknown block '{row[1]}'")
-        if row[2] not in gate_ids:
+        kind = tracker_run_kind(row, kind_column)
+        if kind not in RUN_KINDS:
+            errors.append(f"experiment-tracker.md row {index} has invalid kind '{kind}'; use one of {sorted(RUN_KINDS)}")
+            continue
+        # Only a planned run must name a declared block, gate, and priority. Unplanned, precursor,
+        # diagnostic, and retry runs may sit outside the plan; check_plan_drift.py reports them.
+        planned = kind == "planned"
+        if planned and row[1] not in block_ids:
+            errors.append(
+                f"experiment-tracker.md row {index} references unknown block '{row[1]}'; declare the block, "
+                "or mark the row's Kind as unplanned, precursor, or diagnostic"
+            )
+        if planned and row[2] not in gate_ids:
             errors.append(f"experiment-tracker.md row {index} references unknown gate '{row[2]}'")
-        if row[4] not in BLOCK_PRIORITIES:
+        if planned and row[4] not in BLOCK_PRIORITIES:
             errors.append(f"experiment-tracker.md row {index} has invalid priority '{row[4]}'")
         if row[5] not in TRACKER_STATUSES:
             errors.append(f"experiment-tracker.md row {index} has invalid status '{row[5]}'")
 
 
 def validate_run_order(plan: str, block_ids: set[str], gate_ids: set[str], errors: list[str]) -> None:
-    rows = table_rows(plan, "## Run Order")
+    rows = table_rows(plan, "## Run Order", "order")
     if not rows:
         errors.append("experiment-plan.md has no run-order rows")
         return
@@ -443,13 +547,20 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     for name in ("plan", "tracker", "claim-map", "run-blocks", "decision-gates", "bridge"):
         parser.add_argument(f"--{name}", required=True)
-    parser.add_argument("--assurance-profile", choices=("structural", "confirmatory"), default="structural")
+    parser.add_argument(
+        "--assurance-profile",
+        choices=("structural", "exploratory", "confirmatory"),
+        default="structural",
+        help="structural: links only; exploratory: also rejects placeholder claims, falsifiers, metrics, "
+        "success criteria, and gate cells; confirmatory: full class-specific assurance fields.",
+    )
     return parser
 
 
 def main() -> int:
     args = build_parser().parse_args()
     errors: list[str] = []
+    warnings: list[str] = []
     plan = read_text(Path(args.plan).expanduser().resolve(), "plan", errors)
     tracker = read_text(Path(args.tracker).expanduser().resolve(), "tracker", errors)
     gates = read_text(Path(args.decision_gates).expanduser().resolve(), "decision-gates", errors)
@@ -464,13 +575,18 @@ def main() -> int:
     for heading in REQUIRED_PLAN_HEADINGS:
         if heading not in plan:
             errors.append(f"plan: missing required heading '{heading}'")
+    claim_map = unwrap_envelope(claim_map, "claim-map.json", errors)
+    run_blocks = unwrap_envelope(run_blocks, "run-blocks.json", errors)
     if "# Experiment Tracker" not in tracker:
         errors.append("tracker: missing '# Experiment Tracker' heading")
     confirmatory = args.assurance_profile == "confirmatory"
-    claims, claim_links = validate_claims(claim_map, errors, confirmatory)
+    exploratory = args.assurance_profile == "exploratory"
+    if exploratory:
+        validate_exploratory_content(claim_map, run_blocks, errors)
+    claims, claim_links = validate_claims(claim_map, errors, confirmatory, warnings)
     blocks, block_links = validate_blocks(run_blocks, claims, errors, confirmatory)
     validate_links(claims, claim_links, blocks, block_links, errors, confirmatory)
-    gate_map = validate_gates(gates, set(blocks), errors, confirmatory)
+    gate_map = validate_gates(gates, set(blocks), errors, confirmatory or exploratory, warnings)
     validate_block_gate_links(blocks, gate_map, errors, confirmatory)
     validate_tracker(tracker, set(blocks), set(gate_map), errors)
     validate_run_order(plan, set(blocks), set(gate_map), errors)
@@ -479,6 +595,7 @@ def main() -> int:
         print("Validation failed:")
         for error in errors:
             print(f"- {error}")
+        print_warnings(warnings)
         return 1
     if confirmatory:
         print(
@@ -488,13 +605,27 @@ def main() -> int:
             "This does not establish executor isolation, immutable inputs, scientific validity, or "
             "independent verification."
         )
+    elif exploratory:
+        print(
+            "Validation passed: claims, falsifiers, metrics, success criteria, and decision-gate cells are "
+            "filled in, and claim/block/gate/tracker links are consistent. This does not certify semantic "
+            "validity, non-vacuity, or evidential sufficiency."
+        )
     else:
         print(
             "Validation passed: experiment pack is structurally consistent. Execution declarations "
             "and lineage policies were checked when present; this does not certify semantic validity, "
             "snapshot immutability, independence, non-vacuity, or evidential sufficiency."
         )
+    print_warnings(warnings)
     return 0
+
+
+def print_warnings(warnings: list[str]) -> None:
+    if warnings:
+        print("Warnings:")
+        for warning in warnings:
+            print(f"- {warning}")
 
 
 if __name__ == "__main__":

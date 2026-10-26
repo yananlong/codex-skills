@@ -1,6 +1,6 @@
 ---
 name: research-experiment-plan
-description: Convert a concrete research claim into a tracked, decisive experiment plan that works either as a standalone planning artifact or as the experiment stage inside a coordinated research workflow. Use when asked to design experiments, define baselines or ablations, decide run order, separate must-run from nice-to-have evidence, or turn a claim plus evaluation goal into a validation plan.
+description: Convert a concrete research claim into a tracked, decisive experiment plan that works either as a standalone planning artifact or as the experiment stage inside a coordinated research workflow. Use when asked to design experiments, define baselines or ablations, decide run order, separate must-run from nice-to-have evidence, turn a claim plus evaluation goal into a validation plan, or set up an autonomous keep-or-revert optimization loop on one frozen metric (autoresearch-style). When existing results bear on the decision, run research-results-auditor first.
 ---
 
 # Research Experiment Plan
@@ -32,6 +32,14 @@ description: Convert a concrete research claim into a tracked, decisive experime
 - If the user asks for project-level sequencing, current-state inspection, or coordination across multiple research stages, invoke `research-pipeline-planner` first instead of treating experiment planning as the whole task.
 - If the user asks what idea to pursue, or the claim is still only a broad research direction, invoke `research-idea-discovery` before experiment planning.
 - Collaboration is still allowed: if novelty review, results audit, or review-loop artifacts exist, use them; if one of those skills would materially improve the plan, recommend or invoke it.
+
+### Iteration loop mode
+
+- Use when the question is "how good can this get under a fixed budget" rather than "is this claim true": hyperparameter or architecture search, prompt optimization against a frozen test suite, or any hill-climb on one metric.
+- Follow `references/iteration-loop-contract.md`: declare the frozen exam (evaluator, metric, direction, budget) and the mutable set in `program.md`, run the baseline first, keep a change only when the metric improves, revert otherwise, append every run to `results.tsv`, and write a notebook entry per run before and after it.
+- Scaffold with `scripts/init_iteration_loop.py` and check the ledger with `scripts/validate_iteration_ledger.py`.
+- Do not pause to ask whether to continue before the stop criterion in `program.md`. Do not edit the frozen set during the loop; changing the exam ends the loop and starts a new ledger.
+- A loop result is exploratory evidence. Hand the ledger and notebook to `research-results-auditor` as the complete run accounting before any claim leaves the loop.
 
 ### Orchestrated mode
 
@@ -72,6 +80,8 @@ description: Convert a concrete research claim into a tracked, decisive experime
 - A failed non-vacuity preflight normally forces revision or a weaker evidence class; it does not prohibit exploratory work.
 
 ## Output contract
+
+The narrative plan (`experiment-plan.md`) is reader-facing prose and follows the drafting contract (`writing/technical-writing-drafter/references/drafting-contract.md`); the JSON and tables remain the authority.
 
 - Primary files:
   - `experiment-plan.md`
@@ -120,7 +130,8 @@ description: Convert a concrete research claim into a tracked, decisive experime
   - falsification test
   - material predecessor failures and their disposition
 - Cap the number of primary/supporting claims aggressively.
-- Define what result would force reframing, reclassification, or abandonment.
+- Define what result would force reframing, reclassification, or abandonment, and write the repair for an unproven claim in `decision_if_unproven` as `{"action": ..., "note": ...}`. The actions, in the order to consider them, are `add_evidence`, `sharpen_comparator`, `lower_assurance`, `reframe`, `narrow`, `pivot`, and `stop` (the suite's decision vocabulary in `../research-pipeline-planner/references/suite-contract.md`). Prefer a repair that keeps the claim; when `narrow` is the only non-terminal repair a plan offers, say why the others do not apply.
+- Start each gate's "Revise if" cell with a repair name and a colon, for example `` `sharpen_comparator`: add the matched baseline ``. The validator warns on free text and on the old `drop` and `defer` values.
 - If the claim map is unstable, revise it before planning runs.
 - Record the claim map in both `experiment-plan.md` and `claim-map.json`.
 
@@ -220,6 +231,8 @@ Record the result in `decision-gates.md` and in each affected block's `non_vacui
   - `decisive`
   - `inconclusive`
   - `dropped`
+- Give every run a Kind in the tracker's optional last column: `planned` (the default when the column or cell is empty), `unplanned`, `precursor`, `diagnostic`, or `retry`. Only a planned run must name a declared block, gate, and priority; the other kinds may sit outside the plan, which is how an honest tracker records the probes and reruns real projects make. Diagnostic and precursor runs do not decide gates, and a retry follows an earlier run of its block.
+- Run `scripts/check_plan_drift.py` before an audit or a gate decision to see where execution left the plan: runs no block declares, must-run blocks that never ran, kinds that contradict the plan, audited runs the tracker never lists, and result files no row names. It reports and exits 0; pass `--fail-on-drift` to make drift fail a check.
 - Carry material predecessor failures forward until new evidence resolves them; reclassification, replacement, or omission is not resolution.
 
 ### 7) Emit the execution bridge
@@ -248,10 +261,22 @@ Record the result in `decision-gates.md` and in each affected block's `non_vacui
 - If existing results already exist, pull in `research-results-auditor`.
 - If the plan will later feed a draft or response to reviewers, keep outputs legible to `research-paper-plan` and `research-review-loop`.
 - Validate tracked packs with `scripts/validate_experiment_pack.py` before treating them as stable stage artifacts.
-- The default validator profile remains structural for backward compatibility. For confirmatory or high-stakes promotion, run it with `--assurance-profile confirmatory`; even that checks field presence, links, and internal consistency, not whether the declared controls actually held.
+- For a standalone plan, validate with `--assurance-profile exploratory`: it rejects placeholder or empty `claim`, `falsifier`, `metrics`, and `success_criterion` fields and empty decision-gate cells, so an untouched scaffold cannot pass.
+- The default validator profile remains structural for backward compatibility; it checks links only and passes an empty scaffold. For confirmatory or high-stakes promotion, run it with `--assurance-profile confirmatory`; even that checks field presence, links, and internal consistency, not whether the declared controls actually held.
+- `claim-map.json` and `run-blocks.json` may be bare arrays or versioned envelopes (`{"schema_version": ..., "plan_version": ..., "claims": [...]}` and `{..., "blocks": [...]}`). Under each table heading the validator parses only the first table whose header row starts with the canonical column (`Run ID`, `Gate ID`, `Order`), so append-only history tables below it are ignored. Experiment binding through `harness_runtime.py` and the linked results-audit and paper-plan profiles still require bare arrays.
+
+## Stage gate
+
+This skill owns its stage gate. Standalone, it is the proceed, revise, or stop test for the request. In an orchestrated project the planner applies it, together with the paper-identity and evidence-promotion gates in `research-pipeline-planner/SKILL.md`, before work enters or leaves this stage.
+
+- Proceed when the committed claim and decision rule are explicit and the plan targets the declared primary evidence obligation.
+- Revise when the plan mixes multiple claims, changes the central object, or adds optional experiments before the next mandatory evidence artifact.
+- Stop when the evaluation target is undefined or the plan requires an unapproved D3-D4 change.
+- For confirmatory plans, also require a complete loss or outcome contract, explicit case-selection rule, non-vacuity preflight, failure inheritance, and an honest independence statement.
 
 ## References
 
+- `references/iteration-loop-contract.md`: the autonomous keep-or-revert loop (frozen exam, mutable set, ledger, notebook, idea queue, handoff to the auditor).
 - `references/experiment-plan-template.md`
 - `references/claim-evidence-map-template.md`
 - `references/experiment-block-schema.md`
@@ -260,11 +285,14 @@ Record the result in `decision-gates.md` and in each affected block's `non_vacui
 - `references/execution-bridge-template.md`
 - `references/control-and-ablation-checklist.md`
 - `references/risk-confound-checklist.md`
-- `references/tabmol-ddi-ood-adapter.md`
+- `references/domain-adapters.md`: optional checks for LLM evaluation, Bayesian measurement, recomputation audits, theory, conceptual work, and the TabMol DDI/OOD agenda, with the rule for choosing one
 - `../research-pipeline-planner/references/experiment-execution-binding.md`
 - `../research-pipeline-planner/references/epistemic-assurance-contract.md`
 
 ## Scripts
 
 - `scripts/init_experiment_pack.py`: create the full experiment-planning pack in a standalone directory or the suite's `experiment-plan/` directory, including execution and lineage scaffolds.
-- `scripts/validate_experiment_pack.py`: validate required headings, JSON structure, reciprocal claim/block links, gate bindings, execution declarations, lineage policy, tracker states, and confirmatory assurance fields without claiming executor isolation or scientific validity.
+- `scripts/init_iteration_loop.py`: create `program.md`, an empty `results.tsv` ledger, `experiments.md`, and `ideas.md` for an autonomous iteration loop.
+- `scripts/validate_iteration_ledger.py`: check a loop ledger (header, hashes, statuses, baseline row, keep rows improve in the declared direction) and cross-check notebook entries with `--notebook`.
+- `scripts/check_plan_drift.py`: report drift between the plan and what ran. `--run-blocks` and `--tracker` are required; `--claim-map`, `--audit results-audit.json`, `--results-dir`, and `--root` add checks; `--json` prints the report as JSON; `--fail-on-drift` exits 1 when anything is listed.
+- `scripts/validate_experiment_pack.py`: validate required headings, JSON structure (bare arrays or versioned envelopes), reciprocal claim/block links, gate bindings, execution declarations, lineage policy, tracker states, and profile-specific fields (`structural`, `exploratory`, `confirmatory`) without claiming executor isolation or scientific validity.

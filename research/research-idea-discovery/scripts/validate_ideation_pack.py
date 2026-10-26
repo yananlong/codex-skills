@@ -66,6 +66,7 @@ DECISIONS = {
     "proceed_to_experiment_plan",
     "revise_scope",
     "generate_more",
+    "request_pivot",
     "stop",
 }
 NEXT_SKILLS = {
@@ -74,7 +75,28 @@ NEXT_SKILLS = {
     "research-systematic-literature-review",
     "research-experiment-plan",
     "research-pipeline-planner",
+    "research-paper-review",
 }
+
+# Route-level re-ideation (D9): an idea that would replace a failing route inside a live project
+# carries what it inherits and what it costs. Fresh ideation may omit these fields.
+IDEATION_MODES = {"fresh", "route_level"}
+EVIDENCE_CLASSES = {"exploratory", "confirmatory", "independently_verified", "operational_high_stakes"}
+FAILURE_DISPOSITIONS = {"open", "targeted", "accepted_with_narrowing", "resolved"}
+IDENTITY_CHANGE_CLASSES = {"D0", "D1", "D2", "D3", "D4"}
+IDEA_NEXT_SKILLS = {
+    "research-novelty-review",
+    "research-systematic-literature-review",
+    "research-experiment-plan",
+    "research-pipeline-planner",
+    "research-paper-review",
+    "research-paper-plan",
+    "research-results-auditor",
+    "research-review-loop",
+    "research-zotero",
+    "stop",
+}
+ROUTE_FIELDS = ("evidence_class", "predecessor_failures", "switching_cost", "identity_change_class", "next_skill")
 CONFIDENCE = {"low", "medium", "high"}
 NOVELTY_CHECK_STATUSES = {"not_checked", "quick_signal_only", "reviewed"}
 
@@ -105,7 +127,60 @@ def validate_markdown(root: Path, errors: list[str]) -> None:
                 errors.append(f"{name}: missing heading '{heading}'")
 
 
-def validate_scores(data, allow_empty: bool, errors: list[str]) -> tuple[set[str], set[str]]:
+def substantive(value) -> bool:
+    return isinstance(value, str) and bool(value.strip()) and "todo" not in value.lower()
+
+
+def validate_route_fields(idea: dict, label: str, required: bool, errors: list[str]) -> None:
+    """Check the re-ideation fields; `required` is true for live ideas in route-level mode."""
+    missing = [field for field in ROUTE_FIELDS if field not in idea]
+    if required and missing:
+        errors.append(
+            f"{label} replaces a failing route, so it must record {', '.join(missing)} "
+            "(see references/idea-score-schema.md)"
+        )
+    if "evidence_class" in idea and idea["evidence_class"] not in EVIDENCE_CLASSES:
+        errors.append(f"{label}.evidence_class must be one of {sorted(EVIDENCE_CLASSES)}")
+    if "predecessor_failures" in idea:
+        failures = idea["predecessor_failures"]
+        if not isinstance(failures, list):
+            errors.append(f"{label}.predecessor_failures must be a list (empty when nothing is inherited)")
+        else:
+            for index, failure in enumerate(failures, 1):
+                item = f"{label}.predecessor_failures[{index}]"
+                if not isinstance(failure, dict) or not substantive(failure.get("failure_id")):
+                    errors.append(f"{item} must be an object with a failure_id")
+                    continue
+                disposition = failure.get("disposition")
+                if disposition not in FAILURE_DISPOSITIONS:
+                    errors.append(f"{item}.disposition must be one of {sorted(FAILURE_DISPOSITIONS)}")
+                elif disposition == "resolved" and not substantive(failure.get("evidence")):
+                    errors.append(
+                        f"{item}: a resolved failure names the evidence that resolved it; a new idea or a "
+                        "reframing does not resolve an inherited failure by itself"
+                    )
+    if "switching_cost" in idea:
+        cost = idea["switching_cost"]
+        if not isinstance(cost, dict) or not substantive(cost.get("discarded")) or not substantive(cost.get("new_burden")):
+            errors.append(f"{label}.switching_cost must say what work is discarded and what new burden appears")
+    change = idea.get("identity_change_class")
+    if "identity_change_class" in idea and change not in IDENTITY_CHANGE_CLASSES:
+        errors.append(f"{label}.identity_change_class must be one of {sorted(IDENTITY_CHANGE_CLASSES)}")
+    if "next_skill" in idea and idea["next_skill"] not in IDEA_NEXT_SKILLS:
+        errors.append(f"{label}.next_skill must be one of {sorted(IDEA_NEXT_SKILLS)}")
+    if change in {"D3", "D4"}:
+        if idea.get("pivot_request_needed") is not True:
+            errors.append(
+                f"{label} implies a {change} identity change, so it sets pivot_request_needed: true; the "
+                "planner records it with harness_runtime.py pivot-request before anyone acts on it"
+            )
+        if "next_skill" in idea and idea["next_skill"] not in {"research-pipeline-planner", "stop"}:
+            errors.append(f"{label}: a {change} idea goes to research-pipeline-planner for the pivot request, or stops")
+
+
+def validate_scores(
+    data, allow_empty: bool, errors: list[str], route_level: bool = False
+) -> tuple[set[str], set[str]]:
     if not isinstance(data, dict):
         errors.append("idea-scores.json must be an object")
         return set(), set()
@@ -180,7 +255,25 @@ def validate_scores(data, allow_empty: bool, errors: list[str]) -> tuple[set[str
                 errors.append(f"{label}.{list_field} must be a list")
             elif status in {"selected", "shortlisted"} and not idea.get(list_field):
                 errors.append(f"{label}.{list_field} must not be empty for {status} ideas")
+        validate_route_fields(idea, label, route_level and status in {"selected", "shortlisted"}, errors)
     return ids, selected_status_ids
+
+
+def ideation_mode(data, errors: list[str], warnings: list[str]) -> str:
+    """Read ideation_mode; packs written before it existed are treated as fresh ideation."""
+    if not isinstance(data, dict) or "ideation_mode" not in data:
+        warnings.append(
+            "ideation-decision.json has no ideation_mode; treating it as fresh. Set ideation_mode to route_level "
+            "when the ideas would replace a failing route in a live project"
+        )
+        return "fresh"
+    mode = data.get("ideation_mode")
+    if mode not in IDEATION_MODES:
+        errors.append(f"ideation-decision.json.ideation_mode must be one of {sorted(IDEATION_MODES)}")
+        return "fresh"
+    if mode == "route_level" and not substantive(data.get("failing_route")):
+        errors.append("route_level ideation must name the failing_route the ideas would replace")
+    return mode
 
 
 def validate_decision(
@@ -189,6 +282,7 @@ def validate_decision(
     selected_status_ids: set[str],
     allow_empty: bool,
     errors: list[str],
+    pivot_ideas: set[str] | None = None,
 ) -> None:
     if not isinstance(data, dict):
         errors.append("ideation-decision.json must be an object")
@@ -248,6 +342,17 @@ def validate_decision(
             errors.append(f"ideation-decision.json.{list_field} must be a list")
     if decision == "stop" and not data.get("limits"):
         errors.append("stop decisions must include at least one limit")
+    if decision == "request_pivot":
+        if not set(selected) & (pivot_ideas or set()):
+            errors.append("request_pivot requires a selected idea whose identity_change_class is D3 or D4")
+        if data.get("next_skill") != "research-pipeline-planner":
+            errors.append("request_pivot requires next_skill research-pipeline-planner")
+    chosen_pivots = sorted(set(selected) & (pivot_ideas or set()))
+    if chosen_pivots and data.get("next_skill") != "research-pipeline-planner":
+        errors.append(
+            "selected ideas " + ", ".join(chosen_pivots) + " imply a D3 or D4 identity change; set next_skill to "
+            "research-pipeline-planner so the pivot request is recorded before novelty or experiment work"
+        )
 
 
 def parse_args() -> argparse.Namespace:
@@ -261,20 +366,34 @@ def main() -> int:
     args = parse_args()
     root = args.pack_dir.expanduser().resolve()
     errors: list[str] = []
+    warnings: list[str] = []
 
     validate_markdown(root, errors)
     scores = load_json(root / "idea-scores.json", "idea-scores.json", errors)
     decision = load_json(root / "ideation-decision.json", "ideation-decision.json", errors)
-    idea_ids, selected_status_ids = validate_scores(scores, args.allow_empty, errors) if scores is not None else (set(), set())
+    mode = ideation_mode(decision, errors, warnings) if decision is not None else "fresh"
+    idea_ids, selected_status_ids = (
+        validate_scores(scores, args.allow_empty, errors, route_level=mode == "route_level")
+        if scores is not None else (set(), set())
+    )
+    pivot_ideas = {
+        idea.get("idea_id")
+        for idea in (scores.get("ideas", []) if isinstance(scores, dict) and isinstance(scores.get("ideas"), list) else [])
+        if isinstance(idea, dict) and idea.get("identity_change_class") in {"D3", "D4"}
+    }
     if decision is not None:
-        validate_decision(decision, idea_ids, selected_status_ids, args.allow_empty, errors)
+        validate_decision(decision, idea_ids, selected_status_ids, args.allow_empty, errors, pivot_ideas)
 
     if errors:
         print("Validation failed:")
         for error in errors:
             print(f"- {error}")
+        for warning in warnings:
+            print(f"warning: {warning}")
         return 1
-    print("Validation passed: ideation pack is structurally consistent.")
+    print(f"Validation passed: ideation pack ({mode} ideation) is structurally consistent.")
+    for warning in warnings:
+        print(f"warning: {warning}")
     return 0
 
 

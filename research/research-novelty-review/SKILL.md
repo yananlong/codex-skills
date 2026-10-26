@@ -14,6 +14,7 @@ description: Run a stringent, adversarial novelty review over a concrete researc
 5. When reviewing a paper, consume `research-paper-review` and the exact validated `research-systematic-literature-review` pack before deciding.
 6. Keep novelty positioning separate from empirical validity: a strong novelty rating does not show that the method works or authorize evidence promotion.
 7. End with a 1-5 novelty decision rating, not a coarse ternary label, plus the narrowest defensible positioning.
+8. Match the rating to the literature behind it. Without bound literature the rating stops at 3 and needs one filled prior-art row per point above 1. A 4 or 5 needs a bound paper context or a bound seven-file literature pack (`references/literature-assurance-contract.md`).
 
 ## Modes
 
@@ -41,6 +42,7 @@ description: Run a stringent, adversarial novelty review over a concrete researc
   - the paper's cited closest prior work from `summary.md` or the full text
 - Do not re-run broad literature discovery if a fresh paper-context evidence map already exists and is adequate. Instead, search only the remaining kill-shot gaps.
 - Output a bottom-line `novelty-context.md` or copy the key decision into `<review_dir>/context/novelty-context.md` for the paper-review bundle.
+- Treat `novelty-context.md` as a projection of `novelty-report.md` for the paper-review bundle. The canonical pack is still the four primary files below, and `scripts/validate_novelty_pack.py` reads `novelty-report.md`, never `novelty-context.md`. Regenerate the projection whenever the report changes.
 - Rate novelty and impact separately: a paper can be useful or important while still not being novel.
 
 ## Relationship to sibling skills
@@ -78,6 +80,8 @@ description: Run a stringent, adversarial novelty review over a concrete researc
 
 ## Output contract
 
+Reader-facing prose in these artifacts is written under the drafting contract (`writing/technical-writing-drafter/references/drafting-contract.md`): claims listed with their support before writing, no machine-prose tells, and `prose_tells.py --max-density 20` run on the draft before handoff, with its summary line recorded in the artifact index. Do not draft first and patch later.
+
 - Primary files:
   - `novelty-report.md`
   - `prior-art-matrix.md`
@@ -85,7 +89,8 @@ description: Run a stringent, adversarial novelty review over a concrete researc
   - `novelty-decision.json`
 - In orchestrated mode, these live under `./novelty-review/`.
 - In standalone mode, any target directory is valid.
-- `novelty-decision.json` should capture the final 1-5 novelty rating, confidence rating, the exact narrow positioning that survives the review, selection-history caveats, and whether the review was self-review or materially independent. In linked mode it also binds the exact seven-file literature pack with per-file SHA-256 digests, corpus identity, assurance verdict, and unresolved high-priority novelty-critical question IDs.
+- `novelty-decision.json` should capture the final 1-5 novelty rating, confidence rating, the exact narrow positioning that survives the review, selection-history caveats, and whether the review was self-review or materially independent. `literature_assurance.mode` is `unlinked`, `context`, or `linked`. Context mode binds the four-file paper context with per-file SHA-256 digests. Linked mode binds the exact seven-file literature pack with per-file SHA-256 digests, corpus identity, assurance verdict, and unresolved high-priority novelty-critical question IDs.
+- When the narrowest defensible positioning claims less than the paper or idea claims, add a `claim_trajectory` list to `novelty-decision.json` with one shared claim-trajectory record per changed claim (`claim_id`, `change_class`, `content_lost`, `alternatives_considered`, `restoring_evidence`; see `../research-pipeline-planner/references/suite-contract.md`). The validator checks each record, so the narrowing reaches the commitment's `selection_history` as a counted change and not only as prose.
 - In paper-review integrated mode, `novelty-decision.json` should also capture:
   - `impact_positioning_rating` (1-5)
   - `literature_context_used`
@@ -111,6 +116,7 @@ description: Run a stringent, adversarial novelty review over a concrete researc
 ### 2) Search with a kill-shot mindset
 
 - Use `references/adversarial-query-patterns.md` and `references/search-log-template.md`.
+- Log one dated query per row in `search-log.md`, with the tool used, the number of results inspected, and the results opened and checked (or none). Do not record a total hit count the tool did not show. A complete unlinked review needs at least one logged search; older logs without these columns validate with a warning.
 - If the user maintains a relevant Zotero library or collection, invoke `research-zotero` first or consume `./zotero/zotero-items.json` as a curated seed corpus.
 - If a `research-systematic-literature-review` paper-context evidence map exists, use it as the first prior-art source and search only for obvious missing overlaps or decision-critical gaps.
 - Search the strongest plausible overlaps first.
@@ -142,14 +148,18 @@ description: Run a stringent, adversarial novelty review over a concrete researc
 - End with:
   - `novelty_decision_rating` on a 1-5 scale
   - `decision_confidence_rating` on a 1-5 scale
-- Offer the narrowest defensible positioning that survives the objections.
+- Offer the narrowest defensible positioning that survives the objections, and also state the strongest supportable positioning the evidence allows, so narrowing stops where the overlaps stop.
 - Use this interpretation:
   - `1`: abandon; the core claim is effectively killed by overlap
   - `2`: major reframe required before proceeding
   - `3`: narrow proceed only; some novelty survives but only under a sharply reduced claim
   - `4`: proceed with careful positioning; novelty looks real but vulnerable
   - `5`: strong novelty position; closest overlaps do not materially undercut the core claim
-- Do not issue rating 4 or 5 from linked evidence unless the exact literature pack validates with an adequate verdict and has no unresolved high-priority novelty-critical question.
+- The literature behind the decision caps the rating:
+  - mode `unlinked` (the lightweight path, such as "find the prior art I am missing in this draft"): at most 3, with one filled prior-art row per point above 1;
+  - mode `context`: 4 or 5 when the bound paper context validates and its coverage confidence is at least 3, with the same row floor;
+  - mode `linked`: 4 or 5 when the exact literature pack validates with an adequate verdict and has no unresolved high-priority novelty-critical question.
+- To raise a capped rating, bind the evidence with `scripts/novelty_assurance.py link` (`--context` or `--pack-dir`). To grow a paper context into a full pack, run `paper_context_artifacts.py promote` from `research-systematic-literature-review` and fill the placeholders it leaves.
 - Rating 3 under material literature uncertainty requires explicit narrow positioning, a change condition, and claims to qualify.
 - State explicitly that the rating governs positioning only. It does not certify empirical correctness, confirmatory status, implementation validity, or route readiness.
 - If deeper retrieval would materially improve confidence, collaborate with `research-systematic-literature-review`.
@@ -170,6 +180,16 @@ description: Run a stringent, adversarial novelty review over a concrete researc
 - Use `presentation` for framing issues that do not materially affect a core claim.
 - Use `methodology` when the novelty/impact claim depends on an evaluation protocol that is not competitive with field norms.
 
+## Stage gate
+
+This skill owns its stage gate. Standalone, it is the proceed, revise, or stop test for the request. In an orchestrated project the planner applies it, together with the paper-identity and evidence-promotion gates in `research-pipeline-planner/SKILL.md`, before work enters or leaves this stage.
+
+- Proceed when the proposed method or finding is concrete enough to compare and literature assurance is proportionate to the strength of the novelty claim.
+- Revise when the idea is rhetorical, bundles too many moving parts, or depends on incomplete prior-art coverage.
+- Stop strong priority or first-of-kind language when recall assurance is inadequate.
+- Treat the novelty decision as positioning evidence, not evidence that the method works or that an experiment route is valid.
+- A novelty review may recommend `continue`, `narrow`, `pivot-request`, `kill`, or `park-successor`; it may not silently rewrite the commitment contract.
+
 ## References
 
 - `references/novelty-checklist.md`
@@ -179,12 +199,14 @@ description: Run a stringent, adversarial novelty review over a concrete researc
 - `references/decision-scale.md`
 - `references/overlap-scoring-rubric.md`
 - `references/reviewer-objection-rubric.md`
-- `references/tabmol-ddi-ood-adapter.md`
+- `references/domain-adapters.md`: optional checks for LLM evaluation, Bayesian measurement, recomputation audits, theory, conceptual work, and the TabMol DDI/OOD agenda, with the rule for choosing one
 - `references/paper-review-integration.md`
 - `references/literature-assurance-contract.md`
 - `../research-pipeline-planner/references/epistemic-assurance-contract.md`
 
 ## Scripts
 
-- `scripts/init_novelty_pack.py`: create `novelty-report.md`, `prior-art-matrix.md`, `search-log.md`, and schema-versioned `novelty-decision.json` in a standalone directory or the suite's `novelty-review/` directory.
-- `scripts/validate_novelty_pack.py`: validate report/JSON reciprocity and, in linked mode, rerun the exact literature pack before enforcing rating gates.
+- `scripts/init_novelty_pack.py`: create `novelty-report.md`, `prior-art-matrix.md`, `search-log.md`, and schema-versioned `novelty-decision.json` in a standalone directory or the suite's `novelty-review/` directory. Ratings start as `null` and blank report lines; fill them only after the review. `--link-context <dir>` or `--link <pack dir>` binds the literature at creation.
+- `scripts/validate_novelty_pack.py`: validate report/JSON reciprocity and the rating gates for the decision's mode. Unlinked mode caps the novelty rating at 3 and checks the prior-art row floor; context mode reruns the bound paper context; linked mode (`--assurance-profile linked`) reruns the exact literature pack. A `draft` decision may leave ratings `null`; `status: complete` requires all three ratings. A decision written before schema 1.1 fails with the migrate command to run.
+- `scripts/novelty_assurance.py`: `link` binds a paper context (`--context`) or a seven-file pack (`--pack-dir`) and updates the report's assurance lines; `migrate` brings a pre-1.1 decision to schema 1.1, capping and never raising the rating and recording the original.
+- Dependency: `--help` and unlinked mode need only this skill. Context mode imports `paper_context_artifacts.py`, and linked mode imports `review_pack_coverage.py` and runs `validate_review_pack.py`, all from `research-systematic-literature-review`, which must be installed as a sibling folder (`<skills>/research-systematic-literature-review/`). Without it, those modes fail with an error naming that skill.

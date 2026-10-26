@@ -14,9 +14,11 @@ Use this template to document reproducible evidence discovery.
 
 ## Query ledger
 
-| run_id | date | source | query_string | filters | records_returned | notes |
-| --- | --- | --- | --- | --- | ---: | --- |
-| run-001 | YYYY-MM-DD | | | | 0 | |
+One query per row. `results_inspected` counts the results looked at; `spot_checked` names the ones opened and checked, or says none.
+
+| run_id | date | tool | source | query_string | filters | results_inspected | spot_checked | notes |
+| --- | --- | --- | --- | --- | --- | ---: | --- | --- |
+| run-001 | YYYY-MM-DD | | | | | 0 | | |
 
 ## Deduplication ledger
 
@@ -28,9 +30,11 @@ Use this template to document reproducible evidence discovery.
 
 Document Zotero ingestion here when the review uses a Zotero user library, group library, collection, tags, or saved search as a curated source.
 
+Use `access_mode` `local-bib` with `library_type` `local` when the curated source is a manuscript's own `.bib` files read by `scripts/bib_inventory.py`; put the bib file paths in `library_id` and the resolved-entry count in `items_retrieved`.
+
 | sync_id | date | access_mode | library_type | library_id | collection_key | tags | query | items_retrieved | notes |
 | --- | --- | --- | --- | --- | --- | --- | --- | ---: | --- |
-| zot-001 | YYYY-MM-DD | api-key / oauth-key / mcp | user / group | | | | | 0 | |
+| zot-001 | YYYY-MM-DD | api-key / oauth-key / mcp / local-bib | user / group / local | | | | | 0 | |
 
 ## Version resolution ledger (preprint -> published/venue record)
 

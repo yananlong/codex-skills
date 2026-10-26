@@ -8,6 +8,15 @@ import re
 from pathlib import Path
 from typing import Any
 
+from claim_trajectory import (
+    FLOOR_STATUSES,
+    ROUTE_ACTIONS,
+    check_contribution_floor,
+    check_trajectory,
+    narrowings_needing_review,
+)
+from semantic_assurance.transitions import validate_identity_anchors
+
 SCHEMA_VERSION = "1.0"
 STATUSES = {"exploring", "committed", "executing", "interpreting", "closed"}
 CONTRIBUTION_CLASSES = {
@@ -26,6 +35,7 @@ REQUIRED_FIELDS = {
     "next_mandatory_evidence_artifact", "reconsideration_gate", "selection_history",
     "predecessor_failures", "last_change_class", "last_change_rationale",
 }
+OPTIONAL_FIELDS = {"identity_anchors", "contribution_floor"}
 IDENTITY_FIELDS = (
     "main_question", "central_object_or_phenomenon", "minimum_publishable_claim",
     "primary_evidence_obligation", "intended_audience",
@@ -37,13 +47,15 @@ def _substantive(value: Any) -> bool:
     return isinstance(value, str) and bool(value.strip())
 
 
-def validate_commitment(data: Any) -> list[str]:
+def validate_commitment(data: Any, warnings: list[str] | None = None) -> list[str]:
     errors: list[str] = []
+    if warnings is None:
+        warnings = []
     if not isinstance(data, dict):
         return ["commitment must be a JSON object"]
 
     missing = sorted(REQUIRED_FIELDS - set(data))
-    extra = sorted(set(data) - REQUIRED_FIELDS)
+    extra = sorted(set(data) - REQUIRED_FIELDS - OPTIONAL_FIELDS)
     if missing:
         errors.append("missing fields: " + ", ".join(missing))
     if extra:
@@ -66,6 +78,8 @@ def validate_commitment(data: Any) -> list[str]:
         errors.append(f"last_change_class must be one of {sorted(DRIFT_CLASSES)}")
     if not _substantive(data.get("last_change_rationale")):
         errors.append("last_change_rationale must be a substantive string")
+    if "identity_anchors" in data:
+        validate_identity_anchors(data, "commitment", errors)
 
     for field in (
         "permitted_refinements", "pivot_triggers", "kill_conditions",
@@ -91,8 +105,33 @@ def validate_commitment(data: Any) -> list[str]:
                 errors.append(f"selection_history[{index}].decision must be a substantive string")
             if not _substantive(item.get("rationale")):
                 errors.append(f"selection_history[{index}].rationale must be a substantive string")
+            if "trajectory" in item:
+                check_trajectory(item["trajectory"], f"selection_history[{index}].trajectory", errors)
+            if item.get("decision") == "project-review":
+                if not _substantive(item.get("claim_id")):
+                    errors.append(f"selection_history[{index}]: a project-review entry names the claim_id it reviewed")
+                if item.get("route_action") not in ROUTE_ACTIONS:
+                    errors.append(f"selection_history[{index}].route_action must be one of {list(ROUTE_ACTIONS)}")
+                if "contribution_floor" in data and item.get("floor_status") not in FLOOR_STATUSES:
+                    errors.append(
+                        f"selection_history[{index}].floor_status must record whether the contribution floor "
+                        f"still holds: one of {list(FLOOR_STATUSES)}"
+                    )
+        for claim_id, count in sorted(narrowings_needing_review(history).items()):
+            errors.append(
+                f"claim {claim_id} has been narrowed {count} times; record a project-level review "
+                f"(selection_history entry {{\"decision\": \"project-review\", \"claim_id\": \"{claim_id}\", "
+                f"\"route_action\": ..., \"floor_status\": ..., \"rationale\": ...}}) before manuscript integration"
+            )
 
     status = data.get("status")
+    if "contribution_floor" in data:
+        check_contribution_floor(data["contribution_floor"], "contribution_floor", errors)
+    elif status in {"committed", "executing", "interpreting"}:
+        warnings.append(
+            "no contribution_floor: state the least contribution that still justifies the paper and the outcome "
+            "that would show it is not met, so narrowing can be checked against it"
+        )
     if status in {"committed", "executing", "interpreting"}:
         for field in ACTIVE_FIELDS:
             if not _substantive(data.get(field)):
@@ -106,16 +145,47 @@ def validate_commitment(data: Any) -> list[str]:
             if not _substantive(data.get(field)):
                 errors.append(f"{field} must remain non-empty for a closed lineage")
 
-    if status != "exploring" and data.get("last_change_class") in {"D3", "D4"}:
-        decisions = {
-            item.get("decision")
-            for item in history or []
-            if isinstance(item, dict)
-        }
-        if not decisions.intersection(PIVOT_DECISIONS):
-            errors.append("D3/D4 state requires an explicit authorized pivot decision in selection_history")
+    change_class = data.get("last_change_class")
+    if status != "exploring" and change_class in {"D3", "D4"}:
+        _check_pivot_authorization(data, history, change_class, errors, warnings)
 
     return errors
+
+
+def _check_pivot_authorization(
+    data: dict[str, Any], history: Any, change_class: str, errors: list[str], warnings: list[str]
+) -> None:
+    """Require a pivot decision; versioned decisions must name the current identity version."""
+    entries = [
+        item for item in history or []
+        if isinstance(item, dict) and item.get("decision") in PIVOT_DECISIONS
+    ]
+    if not entries:
+        errors.append("D3/D4 state requires an explicit authorized pivot decision in selection_history")
+        return
+    expected_decision = "authorize-D3" if change_class == "D3" else "close-and-create-D4"
+    current_version = data.get("identity_version")
+    versioned = [item for item in entries if "to_identity_version" in item]
+    for item in versioned:
+        if item.get("decision") != expected_decision:
+            continue
+        if item.get("to_identity_version") == current_version and (
+            "to_paper_id" not in item or item.get("to_paper_id") == data.get("paper_id")
+        ):
+            return
+    if versioned:
+        named = sorted({str(item.get("to_identity_version")) for item in versioned})
+        errors.append(
+            f"{change_class} state at identity_version {current_version} requires a {expected_decision} "
+            f"decision naming to_identity_version {current_version}; selection_history names "
+            + ", ".join(named)
+        )
+        return
+    warnings.append(
+        f"legacy pivot authorization: {sorted({item['decision'] for item in entries})} does not name "
+        f"to_identity_version; record {{\"decision\": \"{expected_decision}\", "
+        f"\"to_identity_version\": {current_version}}} so the authorization binds this identity"
+    )
 
 
 def load_commitment(path: Path) -> tuple[Any, list[str]]:
@@ -133,8 +203,11 @@ def main() -> int:
     args = parser.parse_args()
     path = args.commitment.expanduser().resolve()
     data, errors = load_commitment(path)
+    warnings: list[str] = []
     if not errors:
-        errors.extend(validate_commitment(data))
+        errors.extend(validate_commitment(data, warnings))
+    for warning in warnings:
+        print(f"warning: {warning}")
     if errors:
         print("Validation failed:")
         for error in errors:

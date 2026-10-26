@@ -1,0 +1,598 @@
+{
+  "schema_version": "1.0",
+  "about": "Venue facts shared by research-paper-plan and research-rebuttal. One row per venue; every row carries the date its facts were last checked against the listed sources. Print, diff, and check rows with scripts/venue_table.py. Fields that a source does not state are null; never fill them by analogy with another year or venue.",
+  "stale_after_days": 365,
+  "venues": [
+    {
+      "venue_id": "openreview-default",
+      "venue": "OpenReview default forms (platform)",
+      "family": "platform_default",
+      "rebuttal_mode": "Venue-configured",
+      "response_format": "Default rebuttal form: Markdown text, 2500 characters; default comment form: Markdown text, 5000 characters",
+      "response_limit": {
+        "unit": "chars",
+        "value": 2500,
+        "scope": "per_review"
+      },
+      "page_limits": null,
+      "revision_during_response": null,
+      "anonymity": null,
+      "external_links": null,
+      "mandatory_sections": null,
+      "supplementary_rules": null,
+      "revision_mechanics": "OpenReview supports one rebuttal per paper, one per review, or several per paper",
+      "key_constraints": "Actual conferences often override these defaults",
+      "sources": [
+        "https://docs.openreview.net/reference/stages/rebuttal-stage",
+        "https://docs.openreview.net/reference/default-forms/default-rebuttal-form",
+        "https://docs.openreview.net/reference/default-forms/default-comment-form"
+      ],
+      "verified_on": "2026-03-24",
+      "status": "verified"
+    },
+    {
+      "venue_id": "cvpr-2025",
+      "venue": "CVPR 2025",
+      "family": "one_shot_pdf",
+      "rebuttal_mode": "One-shot rebuttal",
+      "response_format": "Optional 1-page PDF rebuttal",
+      "response_limit": {
+        "unit": "pages",
+        "value": 1,
+        "scope": "whole"
+      },
+      "page_limits": null,
+      "revision_during_response": null,
+      "anonymity": "anonymous",
+      "external_links": "forbidden",
+      "mandatory_sections": null,
+      "supplementary_rules": null,
+      "revision_mechanics": "No iterative discussion noted in author guide",
+      "key_constraints": "Must remain anonymous; no external links; should not add unrequested new results or major new material",
+      "sources": [
+        "https://cvpr.thecvf.com/Conferences/2025/AuthorGuidelines"
+      ],
+      "verified_on": "2026-03-24",
+      "status": "verified"
+    },
+    {
+      "venue_id": "iccv-2025",
+      "venue": "ICCV 2025",
+      "family": "one_shot_pdf",
+      "rebuttal_mode": "One-shot rebuttal",
+      "response_format": "Optional 1-page PDF rebuttal",
+      "response_limit": {
+        "unit": "pages",
+        "value": 1,
+        "scope": "whole"
+      },
+      "page_limits": null,
+      "revision_during_response": null,
+      "anonymity": "anonymous",
+      "external_links": "forbidden",
+      "mandatory_sections": null,
+      "supplementary_rules": null,
+      "revision_mechanics": "No iterative discussion noted in author guide",
+      "key_constraints": "Must remain anonymous; no external links; can send confidential comment to AC; should not add unrequested new results or major new material",
+      "sources": [
+        "https://iccv.thecvf.com/Conferences/2025/AuthorGuidelines"
+      ],
+      "verified_on": "2026-03-24",
+      "status": "verified"
+    },
+    {
+      "venue_id": "eccv-2026",
+      "venue": "ECCV 2026",
+      "family": "one_shot_pdf",
+      "rebuttal_mode": "One-shot rebuttal",
+      "response_format": "Optional 1-page PDF rebuttal in ECCV rebuttal template",
+      "response_limit": {
+        "unit": "pages",
+        "value": 1,
+        "scope": "whole"
+      },
+      "page_limits": null,
+      "revision_during_response": null,
+      "anonymity": null,
+      "external_links": "restricted",
+      "mandatory_sections": null,
+      "supplementary_rules": null,
+      "revision_mechanics": "No iterative author-reviewer exchange described on submission policy page",
+      "key_constraints": "No external links in submission, supplement, or rebuttal when they expand content; overlength or altered-format rebuttals will not be reviewed",
+      "sources": [
+        "https://eccv.ecva.net/Conferences/2026/SubmissionPolicies"
+      ],
+      "verified_on": "2026-03-24",
+      "status": "verified"
+    },
+    {
+      "venue_id": "iclr-2026",
+      "venue": "ICLR 2026",
+      "family": "threaded_discussion",
+      "rebuttal_mode": "Threaded discussion",
+      "response_format": "OpenReview discussion plus revised PDF; no single 1-page rebuttal rule",
+      "response_limit": null,
+      "page_limits": {
+        "main_paper_initial": 9,
+        "main_paper_after_rebuttal": 10
+      },
+      "revision_during_response": true,
+      "anonymity": null,
+      "external_links": null,
+      "mandatory_sections": null,
+      "supplementary_rules": null,
+      "revision_mechanics": "Authors can respond and revise from 2025-11-11 to 2025-12-03",
+      "key_constraints": "Main paper limit increases from 9 to 10 pages at rebuttal and camera-ready; pdfdiff shown to reviewers and ACs; large revisions may be ignored",
+      "sources": [
+        "https://iclr.cc/Conferences/2026/AuthorGuide"
+      ],
+      "verified_on": "2026-03-24",
+      "status": "verified"
+    },
+    {
+      "venue_id": "neurips-2025",
+      "venue": "NeurIPS 2025",
+      "family": "threaded_discussion",
+      "rebuttal_mode": "Threaded discussion",
+      "response_format": "Author rebuttal window in OpenReview; exact form is venue-managed",
+      "response_limit": null,
+      "page_limits": null,
+      "revision_during_response": null,
+      "anonymity": null,
+      "external_links": null,
+      "mandatory_sections": null,
+      "supplementary_rules": null,
+      "revision_mechanics": "Rebuttal 2025-07-24 to 2025-07-30, followed by discussion through 2025-08-06",
+      "key_constraints": "Reviewer form explicitly requests actionable author-response questions; venue uses discussion rather than a single fixed PDF rebuttal page",
+      "sources": [
+        "https://neurips.cc/Conferences/2025/ReviewerGuidelines"
+      ],
+      "verified_on": "2026-03-24",
+      "status": "verified"
+    },
+    {
+      "venue_id": "icml-2025",
+      "venue": "ICML 2025",
+      "family": "per_review",
+      "rebuttal_mode": "Per-review response plus discussion",
+      "response_format": "One official response per review, 5000 characters each",
+      "response_limit": {
+        "unit": "chars",
+        "value": 5000,
+        "scope": "per_review"
+      },
+      "page_limits": null,
+      "revision_during_response": null,
+      "anonymity": null,
+      "external_links": null,
+      "mandatory_sections": null,
+      "supplementary_rules": null,
+      "revision_mechanics": "Reviewers must acknowledge author response; further reviewer questions and one final author response are supported",
+      "key_constraints": "Confidential comments to AC exist but must not be used as a late rebuttal channel",
+      "sources": [
+        "https://icml.cc/Conferences/2025/ReviewerInstructions"
+      ],
+      "verified_on": "2026-03-24",
+      "status": "verified"
+    },
+    {
+      "venue_id": "icml-2026",
+      "venue": "ICML 2026",
+      "family": "per_review",
+      "rebuttal_mode": "Per-review response plus structured discussion",
+      "response_format": "Three rounds in OpenReview-style discussion, each limited to 5000 characters",
+      "response_limit": {
+        "unit": "chars",
+        "value": 5000,
+        "scope": "per_round"
+      },
+      "page_limits": null,
+      "revision_during_response": false,
+      "anonymity": "anonymous",
+      "external_links": "restricted",
+      "mandatory_sections": null,
+      "supplementary_rules": null,
+      "revision_mechanics": "Reviewer-author discussion runs 2026-03-24 to 2026-04-07; no revised manuscript upload allowed during author response",
+      "key_constraints": "Authors are encouraged to address major misunderstandings, not every minor point; responses must stay anonymous and avoid non-anonymized or shortened URLs; AC-only comments are possible through reader-restricted notes rather than a public author artifact",
+      "sources": [
+        "https://icml.cc/Conferences/2026/ReviewerInstructions",
+        "https://icml.cc/Conferences/2026/AuthorInstructions",
+        "https://icml.cc/Conferences/2026/AreaChairInstructions"
+      ],
+      "verified_on": "2026-03-24",
+      "status": "verified"
+    },
+    {
+      "venue_id": "aistats-2025",
+      "venue": "AISTATS 2025",
+      "family": "threaded_discussion",
+      "rebuttal_mode": "Rebuttal plus discussion",
+      "response_format": "Text-only author-reviewer discussion; no manuscript revision allowed during discussion",
+      "response_limit": null,
+      "page_limits": null,
+      "revision_during_response": false,
+      "anonymity": "anonymous",
+      "external_links": "allowed_if_anonymous",
+      "mandatory_sections": null,
+      "supplementary_rules": null,
+      "revision_mechanics": "Author-reviewer discussion ran 2024-11-27 to 2024-12-09; author rebuttals due 2024-12-10",
+      "key_constraints": "Text-only discussion; updated manuscript not allowed until acceptance; authors may post links during discussion but anonymity still applies and reviewers are not obliged to click",
+      "sources": [
+        "https://aistats.org/aistats2025/faqs.html",
+        "https://aistats.org/aistats2025/reviewer_guidelines.html"
+      ],
+      "verified_on": "2026-03-24",
+      "status": "verified"
+    },
+    {
+      "venue_id": "aistats-2026",
+      "venue": "AISTATS 2026",
+      "family": "threaded_discussion",
+      "rebuttal_mode": "Rebuttal plus discussion",
+      "response_format": "Text-only author rebuttal and author-reviewer discussion; no manuscript revision allowed during discussion",
+      "response_limit": null,
+      "page_limits": null,
+      "revision_during_response": false,
+      "anonymity": null,
+      "external_links": "forbidden",
+      "mandatory_sections": null,
+      "supplementary_rules": null,
+      "revision_mechanics": "Author rebuttal period 2025-11-21 to 2025-11-30, then author-reviewer discussion 2025-12-01 to 2025-12-08",
+      "key_constraints": "Text-only discussion; no manuscript revision allowed until acceptance; external links are not allowed during discussion in 2026 FAQ",
+      "sources": [
+        "https://virtual.aistats.org/Conferences/2026/SubmissionFAQ",
+        "https://virtual.aistats.org/Conferences/2026/ReviewerGuidelines"
+      ],
+      "verified_on": "2026-03-24",
+      "status": "verified"
+    },
+    {
+      "venue_id": "uai-2025",
+      "venue": "UAI 2025",
+      "family": "threaded_discussion",
+      "rebuttal_mode": "Threaded discussion",
+      "response_format": "OpenReview author response and discussion period",
+      "response_limit": null,
+      "page_limits": null,
+      "revision_during_response": null,
+      "anonymity": "double_blind",
+      "external_links": "restricted",
+      "mandatory_sections": null,
+      "supplementary_rules": null,
+      "revision_mechanics": "Authors can respond and discuss 2025-04-03 to 2025-04-12",
+      "key_constraints": "Discussion is visible only to assigned committee during review; links that reveal identity are forbidden under double-blind policy; author responses may correct misunderstandings or disagree with reviews",
+      "sources": [
+        "https://www.auai.org/uai2025/submission_instructions",
+        "https://www.auai.org/uai2025/instructions_for_reviewers_and_area_chairs"
+      ],
+      "verified_on": "2026-03-24",
+      "status": "verified"
+    },
+    {
+      "venue_id": "uai-2026",
+      "venue": "UAI 2026",
+      "family": "threaded_discussion",
+      "rebuttal_mode": "Threaded discussion",
+      "response_format": "OpenReview author response and discussion period",
+      "response_limit": null,
+      "page_limits": null,
+      "revision_during_response": null,
+      "anonymity": null,
+      "external_links": null,
+      "mandatory_sections": null,
+      "supplementary_rules": null,
+      "revision_mechanics": "Authors can respond and discuss 2026-04-23 to 2026-05-02",
+      "key_constraints": "Same general threaded discussion model as UAI 2025; public release happens only after decisions for accepted and opted-in rejected papers",
+      "sources": [
+        "https://www.auai.org/uai2026/submission_instructions"
+      ],
+      "verified_on": "2026-03-24",
+      "status": "verified"
+    },
+    {
+      "venue_id": "aaai-2026",
+      "venue": "AAAI 2026",
+      "family": "single_feedback",
+      "rebuttal_mode": "Single author feedback phase",
+      "response_format": "Author feedback stage after phase-1 and phase-2 reviews; no public iterative author-reviewer thread described",
+      "response_limit": null,
+      "page_limits": null,
+      "revision_during_response": null,
+      "anonymity": null,
+      "external_links": null,
+      "mandatory_sections": null,
+      "supplementary_rules": null,
+      "revision_mechanics": "Program committee discussion happens after author feedback",
+      "key_constraints": "Only papers surviving phase 1 receive author feedback; feedback window is 2025-10-02 to 2025-10-08; AAAI uses a two-phase review pipeline",
+      "sources": [
+        "https://aaai.org/conference/aaai/aaai-26/review-process/",
+        "https://aaai.org/conference/aaai/aaai-26/submission-instructions/"
+      ],
+      "verified_on": "2026-03-24",
+      "status": "verified"
+    },
+    {
+      "venue_id": "arr",
+      "venue": "ACL Rolling Review (ARR)",
+      "family": "rolling_review",
+      "rebuttal_mode": "Rolling review response",
+      "response_format": "Text response in OpenReview-style discussion",
+      "response_limit": null,
+      "page_limits": null,
+      "revision_during_response": null,
+      "anonymity": null,
+      "external_links": "forbidden",
+      "mandatory_sections": null,
+      "supplementary_rules": null,
+      "revision_mechanics": "Revision and later resubmission cycles are central to the process",
+      "key_constraints": "No images or external links in author response; small directly responsive experiments allowed; large new results discouraged; long arguments are low value",
+      "sources": [
+        "https://aclrollingreview.org/authors"
+      ],
+      "verified_on": "2026-03-24",
+      "status": "verified"
+    },
+    {
+      "venue_id": "acl-main-2025-2026",
+      "venue": "ACL 2025 / ACL 2026 main conference",
+      "family": "rolling_review",
+      "rebuttal_mode": "ARR-commit model",
+      "response_format": "No separate ACL-specific rebuttal; authors respond within ARR, then commit reviewed papers to the venue",
+      "response_limit": null,
+      "page_limits": null,
+      "revision_during_response": null,
+      "anonymity": null,
+      "external_links": null,
+      "mandatory_sections": null,
+      "supplementary_rules": null,
+      "revision_mechanics": "Authors may revise and resubmit in ARR or commit reviewed papers to a venue",
+      "key_constraints": "Main conference decision is based on ARR reviews and meta-reviews; response behavior follows ARR rather than a standalone ACL rebuttal page",
+      "sources": [
+        "https://2025.aclweb.org/calls/main_conference_papers/",
+        "https://2026.aclweb.org/calls/main_conference_papers/",
+        "https://aclrollingreview.org/authors"
+      ],
+      "verified_on": "2026-03-24",
+      "status": "verified"
+    },
+    {
+      "venue_id": "acl-2026-industry",
+      "venue": "ACL 2026 Industry Track",
+      "family": "single_feedback",
+      "rebuttal_mode": "Single rebuttal window outside ARR",
+      "response_format": "Review release starts rebuttal period; author response due 2026-03-29",
+      "response_limit": null,
+      "page_limits": null,
+      "revision_during_response": null,
+      "anonymity": "double_blind",
+      "external_links": null,
+      "mandatory_sections": null,
+      "supplementary_rules": null,
+      "revision_mechanics": "No ARR-style rolling revise-and-resubmit; venue-specific response window",
+      "key_constraints": "Double-blind; does not use ARR; rebuttal is part of the standalone industry-track process",
+      "sources": [
+        "https://2026.aclweb.org/calls/industry_track/"
+      ],
+      "verified_on": "2026-03-24",
+      "status": "verified"
+    },
+    {
+      "venue_id": "tmlr",
+      "venue": "TMLR",
+      "family": "rolling_review",
+      "rebuttal_mode": "Rolling public discussion",
+      "response_format": "Public author response and discussion",
+      "response_limit": null,
+      "page_limits": null,
+      "revision_during_response": true,
+      "anonymity": null,
+      "external_links": null,
+      "mandatory_sections": null,
+      "supplementary_rules": null,
+      "revision_mechanics": "Authors typically respond within 2 weeks after the third review; multiple revisions can happen during discussion",
+      "key_constraints": "Discussion is public; authors and reviewers are expected to continue technical discussion",
+      "sources": [
+        "https://jmlr.org/tmlr/faq.html",
+        "https://jmlr.org/tmlr/reviewer-guide.html"
+      ],
+      "verified_on": "2026-03-24",
+      "status": "verified"
+    },
+    {
+      "venue_id": "kdd-2025-research-ads",
+      "venue": "KDD 2025 Research / ADS",
+      "family": "per_review",
+      "rebuttal_mode": "Per-review rebuttal in OpenReview",
+      "response_format": "Authors can provide a response to each review during the rebuttal period",
+      "response_limit": null,
+      "page_limits": null,
+      "revision_during_response": null,
+      "anonymity": null,
+      "external_links": null,
+      "mandatory_sections": null,
+      "supplementary_rules": null,
+      "revision_mechanics": "Research and ADS both include rebuttal windows in each cycle; reviewers then discuss with ACs",
+      "key_constraints": "If an author fails required reviewing duties, the submission may lose access to reviews during rebuttal; generative AI use in reviewing must be disclosed and verbatim paper upload is forbidden; Feb 2025 cycle rebuttal ran 2025-04-04 to 2025-04-18",
+      "sources": [
+        "https://kdd2025.kdd.org/research-track-call-for-papers/",
+        "https://kdd2025.kdd.org/applied-data-science-ads-track-call-for-papers/",
+        "https://kdd2025.kdd.org/call-for-reviewers/"
+      ],
+      "verified_on": "2026-03-24",
+      "status": "verified"
+    },
+    {
+      "venue_id": "kdd-2025-datasets-benchmarks",
+      "venue": "KDD 2025 Datasets and Benchmarks",
+      "family": "no_rebuttal_found",
+      "rebuttal_mode": "No rebuttal period stated on CFP page",
+      "response_format": "OpenReview-managed review with post-decision review publication note",
+      "response_limit": null,
+      "page_limits": null,
+      "revision_during_response": null,
+      "anonymity": "single_blind",
+      "external_links": null,
+      "mandatory_sections": null,
+      "supplementary_rules": null,
+      "revision_mechanics": "Current CFP page does not list an author rebuttal window",
+      "key_constraints": "Track is single-blind rather than double-blind; generative AI use in submissions must be disclosed",
+      "sources": [
+        "https://kdd2025.kdd.org/call-for-datasets-and-benchmarks-track-papers/"
+      ],
+      "verified_on": "2026-03-24",
+      "status": "inferred"
+    },
+    {
+      "venue_id": "sigir-2025",
+      "venue": "SIGIR 2025 Full / Short / Perspectives",
+      "family": "no_rebuttal_found",
+      "rebuttal_mode": "No official rebuttal stage found in current CFP pages",
+      "response_format": "EasyChair submission and standard review are described, but no author-response window is specified in the reviewed calls",
+      "response_limit": null,
+      "page_limits": null,
+      "revision_during_response": null,
+      "anonymity": null,
+      "external_links": null,
+      "mandatory_sections": null,
+      "supplementary_rules": null,
+      "revision_mechanics": "No rebuttal or discussion stage was found in the current official track CFPs",
+      "key_constraints": "Inference from official CFPs: use standard revision planning rather than assuming an in-review rebuttal; strong anonymity and preprint rules still matter",
+      "sources": [
+        "https://sigir2025.dei.unipd.it/call-full-papers.html",
+        "https://sigir2025.dei.unipd.it/call-short-papers.html",
+        "https://sigir2025.dei.unipd.it/call-perspectives-papers.html",
+        "https://sigir2025.dei.unipd.it/arxiv-policy.html"
+      ],
+      "verified_on": "2026-03-24",
+      "status": "inferred"
+    },
+    {
+      "venue_id": "wsdm-2025-research",
+      "venue": "WSDM 2025 Research Track",
+      "family": "no_rebuttal_found",
+      "rebuttal_mode": "No official rebuttal stage found in current CFP page",
+      "response_format": "CMT submission and review process are described, but no author-response window is specified in the main-track CFP",
+      "response_limit": null,
+      "page_limits": null,
+      "revision_during_response": null,
+      "anonymity": null,
+      "external_links": null,
+      "mandatory_sections": null,
+      "supplementary_rules": null,
+      "revision_mechanics": "No rebuttal or discussion stage was found in the current official CFP",
+      "key_constraints": "Inference from official CFP: reviewers and an SPC assess papers; anonymity, supplement limits, and ACM AI authorship policy are explicit",
+      "sources": [
+        "https://www.wsdm-conference.org/2025/call-for-papers/"
+      ],
+      "verified_on": "2026-03-24",
+      "status": "inferred"
+    },
+    {
+      "venue_id": "wsdm-2026",
+      "venue": "WSDM 2026 Full / Short",
+      "family": "no_rebuttal_found",
+      "rebuttal_mode": "No official rebuttal stage found in current CFP pages",
+      "response_format": "EasyChair submission and review are described, but no author-response window is specified in the reviewed calls",
+      "response_limit": null,
+      "page_limits": null,
+      "revision_during_response": null,
+      "anonymity": null,
+      "external_links": null,
+      "mandatory_sections": null,
+      "supplementary_rules": null,
+      "revision_mechanics": "No rebuttal or discussion stage was found in the current official CFPs",
+      "key_constraints": "Inference from official CFPs: plan for no in-review author exchange unless the conference later publishes separate workflow instructions",
+      "sources": [
+        "https://wsdm-conference.org/2026/index.php/call-for-papers/",
+        "https://wsdm-conference.org/2026/index.php/call-for-short-papers/"
+      ],
+      "verified_on": "2026-03-24",
+      "status": "inferred"
+    },
+    {
+      "venue_id": "webconf-2024",
+      "venue": "The Web Conference 2024",
+      "family": "threaded_discussion",
+      "rebuttal_mode": "Author-reviewer discussion",
+      "response_format": "Response during author-reviewer discussion period",
+      "response_limit": null,
+      "page_limits": null,
+      "revision_during_response": null,
+      "anonymity": "double_blind",
+      "external_links": null,
+      "mandatory_sections": null,
+      "supplementary_rules": null,
+      "revision_mechanics": "Discussion-based process in OpenReview",
+      "key_constraints": "Double-blind; accepted papers' reviews, meta-reviews, and discussions become public; response informs AC and SAC decisions",
+      "sources": [
+        "https://www2024.thewebconf.org/calls/research-tracks"
+      ],
+      "verified_on": "2026-03-24",
+      "status": "verified"
+    },
+    {
+      "venue_id": "webconf-2025-research",
+      "venue": "The Web Conference 2025 Research Tracks",
+      "family": "unresolved",
+      "rebuttal_mode": "OpenReview-based review, rebuttal details not fully recovered from current official pages",
+      "response_format": "Official homepage confirms OpenReview usage via submission link, but current searchable official pages do not expose detailed rebuttal mechanics",
+      "response_limit": null,
+      "page_limits": null,
+      "revision_during_response": null,
+      "anonymity": null,
+      "external_links": null,
+      "mandatory_sections": null,
+      "supplementary_rules": null,
+      "revision_mechanics": "Exact 2025 author-response mechanics remain partially unconfirmed from currently accessible official pages",
+      "key_constraints": "Treat as an unresolved venue entry; do not assume 2024 or 2026 rules are identical without checking the archived call or OpenReview venue configuration",
+      "sources": [
+        "https://www2025.thewebconf.org/",
+        "https://openreview.net/group?id=ACM.org%2FTheWebConf%2F2025"
+      ],
+      "verified_on": "2026-03-24",
+      "status": "unverified"
+    },
+    {
+      "venue_id": "webconf-2026-research",
+      "venue": "The Web Conference 2026 Research Tracks",
+      "family": "single_feedback",
+      "rebuttal_mode": "Single rebuttal period",
+      "response_format": "Authors can provide a response during a rebuttal period",
+      "response_limit": null,
+      "page_limits": null,
+      "revision_during_response": null,
+      "anonymity": "double_blind",
+      "external_links": null,
+      "mandatory_sections": null,
+      "supplementary_rules": null,
+      "revision_mechanics": "No interactive rebuttal after rebuttal period",
+      "key_constraints": "Double-blind; no interactive back-and-forth after rebuttal; response informs AC, SAC, and chair decisions",
+      "sources": [
+        "https://www2026.thewebconf.org/calls/research-tracks.html"
+      ],
+      "verified_on": "2026-03-24",
+      "status": "verified"
+    },
+    {
+      "venue_id": "webconf-2026-industry",
+      "venue": "The Web Conference 2026 Industry Track",
+      "family": "per_review",
+      "rebuttal_mode": "Per-review rebuttal",
+      "response_format": "One length-limited response to each review",
+      "response_limit": null,
+      "page_limits": null,
+      "revision_during_response": null,
+      "anonymity": "single_blind",
+      "external_links": null,
+      "mandatory_sections": null,
+      "supplementary_rules": null,
+      "revision_mechanics": "Reviewers are prompted to acknowledge rebuttals and revise reviews if needed",
+      "key_constraints": "Single-blind; if authors do not fulfill required reviewing obligations, they may lose access to reviews during rebuttal stage",
+      "sources": [
+        "https://www2026.thewebconf.org/calls/industry.html"
+      ],
+      "verified_on": "2026-03-24",
+      "status": "verified"
+    }
+  ]
+}
