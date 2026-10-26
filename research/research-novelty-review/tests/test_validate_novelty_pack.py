@@ -16,6 +16,8 @@ NOVELTY_ROOT = Path(__file__).resolve().parents[1]
 NOVELTY_INIT = NOVELTY_ROOT / "scripts" / "init_novelty_pack.py"
 NOVELTY_VALIDATE = NOVELTY_ROOT / "scripts" / "validate_novelty_pack.py"
 LIT_INIT = RESEARCH_ROOT / "research-systematic-literature-review" / "scripts" / "init_review_pack.py"
+CONTEXT_SCRIPT = RESEARCH_ROOT / "research-systematic-literature-review" / "scripts" / "paper_context_artifacts.py"
+ASSURANCE = NOVELTY_ROOT / "scripts" / "novelty_assurance.py"
 SLR_PRESENT = LIT_INIT.exists()
 
 
@@ -52,7 +54,18 @@ class StandaloneNoveltyTests(unittest.TestCase):
             *extra,
         )
 
-    def complete(self, rating: int | None) -> None:
+    def add_prior_art_rows(self, count: int) -> None:
+        rows = "".join(
+            f"| Synthetic Work {index} | Synthetic Venue 2024 | scoring step | 2 | the ranking objective | a shared loss |\n"
+            for index in range(1, count + 1)
+        )
+        matrix = self.pack / "prior-art-matrix.md"
+        matrix.write_text(matrix.read_text().replace("| | | | 1-5 | | |\n", rows))
+
+    def complete(self, rating: int | None, rows: int | None = None) -> None:
+        if rows is None:
+            rows = max((rating or 1) - 1, 0)
+        self.add_prior_art_rows(rows)
         decision = json.loads(self.decision_path.read_text())
         decision.update(
             status="complete",
@@ -106,11 +119,49 @@ class StandaloneNoveltyTests(unittest.TestCase):
         self.assertEqual(cp.returncode, 1, cp.stdout + cp.stderr)
         self.assertIn("novelty_decision_rating must be an integer from 1 to 5 when status is complete", cp.stdout)
 
-    def test_structural_mode_warns_that_strong_ratings_are_ungated(self) -> None:
-        self.complete(4)
+    def test_rating_five_without_prior_art_rows_fails(self) -> None:
+        self.complete(5, rows=0)
+        cp = self.validate()
+        self.assertEqual(cp.returncode, 1, cp.stdout + cp.stderr)
+        self.assertIn("novelty rating 5 exceeds the structural cap of 3", cp.stdout)
+        self.assertIn("needs at least 4 filled prior-art row(s)", cp.stdout)
+
+    def test_rating_three_with_two_rows_passes_structural(self) -> None:
+        self.complete(3, rows=2)
         cp = self.validate()
         self.assertEqual(cp.returncode, 0, cp.stdout + cp.stderr)
-        self.assertIn("WARNING: structural mode does not gate novelty ratings >= 4", cp.stdout)
+        self.assertIn("within the structural cap of 3", cp.stdout)
+
+    def test_rating_three_with_one_row_fails(self) -> None:
+        self.complete(3, rows=1)
+        cp = self.validate()
+        self.assertEqual(cp.returncode, 1, cp.stdout + cp.stderr)
+        self.assertIn("needs at least 2 filled prior-art row(s)", cp.stdout)
+        self.assertIn("found 1", cp.stdout)
+
+    def test_rating_four_in_structural_mode_names_both_routes(self) -> None:
+        self.complete(4)
+        cp = self.validate()
+        self.assertEqual(cp.returncode, 1, cp.stdout + cp.stderr)
+        self.assertIn("exceeds the structural cap of 3", cp.stdout)
+        self.assertIn("link --pack-dir", cp.stdout)
+        self.assertIn("--assurance-profile linked", cp.stdout)
+        self.assertIn("link --context", cp.stdout)
+
+    def test_rating_one_needs_no_rows(self) -> None:
+        self.complete(1, rows=0)
+        cp = self.validate()
+        self.assertEqual(cp.returncode, 0, cp.stdout + cp.stderr)
+
+    def test_context_mode_names_missing_sibling_skill(self) -> None:
+        self.complete(3)
+        decision = json.loads(self.decision_path.read_text())
+        decision["literature_assurance"] = {"mode": "context", "context_dir": "ctx", "context_sha256": {}}
+        self.decision_path.write_text(json.dumps(decision))
+        cp = self.validate()
+        self.assertEqual(cp.returncode, 1, cp.stdout + cp.stderr)
+        self.assertIn("context mode requires the research-systematic-literature-review skill", cp.stdout)
+        self.assertNotIn("Traceback", cp.stderr)
 
 
 @unittest.skipUnless(SLR_PRESENT, "research-systematic-literature-review sibling not installed")
@@ -401,11 +452,246 @@ class NoveltyPackTests(unittest.TestCase):
         cp = self.validate(expect=1)
         self.assertIn("novelty rating 5 requires adequate literature assurance", cp.stdout)
 
+    def test_link_helper_binds_pack_that_validates_linked(self) -> None:
+        fresh = self.root / "linked-novelty"
+        self.run_cmd(str(NOVELTY_INIT), str(fresh), "--link", str(self.lit))
+        decision_path = fresh / "novelty-decision.json"
+        decision = json.loads(decision_path.read_text())
+        self.assertEqual(decision["literature_assurance"]["mode"], "linked")
+        self.assertEqual(
+            decision["literature_assurance"]["corpus_manifest_sha256"],
+            hashlib.sha256(self.literature_paths()["corpus_manifest"].read_bytes()).hexdigest(),
+        )
+        decision.update(
+            status="complete", novelty_decision_rating=4, impact_positioning_rating=3, decision_confidence_rating=3,
+            narrowest_defensible_positioning="A bounded synthetic contribution.",
+            what_would_change_the_decision="A closer synthetic prior method.",
+        )
+        decision_path.write_text(json.dumps(decision))
+        report_path = fresh / "novelty-report.md"
+        report = report_path.read_text()
+        self.assertIn("- Literature assurance mode: linked", report)
+        report = report.replace("Novelty decision rating (1-5):\n", "Novelty decision rating (1-5): 4\n")
+        report = report.replace("Impact positioning rating (1-5):\n", "Impact positioning rating (1-5): 3\n")
+        report = report.replace("Decision confidence rating (1-5):\n", "Decision confidence rating (1-5): 3\n")
+        report = report.replace("- Narrowest defensible positioning:", "- Narrowest defensible positioning: A bounded synthetic contribution.")
+        report = report.replace("- What would change the decision:", "- What would change the decision: A closer synthetic prior method.")
+        report_path.write_text(report)
+        self.run_cmd(
+            str(NOVELTY_VALIDATE),
+            "--decision", str(decision_path), "--report", str(report_path),
+            "--prior-art-matrix", str(fresh / "prior-art-matrix.md"),
+            "--search-log", str(fresh / "search-log.md"),
+            "--assurance-profile", "linked",
+        )
+
     def test_corpus_identity_fields_must_match(self) -> None:
         self.decision["literature_assurance"]["corpus_version"] = 99
         self.write_decision()
         cp = self.validate(expect=1)
         self.assertIn("corpus_version does not match", cp.stdout)
+
+
+@unittest.skipUnless(SLR_PRESENT, "research-systematic-literature-review sibling not installed")
+class ContextModeAndMigrationTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.temp = tempfile.TemporaryDirectory()
+        self.root = Path(self.temp.name)
+        self.context = self.root / "context"
+        self.run_cmd(
+            str(CONTEXT_SCRIPT), "init", "--out-dir", str(self.context),
+            "--target-paper", "Synthetic widget ranking", "--domain", "machine learning",
+            "--target-community", "Synthetic Venue",
+        )
+        for name in ("literature-context.md", "literature-context-search-log.md", "literature-context-evidence-table.md"):
+            path = self.context / name
+            path.write_text(path.read_text().replace("TODO", "synthetic entry"))
+        decision_path = self.context / "literature-context-decision.json"
+        context_decision = json.loads(decision_path.read_text())
+        context_decision.update(
+            contextualization_rating=4, impact_evidence_rating=3, coverage_confidence_rating=4,
+            closest_prior_work=["Synthetic Work 1"], related_work_omissions=[],
+            benchmark_context_gaps=[], limits_of_search=["one database"],
+        )
+        decision_path.write_text(json.dumps(context_decision))
+        self.novelty = self.root / "novelty"
+        self.run_cmd(str(NOVELTY_INIT), str(self.novelty), "--link-context", str(self.context))
+        self.decision_path = self.novelty / "novelty-decision.json"
+        self.report_path = self.novelty / "novelty-report.md"
+
+    def tearDown(self) -> None:
+        self.temp.cleanup()
+
+    def run_cmd(self, *args: str, expect: int = 0) -> subprocess.CompletedProcess[str]:
+        cp = subprocess.run([sys.executable, *args], text=True, capture_output=True)
+        self.assertEqual(cp.returncode, expect, cp.stdout + cp.stderr)
+        return cp
+
+    def rate(self, rating: int, rows: int) -> None:
+        matrix = self.novelty / "prior-art-matrix.md"
+        filled = "".join(
+            f"| Synthetic Work {index} | Synthetic Venue 2024 | scoring step | 2 | the objective | a shared loss |\n"
+            for index in range(1, rows + 1)
+        )
+        matrix.write_text(matrix.read_text().replace("| | | | 1-5 | | |\n", filled))
+        decision = json.loads(self.decision_path.read_text())
+        decision.update(
+            status="complete", novelty_decision_rating=rating, impact_positioning_rating=3,
+            decision_confidence_rating=3,
+            narrowest_defensible_positioning="A bounded synthetic contribution.",
+            what_would_change_the_decision="A closer synthetic prior method.",
+        )
+        self.decision_path.write_text(json.dumps(decision))
+        report = self.report_path.read_text()
+        report = report.replace("Novelty decision rating (1-5):\n", f"Novelty decision rating (1-5): {rating}\n")
+        report = report.replace("Impact positioning rating (1-5):\n", "Impact positioning rating (1-5): 3\n")
+        report = report.replace("Decision confidence rating (1-5):\n", "Decision confidence rating (1-5): 3\n")
+        report = report.replace("- Narrowest defensible positioning:", "- Narrowest defensible positioning: A bounded synthetic contribution.")
+        report = report.replace("- What would change the decision:", "- What would change the decision: A closer synthetic prior method.")
+        self.report_path.write_text(report)
+
+    def validate(self, expect: int = 0) -> subprocess.CompletedProcess[str]:
+        return self.run_cmd(
+            str(NOVELTY_VALIDATE),
+            "--decision", str(self.decision_path), "--report", str(self.report_path),
+            "--prior-art-matrix", str(self.novelty / "prior-art-matrix.md"),
+            "--search-log", str(self.novelty / "search-log.md"),
+            expect=expect,
+        )
+
+    def test_context_mode_with_valid_context_passes_rating_four(self) -> None:
+        self.rate(4, rows=3)
+        cp = self.validate()
+        self.assertIn("bound paper context was revalidated", cp.stdout)
+
+    def test_context_mode_still_needs_prior_art_rows(self) -> None:
+        self.rate(4, rows=1)
+        cp = self.validate(expect=1)
+        self.assertIn("needs at least 3 filled prior-art row(s)", cp.stdout)
+
+    def test_context_edit_after_binding_fails_until_relinked(self) -> None:
+        self.rate(4, rows=3)
+        evidence = self.context / "literature-context-evidence-table.md"
+        evidence.write_text(evidence.read_text() + "\n")
+        cp = self.validate(expect=1)
+        self.assertIn("does not match the bound file", cp.stdout)
+        self.assertIn("link --context", cp.stdout)
+        self.run_cmd(str(ASSURANCE), "link", "--decision", str(self.decision_path), "--context", str(self.context))
+        self.validate()
+
+    def test_context_with_placeholders_fails(self) -> None:
+        self.rate(4, rows=3)
+        context = self.context / "literature-context.md"
+        context.write_text(context.read_text() + "\n- Reviewer constraints: TODO\n")
+        self.run_cmd(str(ASSURANCE), "link", "--decision", str(self.decision_path), "--context", str(self.context))
+        cp = self.validate(expect=1)
+        self.assertIn("bound paper context fails validation", cp.stdout)
+
+    def test_low_coverage_context_cannot_carry_rating_four(self) -> None:
+        decision_path = self.context / "literature-context-decision.json"
+        context_decision = json.loads(decision_path.read_text())
+        context_decision["coverage_confidence_rating"] = 2
+        decision_path.write_text(json.dumps(context_decision))
+        self.run_cmd(str(ASSURANCE), "link", "--decision", str(self.decision_path), "--context", str(self.context))
+        self.rate(4, rows=3)
+        cp = self.validate(expect=1)
+        self.assertIn("coverage_confidence_rating of at least 3", cp.stdout)
+        self.rate_three_after_lowering()
+
+    def rate_three_after_lowering(self) -> None:
+        decision = json.loads(self.decision_path.read_text())
+        decision["novelty_decision_rating"] = 3
+        self.decision_path.write_text(json.dumps(decision))
+        self.report_path.write_text(self.report_path.read_text().replace("Novelty decision rating (1-5): 4", "Novelty decision rating (1-5): 3"))
+        self.validate()
+
+    def write_pre_11(self, rating: int) -> Path:
+        legacy = self.root / "legacy"
+        legacy.mkdir()
+        self.run_cmd(str(NOVELTY_INIT), str(legacy))
+        decision = {
+            "novelty_decision_rating": rating,
+            "impact_positioning_rating": 4,
+            "decision_confidence_rating": 3,
+            "narrowest_defensible_positioning": "A bounded synthetic contribution.",
+            "what_would_change_the_decision": "A closer synthetic prior method.",
+            "top_kill_shot_objections": [],
+            "literature_context_used": [],
+            "paper_review_summary_used": "",
+            "claims_to_qualify": [],
+            "missing_prior_work": [],
+            "review_findings_to_add": [],
+        }
+        (legacy / "novelty-decision.json").write_text(json.dumps(decision))
+        report = legacy / "novelty-report.md"
+        text = report.read_text()
+        text = text.replace("Novelty decision rating (1-5):\n", f"Novelty decision rating (1-5): {rating}\n")
+        text = text.replace("Impact positioning rating (1-5):\n", "Impact positioning rating (1-5): 4\n")
+        text = text.replace("Decision confidence rating (1-5):\n", "Decision confidence rating (1-5): 3\n")
+        text = text.replace("- Narrowest defensible positioning:", "- Narrowest defensible positioning: A bounded synthetic contribution.")
+        text = text.replace("- What would change the decision:", "- What would change the decision: A closer synthetic prior method.")
+        for label in ("Literature assurance mode", "Literature assurance verdict", "Unresolved high-priority novelty-critical questions"):
+            text = "\n".join(line for line in text.splitlines() if not line.startswith(f"- {label}")) + "\n"
+        report.write_text(text)
+        return legacy
+
+    def legacy_validate(self, legacy: Path, expect: int) -> subprocess.CompletedProcess[str]:
+        return self.run_cmd(
+            str(NOVELTY_VALIDATE),
+            "--decision", str(legacy / "novelty-decision.json"), "--report", str(legacy / "novelty-report.md"),
+            "--prior-art-matrix", str(legacy / "prior-art-matrix.md"),
+            "--search-log", str(legacy / "search-log.md"),
+            expect=expect,
+        )
+
+    def test_pre_11_decision_names_the_migrate_helper(self) -> None:
+        legacy = self.write_pre_11(5)
+        cp = self.legacy_validate(legacy, expect=1)
+        self.assertIn("predates schema 1.1", cp.stdout)
+        self.assertIn("novelty_assurance.py migrate", cp.stdout)
+
+    def test_migration_caps_rating_and_records_original(self) -> None:
+        legacy = self.write_pre_11(5)
+        self.run_cmd(str(ASSURANCE), "migrate", "--decision", str(legacy / "novelty-decision.json"))
+        decision = json.loads((legacy / "novelty-decision.json").read_text())
+        self.assertEqual(decision["schema_version"], "1.1")
+        self.assertEqual(decision["status"], "complete")
+        self.assertEqual(decision["novelty_decision_rating"], 3)
+        self.assertEqual(decision["impact_positioning_rating"], 4)
+        self.assertEqual(decision["migration"]["original_novelty_decision_rating"], 5)
+        self.assertEqual(decision["literature_assurance"]["mode"], "unlinked")
+        self.assertIn("Novelty decision rating (1-5): 3", (legacy / "novelty-report.md").read_text())
+        cp = self.legacy_validate(legacy, expect=1)
+        self.assertIn("needs at least 2 filled prior-art row(s)", cp.stdout)
+        self.assertNotIn("predates schema", cp.stdout)
+
+    def test_migration_with_matrix_caps_to_rows_and_validates(self) -> None:
+        legacy = self.write_pre_11(4)
+        matrix = legacy / "prior-art-matrix.md"
+        matrix.write_text(matrix.read_text().replace(
+            "| | | | 1-5 | | |\n",
+            "| Synthetic Work 1 | Synthetic Venue 2024 | scoring step | 2 | the objective | a shared loss |\n",
+        ))
+        self.run_cmd(
+            str(ASSURANCE), "migrate", "--decision", str(legacy / "novelty-decision.json"),
+            "--prior-art-matrix", str(matrix),
+        )
+        decision = json.loads((legacy / "novelty-decision.json").read_text())
+        self.assertEqual(decision["novelty_decision_rating"], 2)
+        self.legacy_validate(legacy, expect=0)
+
+    def test_migration_never_raises_a_rating(self) -> None:
+        for rating in (1, 2, 3):
+            legacy = self.write_pre_11(rating)
+            self.run_cmd(str(ASSURANCE), "migrate", "--decision", str(legacy / "novelty-decision.json"))
+            decision = json.loads((legacy / "novelty-decision.json").read_text())
+            self.assertEqual(decision["novelty_decision_rating"], rating)
+            self.assertEqual(decision["migration"]["original_novelty_decision_rating"], rating)
+            shutil.rmtree(legacy)
+
+    def test_migrating_a_current_decision_is_refused(self) -> None:
+        cp = self.run_cmd(str(ASSURANCE), "migrate", "--decision", str(self.decision_path), expect=1)
+        self.assertIn("already schema 1.1", cp.stderr)
 
 
 if __name__ == "__main__":

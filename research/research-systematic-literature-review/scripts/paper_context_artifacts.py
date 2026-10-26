@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+import subprocess
 import sys
 from datetime import date
 from pathlib import Path
@@ -289,9 +290,8 @@ def _section_table_header(markdown: str, section_heading: str) -> list[str]:
     return _first_table_header(markdown[idx:].split("\n## ", 1)[0])
 
 
-def validate_artifacts(args: argparse.Namespace) -> int:
-    out_dir = _resolve_out_dir(args)
-    draft = bool(getattr(args, "draft", False))
+def collect_errors(out_dir: Path, draft: bool = False) -> list[str]:
+    """Return every validation error for the four paper-context files in out_dir."""
     errors: list[str] = []
     for name in REQUIRED_FILES:
         if not (out_dir / name).exists():
@@ -351,6 +351,12 @@ def validate_artifacts(args: argparse.Namespace) -> int:
         if not draft:
             for found in _json_todo_paths(decision):
                 errors.append(f"literature-context-decision.json value {found} still contains TODO; fill it or pass --draft")
+    return errors
+
+
+def validate_artifacts(args: argparse.Namespace) -> int:
+    out_dir = _resolve_out_dir(args)
+    errors = collect_errors(out_dir, draft=bool(getattr(args, "draft", False)))
     if errors:
         print("Paper-context validation failed:")
         for error in errors:
@@ -359,6 +365,138 @@ def validate_artifacts(args: argparse.Namespace) -> int:
     print(f"Paper-context validation passed: {out_dir}")
     return 0
 
+
+
+INIT_REVIEW_PACK = Path(__file__).resolve().parent / "init_review_pack.py"
+PLACEHOLDER_CELLS = {"", "todo", "tbd", "-", "n/a"}
+
+
+def _real_cell(value: str) -> bool:
+    normalized = value.strip().lower()
+    return normalized not in PLACEHOLDER_CELLS and "todo" not in normalized
+
+
+def _table_rows(markdown: str, section_heading: str | None = None) -> tuple[list[str], list[dict[str, str]]]:
+    body = markdown
+    if section_heading is not None:
+        idx = markdown.find(section_heading)
+        if idx < 0:
+            return [], []
+        body = markdown[idx:].split("\n## ", 1)[0]
+    lines = [line.strip() for line in body.splitlines() if line.strip().startswith("|")]
+    if len(lines) < 2:
+        return [], []
+    header = [cell.strip() for cell in lines[0].strip("|").split("|")]
+    rows: list[dict[str, str]] = []
+    for line in lines[1:]:
+        cells = [cell.strip() for cell in line.strip("|").split("|")]
+        if all(set(cell) <= {"-", ":"} for cell in cells):
+            continue
+        cells += [""] * (len(header) - len(cells))
+        rows.append(dict(zip(header, cells[: len(header)])))
+    return header, rows
+
+
+def _insert_note(markdown: str, note: str) -> str:
+    lines = markdown.splitlines(keepends=True)
+    for index, line in enumerate(lines):
+        if line.startswith("# "):
+            return "".join(lines[: index + 1]) + "\n> " + note + "\n" + "".join(lines[index + 1 :])
+    return "> " + note + "\n\n" + markdown
+
+
+def promote_artifacts(args: argparse.Namespace) -> int:
+    """Turn a four-file paper context into a seven-file pack skeleton without inventing content."""
+    src = _resolve_out_dir(args)
+    missing = [name for name in REQUIRED_FILES if not (src / name).is_file()]
+    if missing:
+        raise ValueError("cannot promote; missing paper-context files: " + ", ".join(missing))
+    errors: list[str] = []
+    decision = _load_json(src / "literature-context-decision.json", errors)
+    if errors:
+        raise ValueError("; ".join(errors))
+    topic = args.topic or decision.get("target_paper")
+    domain = args.domain or decision.get("domain")
+    if not isinstance(topic, str) or not _real_cell(topic):
+        raise ValueError("the paper context has no target_paper; pass --topic")
+    if not isinstance(domain, str) or not _real_cell(domain):
+        raise ValueError("the paper context has no domain; pass --domain")
+    pack_dir = Path(args.pack_dir).expanduser().resolve()
+    command = [
+        sys.executable, str(INIT_REVIEW_PACK),
+        "--topic", topic, "--domain", domain,
+        "--review-profile", args.review_profile,
+        "--out-dir", str(pack_dir),
+    ]
+    if args.force:
+        command.append("--force")
+    completed = subprocess.run(command, text=True, capture_output=True)
+    if completed.returncode != 0:
+        raise ValueError("init_review_pack.py failed: " + (completed.stderr or completed.stdout).strip())
+
+    sys.path.insert(0, str(INIT_REVIEW_PACK.parent))
+    from init_review_pack import slugify  # noqa: E402
+
+    stem = pack_dir / slugify(topic)
+    today = date.today().isoformat()
+    note = (
+        f"Promoted on {today} from the paper-context evidence map in {src}. Rows carried over are "
+        "copied as written; every TODO is a placeholder, and linked validation fails until each one "
+        "is filled from a real search."
+    )
+    for suffix in (".protocol.md", ".search-log.md", ".recall-audit.md", ".screening-log.md", ".evidence-table.md", ".review.md"):
+        path = Path(f"{stem}{suffix}")
+        path.write_text(_insert_note(path.read_text(encoding="utf-8"), note), encoding="utf-8")
+
+    carried_evidence = 0
+    _, context_rows = _table_rows((src / "literature-context-evidence-table.md").read_text(encoding="utf-8"))
+    matrix_rows = []
+    for row in context_rows:
+        if not _real_cell(row.get("Citation", "")):
+            continue
+        cells = [
+            row.get("work_id", ""), row.get("Citation", ""), row.get("Publication URL", ""), "",
+            row.get("Venue / year", ""), "", row.get("Publication status", ""), "", "TODO", "TODO",
+            "TODO", row.get("Key evidence", ""), row.get("Risk or limitation", ""), "TODO",
+            row.get("Claim relevance", ""), "carried from paper context",
+        ]
+        matrix_rows.append("| " + " | ".join(cell.replace("|", "/") for cell in cells) + " |")
+    if matrix_rows:
+        evidence_path = Path(f"{stem}.evidence-table.md")
+        evidence_md = evidence_path.read_text(encoding="utf-8")
+        lines = evidence_md.splitlines()
+        start = next(i for i, line in enumerate(lines) if line.startswith("| study_id"))
+        # Header and separator stay; the template's empty row is replaced by the carried rows.
+        lines[start + 2 : start + 3] = matrix_rows
+        evidence_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+        carried_evidence = len(matrix_rows)
+
+    search_md = (src / "literature-context-search-log.md").read_text(encoding="utf-8")
+    run_header, run_rows = _table_rows(search_md, "## Search Runs")
+    real_runs = [row for row in run_rows if _real_cell(row.get("query_string", ""))]
+    if real_runs:
+        table = ["| " + " | ".join(run_header) + " |", "| " + " | ".join("---" for _ in run_header) + " |"]
+        table += ["| " + " | ".join(row.get(cell, "") for cell in run_header) + " |" for row in real_runs]
+        block = (
+            "## Carried over from the paper-context search log\n\n"
+            "These runs were made for the bounded paper context. Record each one again in the Source "
+            "queries table with its channel, coverage target, and question IDs once they are checked.\n\n"
+            + "\n".join(table) + "\n\n"
+        )
+        log_path = Path(f"{stem}.search-log.md")
+        log_md = log_path.read_text(encoding="utf-8")
+        log_path.write_text(log_md.replace("## Coverage notes", block + "## Coverage notes", 1), encoding="utf-8")
+
+    manifest_path = Path(f"{stem}.corpus-manifest.json")
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["promoted_from"] = {"paper_context_dir": str(src), "promoted_on": today}
+    manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+    print(f"Promoted paper context {src} to a seven-file pack skeleton in {pack_dir}")
+    print(f"- carried evidence rows: {carried_evidence}")
+    print(f"- carried search runs: {len(real_runs)}")
+    print("Linked validation fails until every TODO placeholder is filled; run validate_review_pack.py to list them.")
+    return 0
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
@@ -387,6 +525,17 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Allow TODO placeholders and unset (null) ratings in an in-progress bundle",
     )
     validate_parser.set_defaults(func=validate_artifacts)
+    promote_parser = subparsers.add_parser(
+        "promote",
+        help="Turn a four-file paper context into a seven-file literature pack skeleton for linked novelty validation",
+    )
+    add_common(promote_parser)
+    promote_parser.add_argument("--pack-dir", required=True, help="Directory for the seven-file literature pack")
+    promote_parser.add_argument("--topic", help="Pack topic; defaults to the context's target_paper")
+    promote_parser.add_argument("--domain", help="Pack domain; defaults to the context's domain")
+    promote_parser.add_argument("--review-profile", default="novelty-prior-art", help="Review profile for the new pack")
+    promote_parser.add_argument("--force", action="store_true", help="Overwrite an existing pack with the same topic")
+    promote_parser.set_defaults(func=promote_artifacts)
     return parser
 
 

@@ -483,6 +483,9 @@ def validate_evidence(text: str, studies_included: int | None, errors: list[str]
             errors.append(f"evidence row {index}.publication_url must be an http(s) URL")
         if not substantive(row.get("publication_status")):
             errors.append(f"evidence row {index}.publication_status must be substantive")
+        for column, value in row.items():
+            if value.strip().upper() == "TODO":
+                errors.append(f"evidence row {index}.{column} is still a TODO placeholder")
     if studies_included is not None and len(data_rows) != studies_included:
         errors.append(
             f"evidence rows ({len(data_rows)}) must equal studies_included ({studies_included})"

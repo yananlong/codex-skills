@@ -9,3 +9,5 @@ Use a 1-5 decision scale instead of a coarse `ABANDON / REFRAME / PROCEED` label
 - `5`: strong novelty position; the closest overlaps do not materially undercut the core contribution.
 
 Use a separate 1-5 confidence rating to show how stable the decision is under the available search coverage.
+
+The literature behind the decision caps the rating. Without bound literature (mode `unlinked`) the highest rating is 3, and each point above 1 needs one filled prior-art row. A 4 or 5 needs a bound paper context or a bound seven-file literature pack; `literature-assurance-contract.md` gives the gates for each.

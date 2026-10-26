@@ -66,7 +66,7 @@ Use for the quick path on a draft: "what am I missing?" or "are my citations con
 - `research-pipeline-planner` owns whether literature assurance is sufficient for commitment or route advancement.
 - `research-paper-review` owns technical critique of one paper; this skill supplies bounded context or a full review.
 - `research-idea-discovery` consumes landscape evidence but owns idea generation and ranking.
-- `research-novelty-review` owns adversarial novelty and positioning decisions and should consume this skill's recall-audited corpus when available.
+- `research-novelty-review` owns adversarial novelty and positioning decisions and should consume this skill's recall-audited corpus when available. Its unlinked mode caps the novelty rating at 3; a validated paper context or seven-file pack bound to the decision lifts the cap.
 - `research-zotero` owns library sync and citation export; Zotero records remain candidates until screened.
 - `research-review-loop` tracks whether literature omissions and overclaims are actually repaired.
 - `research-paper-plan` uses the narrowest claims supported by the review and its assurance verdict.
@@ -230,7 +230,7 @@ For major ML conferences hosted on OpenReview, use accepted venue records when v
 ## Scripts
 
 - `scripts/init_review_pack.py`: initialize a profile-aware review pack, recall audit, and corpus manifest while preserving the previous protocol-scope CLI inputs.
-- `scripts/paper_context_artifacts.py`: initialize and validate the four-file paper-context evidence-map exchange bundle; `validate --draft` tolerates `TODO` cells and unset ratings.
+- `scripts/paper_context_artifacts.py`: initialize and validate the four-file paper-context evidence-map exchange bundle; `validate --draft` tolerates `TODO` cells and unset ratings. `promote --out-dir <context> --pack-dir <dir>` turns the context into a seven-file pack skeleton: evidence rows and search runs are copied as written, everything else is a `TODO` placeholder, and the pack fails validation until a real search fills them. `research-novelty-review` binds a validated context as `literature_assurance.mode: context`, which lets a novelty rating of 4 or 5 stand without the seven-file pack.
 - `scripts/bib_inventory.py`: inventory a manuscript's cited keys against its `.bib` files and write `citation-audit.md` plus corpus-manifest-shaped JSON records (stdlib only).
 - `scripts/prisma_flow_md.py`: generate PRISMA flow accounting.
 - `scripts/review_pack_coverage.py`: validate coverage-question states and reciprocal question/search/record/amendment links; shared with novelty assurance.

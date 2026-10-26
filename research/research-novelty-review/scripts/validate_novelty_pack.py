@@ -30,6 +30,18 @@ RATING_FIELDS = (
     "decision_confidence_rating",
 )
 
+STRUCTURAL_CAP = 3
+CONTEXT_FILES = (
+    "literature-context.md",
+    "literature-context-search-log.md",
+    "literature-context-evidence-table.md",
+    "literature-context-decision.json",
+)
+CONTEXT_VERDICT = "paper-context-validated"
+CONTEXT_MIN_COVERAGE = 3
+PLACEHOLDER_CELLS = {"", "todo", "tbd", "-", "n/a", "1-5"}
+HELPER = "scripts/novelty_assurance.py"
+
 RESEARCH_ROOT = Path(__file__).resolve().parents[2]
 SLR_SKILL = "research-systematic-literature-review"
 SLR_SCRIPTS = RESEARCH_ROOT / SLR_SKILL / "scripts"
@@ -48,6 +60,98 @@ def load_slr_coverage(errors: list[str]) -> Any:
         )
         return None
     return unresolved_high_priority_novelty_questions
+
+
+def load_context_validator(errors: list[str]) -> Any:
+    """Import the sibling paper-context validator; only context mode needs it."""
+    if str(SLR_SCRIPTS) not in sys.path:
+        sys.path.insert(0, str(SLR_SCRIPTS))
+    try:
+        from paper_context_artifacts import collect_errors
+    except ImportError:
+        errors.append(
+            f"context mode requires the {SLR_SKILL} skill installed alongside research-novelty-review "
+            f"(expected {SLR_SCRIPTS / 'paper_context_artifacts.py'}); unlinked mode does not need it"
+        )
+        return None
+    return collect_errors
+
+
+def prior_art_rows(markdown: str) -> list[str]:
+    """Return the Work cells of filled prior-art matrix rows; placeholder rows do not count."""
+    works: list[str] = []
+    header: list[str] | None = None
+    for line in markdown.splitlines():
+        stripped = line.strip()
+        if not stripped.startswith("|"):
+            continue
+        cells = [cell.strip() for cell in stripped.strip("|").split("|")]
+        if header is None:
+            header = cells
+            continue
+        if all(set(cell) <= {"-", ":"} for cell in cells):
+            continue
+        work = cells[0] if cells else ""
+        if work.lower() not in PLACEHOLDER_CELLS and "todo" not in work.lower():
+            works.append(work)
+    return works
+
+
+def check_rating_gates(mode: Any, rating: int | None, prior_art: str, errors: list[str]) -> None:
+    """Structural and context modes: cap and prior-art row rule (decision D8)."""
+    if rating is None:
+        return
+    if mode == "unlinked" and rating > STRUCTURAL_CAP:
+        errors.append(
+            f"novelty rating {rating} exceeds the structural cap of {STRUCTURAL_CAP}. A rating of 4 or 5 needs "
+            f"bound literature: run {HELPER} link --pack-dir <seven-file pack> and validate with "
+            f"--assurance-profile linked, or run {HELPER} link --context <paper-context dir> "
+            "(literature_assurance.mode context). Otherwise lower the rating to 3."
+        )
+    needed = rating - 1
+    found = len(prior_art_rows(prior_art))
+    if found < needed:
+        errors.append(
+            f"novelty rating {rating} needs at least {needed} filled prior-art row(s) in prior-art-matrix.md "
+            f"(one per point above 1); found {found}. Add the closest works examined, or lower the rating."
+        )
+
+
+def validate_context_binding(
+    decision_path: Path, assurance: dict[str, Any], rating: int | None, errors: list[str]
+) -> None:
+    collect_errors = load_context_validator(errors)
+    if collect_errors is None:
+        return
+    raw_dir = assurance.get("context_dir")
+    context_dir = resolve_path(decision_path, raw_dir, "literature_assurance.context_dir", errors)
+    if context_dir is None:
+        return
+    relink = f"rerun {HELPER} link --context {raw_dir} after editing the paper context"
+    digests = assurance.get("context_sha256")
+    if not isinstance(digests, dict) or set(digests) != set(CONTEXT_FILES):
+        errors.append("literature_assurance.context_sha256 must hold a digest for each of the four paper-context files; " + relink)
+    else:
+        for name in CONTEXT_FILES:
+            path = context_dir / name
+            if not path.is_file():
+                errors.append(f"bound paper-context file is missing: {path}")
+            elif hashlib.sha256(path.read_bytes()).hexdigest() != digests.get(name):
+                errors.append(f"literature_assurance.context_sha256 for {name} does not match the bound file; " + relink)
+    if assurance.get("assurance_verdict") != CONTEXT_VERDICT:
+        errors.append(f"context mode requires literature_assurance.assurance_verdict={CONTEXT_VERDICT}")
+    context_errors = collect_errors(context_dir, draft=False)
+    if context_errors:
+        errors.append("bound paper context fails validation:\n" + "\n".join(f"  {error}" for error in context_errors))
+        return
+    if rating in {4, 5}:
+        context_decision = read_json(context_dir / "literature-context-decision.json", "paper-context decision", errors)
+        coverage = context_decision.get("coverage_confidence_rating") if isinstance(context_decision, dict) else None
+        if not isinstance(coverage, int) or coverage < CONTEXT_MIN_COVERAGE:
+            errors.append(
+                f"novelty rating {rating} in context mode needs coverage_confidence_rating of at least "
+                f"{CONTEXT_MIN_COVERAGE} in the bound paper context; found {coverage}"
+            )
 
 
 def meaningful(value: Any) -> bool:
@@ -284,7 +388,12 @@ def main() -> int:
         if decision is not None:
             errors.append("novelty-decision.json must be an object")
     else:
-        if decision.get("schema_version") != SCHEMA_VERSION:
+        if decision.get("schema_version") is None or decision.get("schema_version") in {"1.0", "1"}:
+            errors.append(
+                f"novelty decision predates schema {SCHEMA_VERSION}; run {HELPER} migrate --decision "
+                f"{args.decision} --prior-art-matrix {args.prior_art_matrix}"
+            )
+        elif decision.get("schema_version") != SCHEMA_VERSION:
             errors.append(f"novelty-decision.schema_version must equal {SCHEMA_VERSION}")
         status = decision.get("status")
         if status not in STATUSES:
@@ -352,7 +461,10 @@ def main() -> int:
                 if report_value(report, label) != str(decision.get(field, "")):
                     errors.append(f"novelty report {label} disagrees with novelty-decision.json")
 
+        mode = assurance.get("mode") if isinstance(assurance, dict) else None
         if args.assurance_profile == "linked":
+            if mode == "context":
+                errors.append("literature_assurance.mode=context validates under the default structural profile")
             if status != "complete":
                 errors.append("linked novelty validation requires status=complete")
             validator = args.literature_validator or (
@@ -368,36 +480,39 @@ def main() -> int:
                 validator,
                 errors,
             )
-        elif not isinstance(assurance, dict) or assurance.get("mode") not in {"unlinked", "linked"}:
-            errors.append("structural novelty validation requires literature_assurance.mode unlinked or linked")
-        elif assurance.get("mode") == "linked":
+        elif mode not in {"unlinked", "linked", "context"}:
+            errors.append("structural novelty validation requires literature_assurance.mode unlinked or context")
+        elif mode == "linked":
             errors.append("literature_assurance.mode=linked requires --assurance-profile linked")
+        else:
+            if mode == "context":
+                validate_context_binding(
+                    args.decision.resolve(), assurance, ratings.get("novelty_decision_rating"), errors
+                )
+            check_rating_gates(mode, ratings.get("novelty_decision_rating"), prior_art, errors)
 
     if errors:
         print("Validation failed:")
         for error in errors:
             print(f"- {error}")
         return 1
-    if (
-        args.assurance_profile != "linked"
-        and isinstance(decision, dict)
-        and isinstance(decision.get("novelty_decision_rating"), int)
-        and decision.get("novelty_decision_rating", 0) >= 4
-    ):
-        print(
-            "WARNING: structural mode does not gate novelty ratings >= 4; bind a validated literature pack "
-            "and rerun with --assurance-profile linked before relying on this rating."
-        )
     if args.assurance_profile == "linked":
         print(
             "Validation passed: the exact bound literature pack was revalidated and the novelty rating, corpus "
             "identity, assurance verdict, unresolved critical questions, and report view are internally consistent. "
             "This governs novelty positioning only; it does not establish empirical validity or evidence promotion."
         )
+    elif isinstance(decision, dict) and isinstance(decision.get("literature_assurance"), dict) and decision["literature_assurance"].get("mode") == "context":
+        print(
+            "Validation passed: the bound paper context was revalidated, its digests match, and the novelty "
+            "rating meets the context-mode gates. A paper context is a bounded evidence map; it does not "
+            "establish literature completeness, scientific novelty, or empirical validity."
+        )
     else:
         print(
-            "Validation passed: the novelty-review pack is structurally consistent. This does not establish "
-            "literature completeness, scientific novelty, empirical validity, or independent review."
+            f"Validation passed: the novelty-review pack is structurally consistent and the rating is within "
+            f"the structural cap of {STRUCTURAL_CAP} with one prior-art row per point above 1. This does not "
+            "establish literature completeness, scientific novelty, empirical validity, or independent review."
         )
     return 0
 

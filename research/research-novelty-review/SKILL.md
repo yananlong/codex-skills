@@ -14,6 +14,7 @@ description: Run a stringent, adversarial novelty review over a concrete researc
 5. When reviewing a paper, consume `research-paper-review` and the exact validated `research-systematic-literature-review` pack before deciding.
 6. Keep novelty positioning separate from empirical validity: a strong novelty rating does not show that the method works or authorize evidence promotion.
 7. End with a 1-5 novelty decision rating, not a coarse ternary label, plus the narrowest defensible positioning.
+8. Match the rating to the literature behind it. Without bound literature the rating stops at 3 and needs one filled prior-art row per point above 1. A 4 or 5 needs a bound paper context or a bound seven-file literature pack (`references/literature-assurance-contract.md`).
 
 ## Modes
 
@@ -88,7 +89,7 @@ Reader-facing prose in these artifacts is written under the drafting contract (`
   - `novelty-decision.json`
 - In orchestrated mode, these live under `./novelty-review/`.
 - In standalone mode, any target directory is valid.
-- `novelty-decision.json` should capture the final 1-5 novelty rating, confidence rating, the exact narrow positioning that survives the review, selection-history caveats, and whether the review was self-review or materially independent. In linked mode it also binds the exact seven-file literature pack with per-file SHA-256 digests, corpus identity, assurance verdict, and unresolved high-priority novelty-critical question IDs.
+- `novelty-decision.json` should capture the final 1-5 novelty rating, confidence rating, the exact narrow positioning that survives the review, selection-history caveats, and whether the review was self-review or materially independent. `literature_assurance.mode` is `unlinked`, `context`, or `linked`. Context mode binds the four-file paper context with per-file SHA-256 digests. Linked mode binds the exact seven-file literature pack with per-file SHA-256 digests, corpus identity, assurance verdict, and unresolved high-priority novelty-critical question IDs.
 - In paper-review integrated mode, `novelty-decision.json` should also capture:
   - `impact_positioning_rating` (1-5)
   - `literature_context_used`
@@ -152,7 +153,11 @@ Reader-facing prose in these artifacts is written under the drafting contract (`
   - `3`: narrow proceed only; some novelty survives but only under a sharply reduced claim
   - `4`: proceed with careful positioning; novelty looks real but vulnerable
   - `5`: strong novelty position; closest overlaps do not materially undercut the core claim
-- Do not issue rating 4 or 5 from linked evidence unless the exact literature pack validates with an adequate verdict and has no unresolved high-priority novelty-critical question.
+- The literature behind the decision caps the rating:
+  - mode `unlinked` (the lightweight path, such as "find the prior art I am missing in this draft"): at most 3, with one filled prior-art row per point above 1;
+  - mode `context`: 4 or 5 when the bound paper context validates and its coverage confidence is at least 3, with the same row floor;
+  - mode `linked`: 4 or 5 when the exact literature pack validates with an adequate verdict and has no unresolved high-priority novelty-critical question.
+- To raise a capped rating, bind the evidence with `scripts/novelty_assurance.py link` (`--context` or `--pack-dir`). To grow a paper context into a full pack, run `paper_context_artifacts.py promote` from `research-systematic-literature-review` and fill the placeholders it leaves.
 - Rating 3 under material literature uncertainty requires explicit narrow positioning, a change condition, and claims to qualify.
 - State explicitly that the rating governs positioning only. It does not certify empirical correctness, confirmatory status, implementation validity, or route readiness.
 - If deeper retrieval would materially improve confidence, collaborate with `research-systematic-literature-review`.
@@ -189,6 +194,7 @@ Reader-facing prose in these artifacts is written under the drafting contract (`
 
 ## Scripts
 
-- `scripts/init_novelty_pack.py`: create `novelty-report.md`, `prior-art-matrix.md`, `search-log.md`, and schema-versioned `novelty-decision.json` in a standalone directory or the suite's `novelty-review/` directory. Ratings start as `null` and blank report lines; fill them only after the review.
-- `scripts/validate_novelty_pack.py`: validate report/JSON reciprocity and, in linked mode, rerun the exact literature pack before enforcing rating gates. A `draft` decision may leave ratings `null`; `status: complete` requires all three ratings. Structural mode prints a warning for ratings of 4 or 5 because it does not gate them.
-- Dependency: `--help` and structural mode need only this skill. Linked mode (`--assurance-profile linked`) imports `review_pack_coverage.py` and runs `validate_review_pack.py` from `research-systematic-literature-review`, which must be installed as a sibling folder (`<skills>/research-systematic-literature-review/`). Without it, linked validation fails with an error naming that skill.
+- `scripts/init_novelty_pack.py`: create `novelty-report.md`, `prior-art-matrix.md`, `search-log.md`, and schema-versioned `novelty-decision.json` in a standalone directory or the suite's `novelty-review/` directory. Ratings start as `null` and blank report lines; fill them only after the review. `--link-context <dir>` or `--link <pack dir>` binds the literature at creation.
+- `scripts/validate_novelty_pack.py`: validate report/JSON reciprocity and the rating gates for the decision's mode. Unlinked mode caps the novelty rating at 3 and checks the prior-art row floor; context mode reruns the bound paper context; linked mode (`--assurance-profile linked`) reruns the exact literature pack. A `draft` decision may leave ratings `null`; `status: complete` requires all three ratings. A decision written before schema 1.1 fails with the migrate command to run.
+- `scripts/novelty_assurance.py`: `link` binds a paper context (`--context`) or a seven-file pack (`--pack-dir`) and updates the report's assurance lines; `migrate` brings a pre-1.1 decision to schema 1.1, capping and never raising the rating and recording the original.
+- Dependency: `--help` and unlinked mode need only this skill. Context mode imports `paper_context_artifacts.py`, and linked mode imports `review_pack_coverage.py` and runs `validate_review_pack.py`, all from `research-systematic-literature-review`, which must be installed as a sibling folder (`<skills>/research-systematic-literature-review/`). Without it, those modes fail with an error naming that skill.
