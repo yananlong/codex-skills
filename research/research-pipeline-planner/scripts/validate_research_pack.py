@@ -28,10 +28,6 @@ BASE_FILES = {
     "artifact-index.md": "# Artifact Index",
 }
 COMMITMENT_FILE = "research-commitment.json"
-STAGE_DIRS = [
-    "zotero", "literature-review", "ideation", "novelty-review", "experiment-plan",
-    "results-audit", "paper-review", "paper-plan", "review-loop", "rebuttal",
-]
 HARNESS_FILES = ["HARNESS_STATE.json", "work-items.json", "harness-events.jsonl"]
 HARNESS_DIRS = ["episodes", "checkpoints"]
 INDEX_ROWS = [
@@ -87,6 +83,16 @@ def validate_commitment_file(root: Path, required: bool, errors: list[str]) -> N
         errors.append(f"{index}: missing canonical path '{COMMITMENT_INDEX_ROW}'")
 
 
+def _index_row_required(root: Path, row: str) -> bool:
+    """A stage or harness directory is optional; its index row is required only once it exists.
+
+    Git does not keep empty directories, so a fresh clone of a real suite lacks unused stages.
+    """
+    if not row.endswith("/"):
+        return True
+    return (root / row[2:].rstrip("/")).is_dir()
+
+
 def validate_base(root: Path, errors: list[str], *, require_commitment: bool) -> None:
     for name, heading in BASE_FILES.items():
         path = root / name
@@ -94,14 +100,11 @@ def validate_base(root: Path, errors: list[str], *, require_commitment: bool) ->
             errors.append(f"missing file: {path}")
         elif heading not in path.read_text(encoding="utf-8"):
             errors.append(f"{path}: missing heading '{heading}'")
-    for name in STAGE_DIRS:
-        if not (root / name).is_dir():
-            errors.append(f"missing directory: {root / name}")
     index = root / "artifact-index.md"
     if index.is_file():
         content = index.read_text(encoding="utf-8")
         for row in INDEX_ROWS:
-            if row not in content:
+            if _index_row_required(root, row) and row not in content:
                 errors.append(f"{index}: missing canonical path '{row}'")
     validate_commitment_file(root, require_commitment, errors)
 
@@ -192,6 +195,7 @@ def _read_bound_file(
     errors: list[str],
     *,
     require_current: bool,
+    state: dict[str, Any] | None = None,
 ) -> Any:
     relative = binding.get(path_field)
     expected = binding.get(digest_field)
@@ -207,9 +211,9 @@ def _read_bound_file(
         if require_current:
             errors.append(f"bound {label} file is missing: {relative}")
         return None
-    if path_digest(path) != expected:
+    if not harness_runtime.digest_accepted(state, relative, expected, path_digest(path)):
         if require_current:
-            errors.append(f"bound {label} digest mismatch: {relative}")
+            errors.append(f"bound {label} digest mismatch (drifted since approval): {relative}")
         return None
     return read_json(path, errors)
 
@@ -257,8 +261,14 @@ def validate_experiment_event_history(
     root: Path,
     events: list[dict[str, Any]],
     errors: list[str],
+    final_state: dict[str, Any] | None = None,
 ) -> None:
-    """Revalidate every submitted episode against the state that preceded its event."""
+    """Revalidate every submitted episode against the state that preceded its event.
+
+    Files are read as they are now, so owner re-approvals and withholdings from the final replayed
+    state decide whether a changed or missing file still agrees with the event.
+    """
+    withheld = frozenset(harness_runtime.withheld_artifacts(final_state))
     state = initial_state()
     work_items = initial_work_items()
     for event in events:
@@ -302,6 +312,7 @@ def validate_experiment_event_history(
                                 work_items,
                                 item,
                                 episode_path,
+                                withheld=withheld,
                             )
                         except SystemExit as exc:
                             errors.append(f"{event_id}: submitted episode fails runtime validation: {exc}")
@@ -316,6 +327,15 @@ def validate_experiment_event_history(
                             }
                             if episode["_experiment_run"] is not None:
                                 expected["experiment_run"] = episode["_experiment_run"]
+                            # validate_evidence compares every recorded digest with the current file and
+                            # reports drift once, with the re-approval hint. Here only the artifact set and
+                            # the episode's content fields must agree with the event.
+                            recorded_artifacts = details.get("artifact_digests") or {}
+                            if isinstance(recorded_artifacts, dict) and set(recorded_artifacts) == set(
+                                expected["artifact_digests"]
+                            ):
+                                expected["artifact_digests"] = recorded_artifacts
+                            expected["episode_digest"] = details.get("episode_digest")
                             for field, value in expected.items():
                                 if details.get(field) != value:
                                     errors.append(
@@ -350,7 +370,9 @@ def validate_experiment_event_history(
             errors.append(f"{event_id}: event replay failed during semantic audit: {exc}")
             return
 
-def validate_experiment_integrity(root: Path, work_items: dict, errors: list[str]) -> None:
+def validate_experiment_integrity(
+    root: Path, work_items: dict, errors: list[str], harness_state: dict[str, Any] | None = None
+) -> None:
     items = [item for item in work_items.get("items", []) if isinstance(item, dict)]
     by_id = {item.get("work_item_id"): item for item in items if isinstance(item.get("work_item_id"), str)}
     run_index: dict[str, tuple[dict[str, Any], dict[str, Any]]] = {}
@@ -410,15 +432,15 @@ def validate_experiment_integrity(root: Path, work_items: dict, errors: list[str
         require_current_binding = state in {"queued", "ready", "running"}
         claim_map = _read_bound_file(
             root, binding, "claim_map_path", "claim_map_digest", "claim-map", errors,
-            require_current=require_current_binding,
+            require_current=require_current_binding, state=harness_state,
         )
         run_blocks = _read_bound_file(
             root, binding, "run_blocks_path", "run_blocks_digest", "run-blocks", errors,
-            require_current=require_current_binding,
+            require_current=require_current_binding, state=harness_state,
         )
         commitment = _read_bound_file(
             root, binding, "commitment_path", "commitment_digest", "commitment", errors,
-            require_current=require_current_binding,
+            require_current=require_current_binding, state=harness_state,
         )
         if isinstance(commitment, dict) and (
             commitment.get("paper_id") != binding.get("paper_id")
@@ -545,7 +567,29 @@ def validate_experiment_integrity(root: Path, work_items: dict, errors: list[str
             errors.append(f"technical retry {run_id} has a parent from another block")
 
 
-def validate_evidence(root: Path, work_items: dict, errors: list[str]) -> None:
+def validate_evidence(
+    root: Path, work_items: dict, errors: list[str], state: dict[str, Any] | None = None
+) -> dict[str, int]:
+    """Check anchored evidence against the files; return counts of re-approved and withheld paths."""
+    withheld = harness_runtime.withheld_artifacts(state)
+    counts = {"reapproved": 0, "withheld": 0}
+    seen: dict[str, set[str]] = {"reapproved": set(), "withheld": set()}
+
+    def check(relative: str, expected: Any, path: Path) -> str:
+        """Return 'ok', 'withheld', or 'drift'."""
+        if not path.exists():
+            if relative in withheld:
+                seen["withheld"].add(relative)
+                return "withheld"
+            return "drift"
+        actual = path_digest(path)
+        if actual == expected:
+            return "ok"
+        if harness_runtime.digest_accepted(state, relative, expected, actual):
+            seen["reapproved"].add(relative)
+            return "ok"
+        return "drift"
+
     referenced_episodes: set[str] = set()
     for item in work_items.get("items", []):
         for record in item.get("episodes", []):
@@ -563,18 +607,20 @@ def validate_evidence(root: Path, work_items: dict, errors: list[str]) -> None:
             except SystemExit as exc:
                 errors.append(str(exc))
                 continue
-            if not path.is_file():
-                errors.append(f"missing submitted episode: {relative}")
-            elif path_digest(path) != digest:
-                errors.append(f"submitted episode digest mismatch: {relative}")
+            outcome = check(relative, digest, path)
+            if outcome == "drift":
+                if path.exists():
+                    errors.append(f"submitted episode digest mismatch (drifted since approval): {relative}")
+                else:
+                    errors.append(f"missing submitted episode: {relative}")
             for artifact, expected in record.get("artifact_digests", {}).items():
                 try:
                     artifact_path = resolve_inside_root(root, artifact, "artifact")
                 except SystemExit as exc:
                     errors.append(str(exc))
                     continue
-                if not artifact_path.exists() or path_digest(artifact_path) != expected:
-                    errors.append(f"submitted artifact digest mismatch: {artifact}")
+                if check(artifact, expected, artifact_path) == "drift":
+                    errors.append(f"submitted artifact digest mismatch (drifted since approval): {artifact}")
     episodes_dir = root / "episodes"
     if episodes_dir.is_dir():
         for path in episodes_dir.rglob("*.json"):
@@ -587,7 +633,7 @@ def validate_evidence(root: Path, work_items: dict, errors: list[str]) -> None:
         events, _, _ = harness_runtime.reconstruct(root)
     except SystemExit as exc:
         errors.append(f"harness event replay failed: {exc}")
-        return
+        return counts
     for event in events:
         if event.get("event_type") != "checkpoint_saved":
             continue
@@ -603,8 +649,11 @@ def validate_evidence(root: Path, work_items: dict, errors: list[str]) -> None:
         except SystemExit as exc:
             errors.append(str(exc))
             continue
-        if not path.is_file() or path_digest(path) != expected:
-            errors.append(f"checkpoint digest mismatch: {relative}")
+        outcome = check(relative, expected, path)
+        if outcome == "withheld":
+            continue
+        if outcome == "drift":
+            errors.append(f"checkpoint digest mismatch (drifted since approval): {relative}")
             continue
         data = read_json(path, errors)
         if isinstance(data, dict):
@@ -620,33 +669,71 @@ def validate_evidence(root: Path, work_items: dict, errors: list[str]) -> None:
             relative = path.relative_to(root).as_posix()
             if relative not in referenced_checkpoints:
                 errors.append(f"orphan checkpoint package: {relative}")
+    counts["reapproved"] = len(seen["reapproved"])
+    counts["withheld"] = len(seen["withheld"])
+    return counts
 
 
-def validate_harness(root: Path, errors: list[str]) -> None:
+def validate_commitment_anchor(
+    root: Path, state: dict[str, Any], errors: list[str], warnings: list[str]
+) -> None:
+    """The commitment on disk must match the last commitment the event chain recorded.
+
+    Exploration revises the contract freely (commitment contract rule 1), so a mismatch while both
+    the recorded and the current commitment are exploring is a warning. Anywhere else it is drift.
+    """
+    path = root / COMMITMENT_FILE
+    anchor = state.get("commitment")
+    if not path.is_file():
+        if anchor:
+            errors.append(f"drifted identity: {COMMITMENT_FILE} is missing but {anchor.get('event_id')} recorded it")
+        return
+    if not anchor:
+        warnings.append(
+            f"{COMMITMENT_FILE} is not anchored in the event chain; record it once with "
+            "harness_runtime.py commitment-edit --change-class D0 --reason 'anchor existing commitment' --actor <owner>"
+        )
+        return
+    if path_digest(path) == anchor.get("digest"):
+        return
+    try:
+        current_status = json.loads(path.read_text(encoding="utf-8")).get("status")
+    except (json.JSONDecodeError, AttributeError):
+        current_status = None
+    message = (
+        f"{COMMITMENT_FILE} does not match the commitment recorded at {anchor.get('event_id')}; record the change "
+        "with harness_runtime.py commitment-edit (D0-D2) or pivot-request and pivot-decision (D3-D4), "
+        "or revert the hand edit"
+    )
+    if current_status == "exploring" and anchor.get("status") == "exploring":
+        warnings.append(f"unrecorded exploration edit: {message}")
+    else:
+        errors.append(f"drifted identity: {message}")
+
+
+def validate_harness(root: Path, errors: list[str], warnings: list[str]) -> dict[str, int]:
+    counts = {"reapproved": 0, "withheld": 0}
     for name in HARNESS_FILES:
         if not (root / name).is_file():
             errors.append(f"missing harness file: {root / name}")
-    for name in HARNESS_DIRS:
-        if not (root / name).is_dir():
-            errors.append(f"missing harness directory: {root / name}")
     index = root / "artifact-index.md"
     if index.is_file():
         content = index.read_text(encoding="utf-8")
         for row in HARNESS_INDEX_ROWS:
-            if row not in content:
+            if _index_row_required(root, row) and row not in content:
                 errors.append(f"{index}: missing harness path '{row}'")
     if errors:
-        return
+        return counts
     state = read_json(root / "HARNESS_STATE.json", errors)
     work_items = read_json(root / "work-items.json", errors)
     if not isinstance(state, dict) or not isinstance(work_items, dict):
-        return
+        return counts
     validate_work_items(work_items, errors)
     try:
         events, replayed_state, replayed_items = harness_runtime.reconstruct(root)
     except SystemExit as exc:
         errors.append(f"harness event replay failed: {exc}")
-        return
+        return counts
     if state != replayed_state:
         errors.append("HARNESS_STATE.json does not match replayed event state; run harness_runtime.py replay")
     if work_items != replayed_items:
@@ -660,25 +747,37 @@ def validate_harness(root: Path, errors: list[str]) -> None:
         errors.append("HARNESS_STATE.json omits an active work item")
     elif state.get("active_work_item_id") is not None and active != [state.get("active_work_item_id")]:
         errors.append("HARNESS_STATE.json active_work_item_id disagrees with work-items.json")
-    validate_experiment_event_history(root, events, errors)
-    validate_experiment_integrity(root, work_items, errors)
-    validate_evidence(root, work_items, errors)
+    validate_experiment_event_history(root, events, errors, replayed_state)
+    validate_experiment_integrity(root, work_items, errors, replayed_state)
+    counts = validate_evidence(root, work_items, errors, replayed_state)
+    validate_commitment_anchor(root, replayed_state, errors, warnings)
+    return counts
 
 
 def main() -> int:
     args = parse_args()
     root = args.target_dir.expanduser().resolve()
     errors: list[str] = []
+    warnings: list[str] = []
+    counts = {"reapproved": 0, "withheld": 0}
     profile = args.profile
     if profile == "auto":
         profile = "harness" if any((root / name).exists() for name in HARNESS_FILES) else "legacy"
     validate_base(root, errors, require_commitment=profile == "harness")
     if profile == "harness":
-        validate_harness(root, errors)
+        counts = validate_harness(root, errors, warnings)
     if errors:
         print("Validation failed:")
         for error in errors:
             print(f"- {error}")
+        if any("drifted since approval" in error for error in errors):
+            print(
+                "Files changed after their digest was recorded. If the owner accepts the current versions, "
+                f"record that with: python scripts/harness_runtime.py --root {root} reapprove --path <path> "
+                "--reason '<why>' --actor <owner> (or --all-drifted). A file kept out of the repository is "
+                "recorded with withhold --path <path> --reason '<why>'."
+            )
+        _print_warnings(warnings)
         return 1
     if profile == "harness":
         print(
@@ -690,13 +789,26 @@ def main() -> int:
             "declared snapshots are not proof of filesystem isolation, external immutability, "
             "scientific validity, or independent verification."
         )
+        if counts["reapproved"] or counts["withheld"]:
+            print(
+                f"Owner decisions in the chain: {counts['reapproved']} path(s) accepted by re-approval after drift, "
+                f"{counts['withheld']} path(s) withheld from the repository with a recorded reason."
+            )
     else:
         print(
             "Validation passed: legacy research-suite layout is structurally consistent. "
             "A commitment file was validated when present, but this profile does not provide "
             "durable execution, replay, or verifier-backed transitions."
         )
+    _print_warnings(warnings)
     return 0
+
+
+def _print_warnings(warnings: list[str]) -> None:
+    if warnings:
+        print("Warnings:")
+        for warning in warnings:
+            print(f"- {warning}")
 
 
 if __name__ == "__main__":

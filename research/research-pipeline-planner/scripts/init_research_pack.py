@@ -143,6 +143,37 @@ Consequential decisions must also be represented by a machine event in `harness-
 }
 
 
+
+def anchor_commitment(root: Path, reason: str) -> dict | None:
+    """Record the commitment's digest in the event chain so later hand edits show as drift.
+
+    Returns the event, or None when there is no commitment or it does not validate yet (an adopted
+    project may carry a commitment that needs work; the validator then warns that it is unanchored).
+    """
+    path = root / COMMITMENT_FILE
+    if not path.is_file():
+        return None
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return None
+    if not isinstance(data, dict) or harness_runtime.validate_commitment(data):
+        return None
+    return harness_runtime.commit_event(
+        root,
+        "commitment_edited",
+        "init_research_pack",
+        None,
+        {
+            "change_class": "D0",
+            "reason": reason,
+            "paper_id": data.get("paper_id"),
+            "identity_version": data.get("identity_version"),
+            "status": data.get("status"),
+            "commitment_digest": harness_runtime.path_digest(path),
+        },
+    )
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("target_dir", type=Path)
@@ -312,6 +343,9 @@ def adopt(root: Path, args: argparse.Namespace, paper_id: str) -> None:
         },
     )
     print(f"created {root / EVENT_LOG} at {event['event_id']} (legacy_import: {len(artifacts)} artifacts)")
+    anchor = anchor_commitment(root, "existing commitment anchored at adoption")
+    if anchor:
+        print(f"anchored {root / COMMITMENT_FILE} at {anchor['event_id']}")
 
 
 def main() -> None:
@@ -336,8 +370,10 @@ def main() -> None:
     if existing and not args.force:
         raise SystemExit("Refusing to overwrite existing files without --force: " + ", ".join(sorted(existing)))
     if args.force and not args.discard_event_history:
-        event_count = len(read_events(root / EVENT_LOG)) if (root / EVENT_LOG).is_file() else 0
-        if event_count > 1:
+        events = read_events(root / EVENT_LOG) if (root / EVENT_LOG).is_file() else []
+        # Events the initializer wrote itself (initialization, adoption, commitment anchor) are not history.
+        event_count = sum(1 for event in events if event.get("actor") != "init_research_pack")
+        if event_count > 0:
             raise SystemExit(
                 f"Refusing --force: {root / EVENT_LOG} holds {event_count} events of canonical history. "
                 "Use --adopt for a project without an event log, or pass --discard-event-history to delete it."
@@ -380,9 +416,12 @@ def main() -> None:
                 "note": "Initialized a harness-backed research suite with an exploring research commitment.",
             },
         )
+        anchor = anchor_commitment(root, "initial commitment recorded at initialization")
         print(f"created {root / 'HARNESS_STATE.json'}")
         print(f"created {root / 'work-items.json'}")
         print(f"created {root / 'harness-events.jsonl'} at {event['event_id']}")
+        if anchor:
+            print(f"anchored {root / COMMITMENT_FILE} at {anchor['event_id']}")
 
 
 if __name__ == "__main__":

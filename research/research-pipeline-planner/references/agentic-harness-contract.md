@@ -157,6 +157,19 @@ Technical outcome, transition request, gate result, and scientific disposition a
 
 Digest continuity detects post-submission mutation of declared files. Start/submission equality for declared experiment inputs and evaluators records continuity at those control points; it does not prove that undeclared files were untouched or that a digest was externally anchored. Later legitimate plan or evaluator revisions do not retroactively rewrite an earlier submitted run because the event log retains the matched start/submission digest records.
 
+## Re-approval on drift
+
+A recorded digest is a historical fact about what was submitted, checkpointed, or bound. The runtime never rewrites it. When the file at that path changes afterwards, validation fails for that path as "drifted since approval" until the owner decides what the change means:
+
+- `reapprove --path <path> --reason <why> --actor <owner>` (or `--all-drifted`) appends an `artifacts_reapproved` event that records the current digest beside the earlier ones. Replay projects it into `approved_digests` in `HARNESS_STATE.json`, and every current-file check then accepts either digest. A later edit drifts again and needs a new re-approval.
+- `withhold --path <path> --reason <why> --actor <owner>` appends an `artifact_withheld` event for an anchored file kept out of the repository (private data, large outputs). A missing withheld file passes; a present one is still checked.
+- Both refuse a path the chain never anchored, a path that has not drifted, and the commitment, which goes through `commitment-edit` so its identity is checked too.
+- Both are the owner's decisions. The runtime refuses an actor that is a work item's owner skill or carries a skill or script name. This checks a label, not a person.
+
+What re-approval does not cover: a running experiment's declared inputs and evaluator artifacts stay strict between start and submission, so a mid-run change still blocks submission. A re-approved episode file still fails when its submitted fields (episode ID, outcome, transition request, artifact list, experiment run) no longer match the submission event, because the event, not the file, is the record of what was submitted.
+
+The validator lists drifted paths together with the exact `reapprove` command, and on success reports how many paths passed by re-approval or withholding, so the friction stays visible in every run.
+
 ## Verification protocol
 
 Before approving:

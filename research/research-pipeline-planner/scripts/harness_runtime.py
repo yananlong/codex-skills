@@ -36,6 +36,7 @@ from harness_common import (
     validate_identifier,
     verify_chain,
 )
+from validate_research_commitment import validate_commitment
 
 STATE_CHANGING_WHILE_PAUSED = {
     "work_item_added",
@@ -73,6 +74,100 @@ PARENT_REQUIRED_RELATIONS = {
 }
 CLAIM_EFFECTS = {"strengthen", "weaken", "kill", "unchanged", "inconclusive"}
 EXECUTION_MODES = {"command", "notebook", "manual", "external_job"}
+
+
+COMMITMENT_PATH = "research-commitment.json"
+BINDING_FILE_FIELDS = (
+    ("claim_map_path", "claim_map_digest", "claim-map"),
+    ("run_blocks_path", "run_blocks_digest", "run-blocks"),
+    ("commitment_path", "commitment_digest", "commitment"),
+)
+CHANGE_CLASSES = ("D0", "D1", "D2", "D3", "D4")
+PIVOT_DECISIONS = ("authorize-D3", "close-and-create-D4", "reject-pivot")
+DECISION_CLASS = {"authorize-D3": "D3", "close-and-create-D4": "D4"}
+# Actors that name a skill or a script. Re-approvals, withholdings, pivot decisions, and D3-D4
+# commitment edits are the owner's decisions (commitment contract rule 5), so these may not make them.
+SKILL_ACTOR_PREFIXES = ("research-", "technical-writing-", "prose-flow-", "init_research_pack")
+
+
+def approved_digests(state: dict[str, Any] | None) -> dict[str, str]:
+    return dict((state or {}).get("approved_digests") or {})
+
+
+def withheld_artifacts(state: dict[str, Any] | None) -> dict[str, str]:
+    return dict((state or {}).get("withheld_artifacts") or {})
+
+
+def digest_accepted(state: dict[str, Any] | None, relative: str, expected: Any, actual: str | None) -> bool:
+    """A current digest is accepted when it equals the recorded one or the owner's re-approved one."""
+    if actual is None:
+        return False
+    return actual == expected or approved_digests(state).get(relative) == actual
+
+
+def _require_owner_actor(actor: str, work_items: dict[str, Any], action: str) -> None:
+    owners = {item.get("owner_skill") for item in work_items.get("items", [])}
+    if not isinstance(actor, str) or not actor.strip():
+        raise SystemExit(f"{action} requires --actor naming the owner")
+    if actor in owners or actor.startswith(SKILL_ACTOR_PREFIXES):
+        raise SystemExit(
+            f"{action} is the owner's decision; pass the owner's name as --actor, not a skill or script name ({actor})"
+        )
+
+
+def anchored_digests(events: list[dict[str, Any]], work_items: dict[str, Any]) -> dict[str, list[str]]:
+    """Every path whose digest the chain records and the validator checks against the current file.
+
+    Binding files count only for items that have not run yet: a completed item's binding is history.
+    """
+    anchors: dict[str, list[str]] = {}
+
+    def add(relative: Any, digest: Any) -> None:
+        if isinstance(relative, str) and relative and isinstance(digest, str) and digest:
+            anchors.setdefault(relative, [])
+            if digest not in anchors[relative]:
+                anchors[relative].append(digest)
+
+    for item in work_items.get("items", []):
+        for record in item.get("episodes", []):
+            if not isinstance(record, dict):
+                continue
+            add(record.get("episode_path"), record.get("episode_digest"))
+            for artifact, digest in (record.get("artifact_digests") or {}).items():
+                add(artifact, digest)
+        binding = item.get("experiment_binding")
+        if isinstance(binding, dict) and item.get("state") in {"queued", "ready", "running"}:
+            for path_field, digest_field, _ in BINDING_FILE_FIELDS:
+                add(binding.get(path_field), binding.get(digest_field))
+    for event in events:
+        if event.get("event_type") == "checkpoint_saved":
+            details = event.get("details") or {}
+            add(details.get("checkpoint_path"), details.get("checkpoint_digest"))
+    return anchors
+
+
+def drifted_paths(
+    root: Path, events: list[dict[str, Any]], state: dict[str, Any], work_items: dict[str, Any]
+) -> dict[str, dict[str, Any]]:
+    """Anchored paths whose current file matches neither a recorded digest nor an owner re-approval."""
+    approved = approved_digests(state)
+    withheld = withheld_artifacts(state)
+    drift: dict[str, dict[str, Any]] = {}
+    for relative, expected in anchored_digests(events, work_items).items():
+        try:
+            path = resolve_inside_root(root, relative, "anchored path")
+        except SystemExit:
+            continue
+        current = path_digest(path) if path.exists() else None
+        if current is None:
+            if relative not in withheld:
+                drift[relative] = {"recorded": expected, "current": None}
+            continue
+        if approved.get(relative) == current:
+            continue
+        if any(digest != current for digest in expected):
+            drift[relative] = {"recorded": expected, "current": current}
+    return drift
 
 
 def _meaningful(value: Any) -> bool:
@@ -492,6 +587,95 @@ def apply_event(state: dict[str, Any], work_items: dict[str, Any], event: dict[s
 
     elif event_type == "observation_recorded":
         pass
+
+    elif event_type == "artifacts_reapproved":
+        entries = details.get("entries")
+        if not _meaningful(details.get("reason")):
+            raise SystemExit("re-approval requires a reason")
+        if not isinstance(entries, list) or not entries:
+            raise SystemExit("re-approval event lists no paths")
+        approved = state.setdefault("approved_digests", {})
+        for entry in entries:
+            if not isinstance(entry, dict) or not _meaningful(entry.get("path")) or not _meaningful(entry.get("digest")):
+                raise SystemExit("re-approval entries need a path and a digest")
+            if entry["path"] == COMMITMENT_PATH:
+                raise SystemExit("the commitment is re-approved through commitment-edit, not reapprove")
+            approved[entry["path"]] = entry["digest"]
+
+    elif event_type == "artifact_withheld":
+        relative = details.get("path")
+        if not _meaningful(relative) or not _meaningful(details.get("reason")):
+            raise SystemExit("a withheld artifact needs a path and a reason")
+        state.setdefault("withheld_artifacts", {})[relative] = details["reason"]
+
+    elif event_type == "pivot_requested":
+        request_id = details.get("request_id")
+        requests = state.setdefault("pivot_requests", {})
+        if not _meaningful(request_id) or request_id in requests:
+            raise SystemExit(f"pivot request id missing or reused: {request_id}")
+        if details.get("change_class") not in {"D3", "D4"}:
+            raise SystemExit("a pivot request must name change_class D3 or D4")
+        for field in ("defect", "why_not_repair", "requested_disposition"):
+            if not _meaningful(details.get(field)):
+                raise SystemExit(f"pivot request lacks {field}")
+        requests[request_id] = {
+            "status": "open",
+            "change_class": details["change_class"],
+            "requested_disposition": details["requested_disposition"],
+            "requested_by": event.get("actor"),
+            "event_id": event["event_id"],
+        }
+
+    elif event_type == "pivot_decided":
+        request_id = details.get("request_id")
+        request = (state.get("pivot_requests") or {}).get(request_id)
+        if not isinstance(request, dict) or request.get("status") != "open":
+            raise SystemExit(f"no open pivot request {request_id}")
+        decision = details.get("decision")
+        if decision not in PIVOT_DECISIONS:
+            raise SystemExit(f"pivot decision must be one of {list(PIVOT_DECISIONS)}")
+        if decision != "reject-pivot" and DECISION_CLASS[decision] != request["change_class"]:
+            raise SystemExit(f"{decision} does not answer a {request['change_class']} request")
+        if event.get("actor") == request.get("requested_by"):
+            raise SystemExit("the actor who requested a pivot may not decide it")
+        if not _meaningful(details.get("rationale")):
+            raise SystemExit("a pivot decision needs a rationale")
+        anchor = state.get("commitment")
+        paper_id, version = details.get("paper_id"), details.get("identity_version")
+        if decision == "authorize-D3" and anchor and (
+            paper_id != anchor.get("paper_id") or version != anchor.get("identity_version", 0) + 1
+        ):
+            raise SystemExit("authorize-D3 must keep paper_id and raise identity_version by one")
+        if decision == "close-and-create-D4" and (version != 1 or (anchor and paper_id == anchor.get("paper_id"))):
+            raise SystemExit("close-and-create-D4 must name a new paper_id at identity_version 1")
+        if decision == "reject-pivot" and anchor and (
+            paper_id != anchor.get("paper_id") or version != anchor.get("identity_version")
+        ):
+            raise SystemExit("reject-pivot may not change the paper identity")
+        request["status"] = "decided"
+        request["decision"] = decision
+        _anchor_commitment(state, event, details, DECISION_CLASS.get(decision) or (anchor or {}).get("authorized_class"))
+
+    elif event_type == "commitment_edited":
+        change_class = details.get("change_class")
+        if change_class not in CHANGE_CLASSES:
+            raise SystemExit(f"commitment edit change_class must be one of {list(CHANGE_CLASSES)}")
+        if not _meaningful(details.get("reason")):
+            raise SystemExit("a commitment edit needs a reason")
+        anchor = state.get("commitment")
+        if anchor:
+            if (
+                details.get("paper_id") != anchor.get("paper_id")
+                or details.get("identity_version") != anchor.get("identity_version")
+            ):
+                raise SystemExit(
+                    "paper_id or identity_version changed outside a pivot decision; "
+                    "use pivot-request and pivot-decision"
+                )
+            if change_class in {"D3", "D4"} and anchor.get("authorized_class") != change_class:
+                raise SystemExit(f"a {change_class} edit needs an authorized pivot decision for this identity")
+        _anchor_commitment(state, event, details, (anchor or {}).get("authorized_class"))
+
     else:
         raise SystemExit(f"unsupported event type: {event_type}")
 
@@ -499,6 +683,25 @@ def apply_event(state: dict[str, Any], work_items: dict[str, Any], event: dict[s
     state["last_event_id"] = event["event_id"]
     state["last_event_hash"] = event["event_hash"]
     state["updated_at"] = event["timestamp"]
+
+
+def _anchor_commitment(
+    state: dict[str, Any], event: dict[str, Any], details: dict[str, Any], authorized_class: str | None
+) -> None:
+    digest = details.get("commitment_digest")
+    if not _meaningful(digest) or not _meaningful(details.get("paper_id")):
+        raise SystemExit("commitment event lacks commitment_digest or paper_id")
+    if not isinstance(details.get("identity_version"), int) or details["identity_version"] < 1:
+        raise SystemExit("commitment event identity_version must be a positive integer")
+    state["commitment"] = {
+        "paper_id": details["paper_id"],
+        "identity_version": details["identity_version"],
+        "status": details.get("status"),
+        "digest": digest,
+        "event_id": event["event_id"],
+        "authorized_class": authorized_class,
+    }
+    state.setdefault("approved_digests", {})[COMMITMENT_PATH] = digest
 
 
 def reconstruct(root: Path) -> tuple[list[dict[str, Any]], dict[str, Any], dict[str, Any]]:
@@ -678,22 +881,23 @@ def validate_work_item(
     return item
 
 
-def _verify_binding_digests(root: Path, item: dict[str, Any]) -> dict[str, Any] | None:
+def _verify_binding_digests(
+    root: Path, item: dict[str, Any], state: dict[str, Any] | None = None
+) -> dict[str, Any] | None:
     binding = item.get("experiment_binding")
     if binding is None:
         return None
     if not isinstance(binding, dict):
         raise SystemExit("experiment_binding must be an object")
-    for path_field, digest_field, label in (
-        ("claim_map_path", "claim_map_digest", "claim-map"),
-        ("run_blocks_path", "run_blocks_digest", "run-blocks"),
-        ("commitment_path", "commitment_digest", "commitment"),
-    ):
+    for path_field, digest_field, label in BINDING_FILE_FIELDS:
         path = resolve_inside_root(root, binding.get(path_field), label)
         if not path.is_file():
             raise SystemExit(f"bound {label} artifact no longer exists")
-        if path_digest(path) != binding.get(digest_field):
-            raise SystemExit(f"bound {label} digest changed after work-item creation")
+        if not digest_accepted(state, binding.get(path_field), binding.get(digest_field), path_digest(path)):
+            raise SystemExit(
+                f"bound {label} digest changed after work-item creation; the owner re-approves it with "
+                f"reapprove --path {binding.get(path_field)}"
+            )
     commitment = _load_required_json(root, binding["commitment_path"], "commitment")
     if (
         not isinstance(commitment, dict)
@@ -719,8 +923,10 @@ def _binding_digest_record(item: dict[str, Any]) -> dict[str, str]:
     }
 
 
-def _execution_snapshot(root: Path, item: dict[str, Any]) -> dict[str, dict[str, str]] | None:
-    block = _verify_binding_digests(root, item)
+def _execution_snapshot(
+    root: Path, item: dict[str, Any], state: dict[str, Any] | None = None
+) -> dict[str, dict[str, str]] | None:
+    block = _verify_binding_digests(root, item, state)
     if block is None:
         return None
     execution = item["experiment_binding"].get("execution", {})
@@ -737,10 +943,10 @@ def _execution_snapshot(root: Path, item: dict[str, Any]) -> dict[str, dict[str,
     return snapshot
 
 
-def _verify_execution_snapshot(root: Path, item: dict[str, Any]) -> None:
+def _verify_execution_snapshot(root: Path, item: dict[str, Any], state: dict[str, Any] | None = None) -> None:
     if item.get("experiment_binding") is None:
         return
-    _verify_binding_digests(root, item)
+    _verify_binding_digests(root, item, state)
     snapshot = item.get("execution_snapshot")
     if not isinstance(snapshot, dict):
         raise SystemExit("experiment work item lacks a start-time execution snapshot")
@@ -906,6 +1112,7 @@ def validate_episode(
     work_items: dict[str, Any],
     item: dict[str, Any],
     episode_path: Path,
+    withheld: frozenset[str] = frozenset(),
 ) -> dict[str, Any]:
     episode_path = episode_path.resolve()
     try:
@@ -983,10 +1190,15 @@ def validate_episode(
         if not isinstance(artifact, str):
             raise SystemExit("episode artifact paths must be strings")
         candidate = resolve_inside_root(root, artifact, "artifact")
-        if not candidate.exists():
-            raise SystemExit(f"episode artifact does not exist: {artifact}")
         if not path_is_in_scope(root, artifact, item["write_scope"]):
             raise SystemExit(f"episode artifact is outside declared write scope: {artifact}")
+        if not candidate.exists():
+            # Only the validator's history audit passes `withheld`: the owner recorded that this
+            # artifact is kept out of the repository, so its digest cannot be recomputed.
+            if artifact in withheld:
+                artifact_digests[artifact] = None
+                continue
+            raise SystemExit(f"episode artifact does not exist: {artifact}")
         artifact_digests[artifact] = path_digest(candidate)
 
     results = {
@@ -1017,16 +1229,19 @@ def latest_episode(item: dict[str, Any]) -> dict[str, Any]:
     return latest
 
 
-def verify_submitted_integrity(root: Path, item: dict[str, Any]) -> dict[str, Any]:
+def verify_submitted_integrity(
+    root: Path, item: dict[str, Any], state: dict[str, Any] | None = None
+) -> dict[str, Any]:
     submitted = latest_episode(item)
     episode_path = resolve_inside_root(root, submitted["episode_path"], "episode path")
     if not episode_path.exists():
         raise SystemExit("submitted episode no longer exists")
-    if path_digest(episode_path) != submitted["episode_digest"]:
+    if not digest_accepted(state, submitted["episode_path"], submitted["episode_digest"], path_digest(episode_path)):
         raise SystemExit("submitted episode digest changed after submission")
     for artifact, digest in submitted.get("artifact_digests", {}).items():
         path = resolve_inside_root(root, artifact, "artifact")
-        if not path.exists() or path_digest(path) != digest:
+        current = path_digest(path) if path.exists() else None
+        if not digest_accepted(state, artifact, digest, current):
             raise SystemExit(f"submitted artifact digest changed after submission: {artifact}")
     return submitted
 
@@ -1057,7 +1272,7 @@ def command_add(args: argparse.Namespace) -> None:
 
 def command_start(args: argparse.Namespace) -> None:
     root = args.root.resolve()
-    events, _, items = reconstruct(root)
+    events, state, items = reconstruct(root)
     item = find_item(items, args.work_item_id)
     key = args.idempotency_key or f"{args.work_item_id}:attempt:{item['attempt'] + 1}"
     matches = [
@@ -1072,7 +1287,7 @@ def command_start(args: argparse.Namespace) -> None:
         print(f"already started {args.work_item_id} with {key}")
         return
     details: dict[str, Any] = {"idempotency_key": key}
-    snapshot = _execution_snapshot(root, item)
+    snapshot = _execution_snapshot(root, item, state)
     if snapshot is not None:
         details["execution_snapshot"] = snapshot
     commit_event(root, "work_item_started", args.actor, args.work_item_id, details)
@@ -1081,7 +1296,7 @@ def command_start(args: argparse.Namespace) -> None:
 
 def command_submit(args: argparse.Namespace) -> None:
     root = args.root.resolve()
-    events, _, items = reconstruct(root)
+    events, state, items = reconstruct(root)
     item = find_item(items, args.work_item_id)
     if args.actor != item["owner_skill"]:
         raise SystemExit("only the declared owner skill may submit the episode")
@@ -1106,7 +1321,7 @@ def command_submit(args: argparse.Namespace) -> None:
             raise SystemExit("idempotency key was previously used for a different episode submission")
         print(f"already submitted {args.work_item_id}")
         return
-    _verify_execution_snapshot(root, item)
+    _verify_execution_snapshot(root, item, state)
     episode = validate_episode(root, items, item, episode_path)
     details = {
         "episode_path": episode["_relative_path"],
@@ -1127,13 +1342,13 @@ def command_submit(args: argparse.Namespace) -> None:
 
 def command_verify(args: argparse.Namespace) -> None:
     root = args.root.resolve()
-    _, _, items = reconstruct(root)
+    _, state, items = reconstruct(root)
     item = find_item(items, args.work_item_id)
     if args.actor == item["owner_skill"] and not args.self_review:
         raise SystemExit("worker-role verification must be explicitly marked --self-review")
     if item["state"] != "awaiting_verification":
         raise SystemExit("work item is not awaiting verification")
-    submitted = verify_submitted_integrity(root, item)
+    submitted = verify_submitted_integrity(root, item, state)
     gate_results = _parse_gate_results(args.gate_result)
     disposition = args.scientific_disposition
     experiment_run = submitted.get("experiment_run")
@@ -1225,6 +1440,181 @@ def command_checkpoint(args: argparse.Namespace) -> None:
         checkpoint_path.unlink(missing_ok=True)
         raise
     print(checkpoint_id)
+
+
+def _normalize_relative(root: Path, value: str) -> str:
+    return _relative_arg_path(root, value, "path")
+
+
+def command_reapprove(args: argparse.Namespace) -> None:
+    root = args.root.resolve()
+    events, state, items = reconstruct(root)
+    _require_owner_actor(args.actor, items, "re-approval")
+    anchors = anchored_digests(events, items)
+    drift = drifted_paths(root, events, state, items)
+    if args.all_drifted:
+        paths = sorted(path for path, info in drift.items() if info["current"] is not None)
+        if not paths:
+            print("nothing has drifted; no re-approval recorded")
+            return
+    else:
+        paths = [_normalize_relative(root, value) for value in args.path]
+    entries = []
+    for relative in paths:
+        if relative == COMMITMENT_PATH:
+            raise SystemExit("the commitment is re-approved with commitment-edit, which also checks its identity")
+        if relative not in anchors:
+            raise SystemExit(f"{relative} is not digest-anchored in this suite; there is nothing to re-approve")
+        if relative not in drift:
+            raise SystemExit(f"{relative} matches its recorded digest; there is nothing to re-approve")
+        if drift[relative]["current"] is None:
+            raise SystemExit(f"{relative} is missing; record it with withhold if it is kept out of the repository")
+        entries.append({
+            "path": relative,
+            "digest": drift[relative]["current"],
+            "previous_digests": drift[relative]["recorded"],
+        })
+    event = commit_event(root, "artifacts_reapproved", args.actor, None, {"reason": args.reason, "entries": entries})
+    for entry in entries:
+        print(f"re-approved {entry['path']} at {event['event_id']}")
+
+
+def command_withhold(args: argparse.Namespace) -> None:
+    root = args.root.resolve()
+    events, state, items = reconstruct(root)
+    _require_owner_actor(args.actor, items, "withholding an artifact")
+    relative = _normalize_relative(root, args.path)
+    if relative not in anchored_digests(events, items):
+        raise SystemExit(f"{relative} is not digest-anchored in this suite; there is nothing to withhold")
+    event = commit_event(root, "artifact_withheld", args.actor, None, {"path": relative, "reason": args.reason})
+    print(f"withheld {relative} at {event['event_id']}")
+
+
+def _commitment_file(root: Path) -> Path:
+    path = root / COMMITMENT_PATH
+    if not path.is_file():
+        raise SystemExit(f"no {COMMITMENT_PATH} at {root}")
+    return path
+
+
+def _load_commitment_for_change(root: Path, state: dict[str, Any]) -> tuple[Path, bytes, dict[str, Any]]:
+    path = _commitment_file(root)
+    raw = path.read_bytes()
+    try:
+        data = json.loads(raw.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise SystemExit(f"{COMMITMENT_PATH} is not valid JSON: {exc}") from exc
+    if not isinstance(data, dict):
+        raise SystemExit(f"{COMMITMENT_PATH} must hold a JSON object")
+    return path, raw, data
+
+
+def command_pivot_request(args: argparse.Namespace) -> None:
+    root = args.root.resolve()
+    _, state, _ = reconstruct(root)
+    request_id = f"PV-{len(state.get('pivot_requests') or {}) + 1:04d}"
+    details = {
+        "request_id": request_id,
+        "change_class": args.change_class,
+        "defect": args.defect,
+        "why_not_repair": args.why_not_repair,
+        "replacement_evidence": args.replacement_evidence,
+        "switching_cost": args.switching_cost,
+        "successor_possible": args.successor_possible,
+        "requested_disposition": args.requested_disposition,
+    }
+    commit_event(root, "pivot_requested", args.actor, None, details)
+    print(request_id)
+
+
+def command_pivot_decision(args: argparse.Namespace) -> None:
+    root = args.root.resolve()
+    _, state, items = reconstruct(root)
+    _require_owner_actor(args.actor, items, "a pivot decision")
+    request = (state.get("pivot_requests") or {}).get(args.request_id)
+    if not isinstance(request, dict) or request.get("status") != "open":
+        raise SystemExit(f"no open pivot request {args.request_id}")
+    path, raw, data = _load_commitment_for_change(root, state)
+    anchor = state.get("commitment")
+    if anchor and path_digest(path) != anchor.get("digest"):
+        raise SystemExit(
+            f"{COMMITMENT_PATH} has edits not recorded since {anchor.get('event_id')}; "
+            "record them with commitment-edit before deciding the pivot"
+        )
+    entry: dict[str, Any] = {
+        "decision": args.decision,
+        "rationale": args.rationale,
+        "request_id": args.request_id,
+        "decided_by": args.actor,
+    }
+    if args.decision == "authorize-D3":
+        data["identity_version"] = int(data.get("identity_version", 0)) + 1
+        entry["to_identity_version"] = data["identity_version"]
+        data["last_change_class"] = "D3"
+        data["last_change_rationale"] = args.rationale
+    elif args.decision == "close-and-create-D4":
+        if not args.to_paper_id:
+            raise SystemExit("close-and-create-D4 needs --to-paper-id for the successor identity")
+        if args.to_paper_id == data.get("paper_id"):
+            raise SystemExit("--to-paper-id must differ from the current paper_id")
+        entry["from_paper_id"] = data.get("paper_id")
+        data["paper_id"] = args.to_paper_id
+        data["identity_version"] = 1
+        entry["to_paper_id"] = args.to_paper_id
+        entry["to_identity_version"] = 1
+        data["last_change_class"] = "D4"
+        data["last_change_rationale"] = args.rationale
+    elif args.to_paper_id:
+        raise SystemExit("--to-paper-id applies only to close-and-create-D4")
+    history = data.get("selection_history")
+    if not isinstance(history, list):
+        raise SystemExit("selection_history must be a list")
+    history.append(entry)
+    errors = validate_commitment(data)
+    if errors:
+        raise SystemExit("the decided commitment would not validate: " + "; ".join(errors))
+    path.write_text(json.dumps(data, indent=2) + "\n", encoding="utf-8")
+    details = {
+        "request_id": args.request_id,
+        "decision": args.decision,
+        "rationale": args.rationale,
+        "paper_id": data["paper_id"],
+        "identity_version": data["identity_version"],
+        "status": data.get("status"),
+        "commitment_digest": path_digest(path),
+    }
+    try:
+        event = commit_event(root, "pivot_decided", args.actor, None, details)
+    except BaseException:
+        path.write_bytes(raw)
+        raise
+    print(f"{args.decision} for {args.request_id} at {event['event_id']}: {data['paper_id']} v{data['identity_version']}")
+
+
+def command_commitment_edit(args: argparse.Namespace) -> None:
+    root = args.root.resolve()
+    _, state, items = reconstruct(root)
+    if args.change_class in {"D3", "D4"}:
+        _require_owner_actor(args.actor, items, f"a {args.change_class} commitment edit")
+    path, _, data = _load_commitment_for_change(root, state)
+    errors = validate_commitment(data)
+    if errors:
+        raise SystemExit(f"{COMMITMENT_PATH} does not validate: " + "; ".join(errors))
+    digest = path_digest(path)
+    anchor = state.get("commitment")
+    if anchor and anchor.get("digest") == digest:
+        print(f"{COMMITMENT_PATH} is unchanged since {anchor.get('event_id')}; nothing to record")
+        return
+    details = {
+        "change_class": args.change_class,
+        "reason": args.reason,
+        "paper_id": data.get("paper_id"),
+        "identity_version": data.get("identity_version"),
+        "status": data.get("status"),
+        "commitment_digest": digest,
+    }
+    event = commit_event(root, "commitment_edited", args.actor, None, details)
+    print(f"recorded {args.change_class} commitment edit at {event['event_id']}")
 
 
 def command_pause_resume(args: argparse.Namespace, event_type: str) -> None:
@@ -1363,6 +1753,42 @@ def build_parser() -> argparse.ArgumentParser:
     resume.add_argument("--reason", required=True)
     resume.add_argument("--actor", required=True)
     resume.set_defaults(func=lambda args: command_pause_resume(args, "run_resumed"))
+    reapprove = sub.add_parser(
+        "reapprove", help="owner re-approves anchored files whose digest drifted since they were recorded"
+    )
+    target = reapprove.add_mutually_exclusive_group(required=True)
+    target.add_argument("--path", action="append", default=[])
+    target.add_argument("--all-drifted", action="store_true")
+    reapprove.add_argument("--reason", required=True)
+    reapprove.add_argument("--actor", required=True)
+    reapprove.set_defaults(func=command_reapprove)
+    withhold = sub.add_parser("withhold", help="owner records that an anchored file is kept out of the repository")
+    withhold.add_argument("--path", required=True)
+    withhold.add_argument("--reason", required=True)
+    withhold.add_argument("--actor", required=True)
+    withhold.set_defaults(func=command_withhold)
+    pivot_request = sub.add_parser("pivot-request", help="record a D3 or D4 pivot request")
+    pivot_request.add_argument("--change-class", choices=["D3", "D4"], required=True)
+    pivot_request.add_argument("--defect", required=True, help="the fatal defect or fired trigger")
+    pivot_request.add_argument("--why-not-repair", required=True, help="why a D0-D2 repair is insufficient")
+    pivot_request.add_argument("--replacement-evidence", default="")
+    pivot_request.add_argument("--switching-cost", default="")
+    pivot_request.add_argument("--successor-possible", choices=["yes", "no", "unknown"], default="unknown")
+    pivot_request.add_argument("--requested-disposition", choices=list(PIVOT_DECISIONS), required=True)
+    pivot_request.add_argument("--actor", required=True)
+    pivot_request.set_defaults(func=command_pivot_request)
+    pivot_decision = sub.add_parser("pivot-decision", help="owner decides an open pivot request")
+    pivot_decision.add_argument("request_id")
+    pivot_decision.add_argument("--decision", choices=list(PIVOT_DECISIONS), required=True)
+    pivot_decision.add_argument("--rationale", required=True)
+    pivot_decision.add_argument("--to-paper-id")
+    pivot_decision.add_argument("--actor", required=True)
+    pivot_decision.set_defaults(func=command_pivot_decision)
+    commitment_edit = sub.add_parser("commitment-edit", help="record an edit to research-commitment.json")
+    commitment_edit.add_argument("--change-class", choices=list(CHANGE_CLASSES), required=True)
+    commitment_edit.add_argument("--reason", required=True)
+    commitment_edit.add_argument("--actor", required=True)
+    commitment_edit.set_defaults(func=command_commitment_edit)
     replay_command = sub.add_parser("replay")
     replay_command.set_defaults(func=command_replay)
     status = sub.add_parser("status")

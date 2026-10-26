@@ -78,7 +78,9 @@ class ResearchPackTests(unittest.TestCase):
         self.assertEqual(before, log.read_text())
         self.assertTrue((self.pack / "episodes/EP-WI-1-A1.json").exists())
         self.init("--force", "--discard-event-history")
-        self.assertEqual(len(log.read_text().splitlines()), 1)
+        fresh = [json.loads(line) for line in log.read_text().splitlines()]
+        self.assertEqual({event["actor"] for event in fresh}, {"init_research_pack"})
+        self.assertEqual([event["event_type"] for event in fresh], ["observation_recorded", "commitment_edited"])
 
     def test_force_preserves_hand_written_brief_and_decision_log(self):
         self.init()

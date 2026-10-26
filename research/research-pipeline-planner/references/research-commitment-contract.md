@@ -92,13 +92,31 @@ A D3 or D4 request must record:
 - whether the replacement can be a successor project;
 - the requested disposition: `authorize-D3`, `close-and-create-D4`, or `reject-pivot`.
 
+## Recording identity changes in a harness suite
+
+Identity changes enter the harness event chain, so a verifier can tell an authorized pivot from drift:
+
+```bash
+python scripts/harness_runtime.py --root <suite> commitment-edit --change-class D1 --reason "..." --actor <who>
+python scripts/harness_runtime.py --root <suite> pivot-request --change-class D3 --defect "..." \
+    --why-not-repair "..." --requested-disposition authorize-D3 --actor <requesting skill or person>
+python scripts/harness_runtime.py --root <suite> pivot-decision PV-0001 --decision authorize-D3 \
+    --rationale "..." --actor <owner>
+```
+
+- Initialization and `--adopt` record the commitment's digest in a first `commitment_edited` event.
+- `commitment-edit` validates the file and records its digest with the declared change class. It refuses a changed `paper_id` or `identity_version`; those change only through `pivot-decision`. A D3 or D4 edit needs an authorized decision for the current identity and the owner as actor.
+- `pivot-request` may come from a downstream skill; it records the fields above and returns a request ID.
+- `pivot-decision` must come from the owner, and not from the actor who made the request. It refuses while the commitment holds unrecorded edits. `authorize-D3` raises `identity_version` by one; `close-and-create-D4` takes `--to-paper-id` and starts the successor at version 1; `reject-pivot` changes no identity. Each writes its `selection_history` entry (naming `to_identity_version` where it applies) and records the new digest in one event.
+- While both the recorded and the current commitment are `exploring`, an unrecorded edit is a validator warning (rule 1). Anywhere else, a commitment that does not match the last commitment event fails as drifted identity. A suite whose chain has no commitment event yet gets a warning that names the anchoring command.
+
 ## Minimum acceptance gate
 
 A committed project may advance only when:
 
 - the commitment object validates;
 - the active work item matches the paper identity and next mandatory evidence obligation;
-- no unapproved D3-D4 drift is present;
+- no unapproved D3-D4 drift is present, and in a harness suite the commitment on disk matches the last commitment event;
 - predecessor failures remain visible;
 - literature assurance is proportionate to any novelty or priority claims;
 - the next transition depends on evidence rather than artifact polish alone.
