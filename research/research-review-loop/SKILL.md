@@ -26,6 +26,8 @@ description: Run iterative adversarial review over research plans, experiment ou
 - `research-rebuttal` owns responses to external reviewer comments and venue-constrained discussion artifacts.
 - `adversarial-doc-review` is broader and lighter-weight; use it for one-off document critique without a tracked research review state.
 
+Ownership when skills chain: only the skill the user invoked spawns workers, and it sets one budget for the whole chain (quick: no workers; standard: up to 3; deep: 5 to 8). A skill reached by handoff never spawns. When the user invokes this skill, it owns the budget for the round: a first-pass `research-paper-review` it starts runs serially inside that budget, the three review passes below may each take a worker, and revision handed to `technical-writing-reviser` (prose per issue cluster) and the final `prose-flow-improver` pass count against the same budget. When the planner or another skill started this round, run every pass serially. Record the depth and the workers used in the round report.
+
 ## Input contract
 
 - Minimum:

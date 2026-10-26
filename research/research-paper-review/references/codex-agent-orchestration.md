@@ -1,12 +1,13 @@
 # Agent Orchestration
 
-Use this reference for `research-paper-review` when the user explicitly asks for agents, subagents, parallel review, multi-agent review, or Claude-style review.
+Use this reference for `research-paper-review` whenever it runs workers.
 
-## Authorization rule
+## Ownership and budget rule
 
-- Agentic execution is authorized when the user explicitly asks for agent, subagent, parallel, multi-agent, delegated, or Claude-style review.
-- A generic request for a deep, thorough, or detailed review does not by itself authorize subagent spawning. In that case, use the same pass plan serially.
-- Once authorization is present, do not ask again before spawning. Prepare the workspace, write `summary.md`, build `comments/PASS_PLAN.md`, then launch the planned workers.
+- Only the skill the user invoked spawns workers, and it sets one budget for the whole chain: quick depth uses no workers; standard uses up to 3; deep uses 5 to 8. A skill reached by handoff never spawns, so a paper review started by `research-review-loop` or `research-pipeline-planner` runs serially inside that skill's budget.
+- When the user invoked this skill, the budget is authorization enough: do not ask again before spawning. Default to standard; use deep when the user asks for a deep, thorough, or venue-grade review or the paper is long. An explicit request for agents or parallel review is a request for deep depth unless the user names a number.
+- The budget counts agents, not review checks. The pass plan keeps its 7 to 10 passes; workers each run a share of them.
+- Prepare the workspace, write `summary.md`, build `comments/PASS_PLAN.md`, then launch the workers.
 
 ## Parent responsibilities
 
@@ -15,7 +16,7 @@ The parent agent owns the global review state:
 - prepare the workspace
 - read the full paper and write `summary.md`
 - write `comments/PASS_PLAN.md`
-- spawn one worker per planned pass when authorized
+- assign the planned passes to at most the budget's workers
 - ensure every planned comments file exists and contains valid JSON
 - run `scripts/consolidate_comments.py`
 - deduplicate, validate quotes, and assign final 1-5 ratings
@@ -26,11 +27,13 @@ The parent must not delegate its immediate blocking task. In practice, this mean
 
 ## Worker ownership
 
-Each worker owns exactly one comments file:
+Each pass has exactly one comments file, written only by the worker assigned that pass:
 
 ```text
 <review_dir>/comments/<pass_id>.json
 ```
+
+A worker that runs several passes owns several files, one per pass.
 
 Workers may read:
 
@@ -54,7 +57,7 @@ Workers must not modify:
 
 ## Spawn pattern
 
-Launch all planned workers in parallel after Pass A.
+Launch the budgeted workers in parallel after Pass A, each with its list of passes.
 
 Use `worker` agents for passes that write comment JSON. Tell workers they are not alone in the workspace, that other workers own other files, and that they must not revert or modify others' work.
 

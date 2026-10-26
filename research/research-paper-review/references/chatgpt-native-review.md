@@ -5,7 +5,7 @@ Use this path in any agent runtime when the user wants an LLM paper review and h
 ## Routing rule
 
 - Default to native review for `review`, deep review, contextualized review, and agentic review requests.
-- Default native paper review to multi-agent orchestration: build the full-paper summary, plan review passes, then spawn one worker per pass when subagents are available.
+- Default native paper review to budgeted orchestration: build the full-paper summary, plan review passes, then run them with at most the chain budget's workers (none at quick depth or when reached by handoff, up to 3 at standard, 5 to 8 at deep).
 - Use serial single-agent review only as a fallback when subagents are unavailable, disabled, blocked by the runtime, or clearly disproportionate for a very short or explicitly quick review.
 - Do not run `python3 scripts/run_openaireview.py review ...` unless the user explicitly requests the upstream provider-backed OpenAIReview CLI or sets `OPENAIREVIEW_USE_EXTERNAL_LLM=1` / passes `--external-llm` and has provider keys configured.
 - It is still fine to use upstream deterministic helpers for extraction, workspace preparation, consolidation, validation, and local visualization when available. If those helpers fail because the upstream package is absent, either install the engine with `scripts/install_engine.py` or create the same workspace files directly.
@@ -49,6 +49,8 @@ The active agent model owns the LLM work:
 {
   "execution_mode": "multi_agent",
   "fallback_reason": null,
+  "depth": "standard",
+  "workers_used": 3,
   "overall_paper_rating": 3,
   "decision_relevance_rating": 4,
   "rating_confidence": 4,
@@ -56,7 +58,7 @@ The active agent model owns the LLM work:
 }
 ```
 
-Use `execution_mode: "serial_fallback"` and a concrete `fallback_reason` when the worker plan had to run in one agent.
+Use `execution_mode: "serial_fallback"` and a concrete `fallback_reason` (`quick depth`, `handoff from <skill>`, or the runtime limitation) when the pass plan ran in one agent. Workers follow the chain budget: only the skill the user invoked spawns them (standard up to 3, deep 5 to 8).
 
 For imported Claude/OpenAIReview workspaces, `final_issues.json` may use `severity` instead of 1-5 ratings and may lack a root `review_summary.json`. Treat that as imported provenance, not corruption. Normalize it only when a downstream stage requires native 1-5 numeric routing, and document the mapping. Conversely, for native 1-5 ratings, derive `severity` only as an explicit export step.
 
@@ -95,5 +97,5 @@ Allowed `comment_type` values are `methodology`, `claim_accuracy`, `presentation
 - Do not fabricate quotes. If an issue is real but no exact quote is available, reference the section, table, figure, or equation precisely and say that no exact quote was available.
 - If the paper text cannot be extracted or inspected, stop and ask for a readable artifact or text.
 - If the user asks for a quick review and no file-writing tools are available, return the review in chat using the same issue schema instead of pretending a bundle was saved.
-- If subagents are unavailable, do not skip pass planning. Run the same pass plan serially, preserve one JSON file per pass, and record `execution_mode: "serial_fallback"`.
+- At quick depth, when reached by handoff, or when subagents are unavailable, do not skip pass planning. Run the same pass plan serially, preserve one JSON file per pass, and record `execution_mode: "serial_fallback"`.
 - If the user explicitly asks for upstream OpenAIReview scoring with a provider model, use the external CLI path and require configured provider keys.

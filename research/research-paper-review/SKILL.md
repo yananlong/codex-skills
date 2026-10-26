@@ -24,11 +24,11 @@ Choose the smallest route that covers the request, and load only the listed file
 1. Decide whether the user needs:
    - extraction only
    - a local viz server for existing result JSON
-   - the default multi-agent / Claude-style paper-review pass
+   - the default budgeted paper-review pass (pass plan first, then workers within the budget)
    - contextualized review that also assesses novelty, impact, and related-work coverage
 2. Default LLM review to the active agent model in the current runtime. Do not require external LLM API keys for normal review.
-3. Default to Claude-style / multi-agent orchestration for paper review. Build the full-paper summary first, then spawn one worker per planned review pass when the runtime supports subagents.
-4. Use serial single-agent execution only as a fallback when subagents are unavailable, disabled, or clearly impractical for the paper size or runtime.
+3. Build the full-paper summary and the pass plan first, then pick a depth. Ownership when skills chain: only the skill the user invoked spawns workers, and it sets one budget for the whole chain (quick: no workers, the parent does every pass; standard: up to 3 workers; deep: 5 to 8). A skill reached by handoff never spawns. The budget counts agents, not review checks: a worker runs several planned passes and owns one comments file per pass. Default to standard; use deep when the user asks for a deep, thorough, or venue-grade review or the paper is long; use quick when the user asks for a fast read.
+4. Run serially, with the same pass plan and the same comment files, at quick depth, when this skill was reached by handoff (from `research-review-loop`, `research-pipeline-planner`, or another skill), and when the runtime has no subagents.
 5. Bootstrap the upstream engine with `python3 scripts/install_engine.py` only when deterministic helpers are needed for extraction, workspace preparation, viz output, or explicit upstream provider-backed review.
 6. Use the `/openaireview` workspace convention as the canonical stage root: `./review_results/<slug>_review/`. Record any non-canonical output paths in `artifact-index.md`.
 7. Use `references/chatgpt-native-review.md` (the runtime-neutral native review contract), `references/rating-rubric.md`, and the 1-5 issue/output scales.
@@ -42,7 +42,7 @@ Choose the smallest route that covers the request, and load only the listed file
 - The upstream OpenAIReview Claude Code skill lives in `src/reviewer/skill/` and is installed by `openaireview install-skill` into `~/.claude/commands/openaireview`. That install path, the `/openaireview` slash command, and references to Claude's Agent/task tools are specific to Claude Code. In Claude Code the upstream command is a valid way to produce an `openaireview_claude` bundle; in other runtimes, follow the portable workflow below.
 - The underlying workflow is portable: prepare a review workspace, collect section-review JSON, consolidate comments, and emit viz-compatible JSON.
 - The upstream Claude/OpenAIReview workspace convention is `./review_results/<slug>_review/`, with `summary.md`, `final_issues.json`, `overall_assessment.txt`, `metadata.json`, `full_text.md`, `comments/`, `sections/`, and severity-tiered issues. It may not contain `review_summary.json` or 1-5 rating fields unless a native-schema pass added them.
-- Treat Claude-style review and multi-agent review as the default paper-review execution style in this skill, not as special opt-in modes. Translate upstream Claude sub-agent instructions into the runtime's own subagent mechanism whenever available.
+- Treat Claude-style pass planning as the default review method in this skill. The worker count follows the budget in Quick start step 3, not the upstream skill's one-agent-per-pass default; translate upstream sub-agent instructions into the runtime's own mechanism within that budget.
 - If a runtime does not expose subagents, explicitly state that limitation and run the same pass plan serially in the current agent. Preserve the worker-style output contract even in fallback mode by writing one JSON file per planned pass under `comments/`.
 - The upstream viz helper accepts `severity`. This skill's canonical handoff uses `impact_rating` and `confidence_rating`; `scripts/save_viz_json.py --derive-severity` can temporarily derive severity values for visualization when that compatibility layer is explicitly requested.
 
@@ -75,21 +75,21 @@ Choose the smallest route that covers the request, and load only the listed file
   - `review`: only when the user explicitly asks for upstream provider-backed OpenAIReview scoring and has configured the required provider credentials
 - Do not confuse the upstream `review` command with the native default review path.
 
-### Default multi-agent / Claude-style deep review mode
+### Default budgeted review mode
 
-- Use this for normal paper-review tasks unless the user explicitly asks for a quick single-pass response or the runtime cannot support workers.
+- Use this for normal paper-review tasks.
 - Prepare a review workspace.
 - Read and understand the full paper.
 - Write `summary.md` before launching detailed review passes.
 - Build a pass plan with section-level and cross-cutting checks.
-- Spawn one worker per planned review pass when subagents are available.
+- When this skill is the one the user invoked, assign the planned passes to at most the budget's workers (standard: up to 3; deep: 5 to 8), grouping related passes so each worker gets a coherent share. Each pass keeps its own `owned_output_file`.
 - Consolidate, tier, and save issues into the canonical bundle.
 - Prefer this mode when the paper-review stage will feed `research-review-loop`, `research-paper-plan`, or `research-rebuttal`.
 
-### Serial single-agent fallback mode
+### Serial mode
 
-- Use this only when subagents are unavailable, disabled, blocked by the runtime, or clearly disproportionate for a very short paper or explicitly quick review.
-- State the fallback reason before or in the final report.
+- Use this at quick depth, when this skill was reached by handoff (the invoking skill owns the budget and the workers), and when subagents are unavailable, disabled, or blocked by the runtime.
+- State the reason before or in the final report.
 - Execute the same planned review passes serially in the current agent.
 - Keep outputs separate under `comments/` using the same `owned_output_file` paths that workers would have used.
 - Do not reduce the number of passes merely because execution is serial; reduce only when the paper is short, incomplete, or the user requested a fast review.
@@ -200,7 +200,8 @@ Reader-facing prose in these artifacts is written under the drafting contract (`
   - `decision_relevance_rating` (1-5)
   - `rating_confidence` (1-5)
   - `execution_mode` (`multi_agent`, `serial_fallback`, or `quick_single_pass`)
-  - `fallback_reason` when not using multi-agent execution
+  - `fallback_reason` when not using multi-agent execution (`quick depth`, `handoff from <skill>`, or the runtime limitation)
+  - `depth` (`quick`, `standard`, or `deep`) and `workers_used`, so the chain's budget stays visible
   - `top_blockers`
   - `context_artifacts` when literature or novelty context was used
   - `contextualization_rating`, `coverage_confidence_rating`, and `impact_context_rating` when literature context was used
@@ -314,11 +315,11 @@ python3 scripts/prepare_workspace.py "<input>" \
   - likely failure modes to check
   - expected evidence locations
 
-### 5) Execute review passes with multi-agent default
+### 5) Execute review passes within the budget
 
-- Default action: spawn all planned review workers in parallel after `summary.md` is complete.
-- Use one worker per pass. Do not batch unrelated passes into one worker unless there are more planned passes than the runtime can reasonably launch.
-- Worker ownership must be disjoint: each worker writes exactly one JSON array to its assigned `owned_output_file` under `<review_dir>/comments/`.
+- Ownership when skills chain: only the skill the user invoked spawns workers, and it sets one budget for the whole chain (quick: no workers, the parent does every pass; standard: up to 3 workers; deep: 5 to 8). A skill reached by handoff never spawns. The budget counts agents, not review checks: a worker runs several planned passes and owns one comments file per pass.
+- Default action when this skill was invoked by the user at standard or deep depth: after `summary.md` is complete, launch at most the budget's workers in parallel and give each a share of the planned passes. Keep a section pass and the cross-cutting passes that read the same sections with the same worker when that keeps the count inside the budget.
+- Worker ownership must be disjoint: each pass's JSON array goes to its own `owned_output_file` under `<review_dir>/comments/`, and only the worker assigned that pass writes it. Cross-cutting passes read many sections but still write only their own file.
 - Worker prompt requirements:
   - state that the worker is not alone in the workspace
   - state the worker's owned output file
@@ -328,7 +329,8 @@ python3 scripts/prepare_workspace.py "<input>" \
   - require the final response to list the file path changed and the issue titles
 - While workers run, the parent should do non-overlapping work only: inspect `summary.md`, check section coverage, prepare consolidation criteria, or draft the final bundle skeleton. Do not redo a worker's assigned pass.
 - Wait for all workers before consolidation. If a worker returns JSON in chat rather than materializing its file, the parent must write that JSON to the worker's owned output file before running consolidation.
-- If subagents are unavailable, execute the same pass plan serially in the current agent and record `execution_mode: "serial_fallback"` plus a concrete `fallback_reason` in `review_summary.json`.
+- At quick depth, when reached by handoff, or when subagents are unavailable, execute the same pass plan serially in the current agent and record `execution_mode: "serial_fallback"` plus a concrete `fallback_reason` in `review_summary.json`.
+- Revision is not part of this skill's budget unless this skill was invoked and the user asked for revision too: review owns diagnosis, `technical-writing-reviser` owns prose per issue cluster, and `prose-flow-improver` is one serial final pass, all inside the invoking skill's budget.
 
 ### 6) Pass quality bar
 
@@ -397,6 +399,7 @@ python3 scripts/consolidate_comments.py <review_dir>
   - `rating_confidence`
   - `execution_mode`
   - `fallback_reason` when relevant
+  - `depth` and `workers_used`
   - `top_blockers`
   - `context_artifacts`
   - `contextualization_rating`, `coverage_confidence_rating`, and `impact_context_rating` when available from `literature-context-decision.json`

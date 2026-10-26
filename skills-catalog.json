@@ -701,6 +701,7 @@
       "primary_intent": "review",
       "related_skills": [
         "adversarial-doc-review",
+        "prose-flow-improver",
         "research-novelty-review",
         "research-paper-plan",
         "research-pipeline-planner",
@@ -993,6 +994,7 @@
       "primary_intent": "review",
       "related_skills": [
         "adversarial-doc-review",
+        "prose-flow-improver",
         "research-paper-review",
         "research-pipeline-planner",
         "research-rebuttal",
