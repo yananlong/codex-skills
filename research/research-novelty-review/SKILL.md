@@ -180,6 +180,16 @@ Reader-facing prose in these artifacts is written under the drafting contract (`
 - Use `presentation` for framing issues that do not materially affect a core claim.
 - Use `methodology` when the novelty/impact claim depends on an evaluation protocol that is not competitive with field norms.
 
+## Stage gate
+
+This skill owns its stage gate. Standalone, it is the proceed, revise, or stop test for the request. In an orchestrated project the planner applies it, together with the paper-identity and evidence-promotion gates in `research-pipeline-planner/SKILL.md`, before work enters or leaves this stage.
+
+- Proceed when the proposed method or finding is concrete enough to compare and literature assurance is proportionate to the strength of the novelty claim.
+- Revise when the idea is rhetorical, bundles too many moving parts, or depends on incomplete prior-art coverage.
+- Stop strong priority or first-of-kind language when recall assurance is inadequate.
+- Treat the novelty decision as positioning evidence, not evidence that the method works or that an experiment route is valid.
+- A novelty review may recommend `continue`, `narrow`, `pivot-request`, `kill`, or `park-successor`; it may not silently rewrite the commitment contract.
+
 ## References
 
 - `references/novelty-checklist.md`

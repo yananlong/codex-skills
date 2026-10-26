@@ -265,6 +265,15 @@ Record the result in `decision-gates.md` and in each affected block's `non_vacui
 - The default validator profile remains structural for backward compatibility; it checks links only and passes an empty scaffold. For confirmatory or high-stakes promotion, run it with `--assurance-profile confirmatory`; even that checks field presence, links, and internal consistency, not whether the declared controls actually held.
 - `claim-map.json` and `run-blocks.json` may be bare arrays or versioned envelopes (`{"schema_version": ..., "plan_version": ..., "claims": [...]}` and `{..., "blocks": [...]}`). Under each table heading the validator parses only the first table whose header row starts with the canonical column (`Run ID`, `Gate ID`, `Order`), so append-only history tables below it are ignored. Experiment binding through `harness_runtime.py` and the linked results-audit and paper-plan profiles still require bare arrays.
 
+## Stage gate
+
+This skill owns its stage gate. Standalone, it is the proceed, revise, or stop test for the request. In an orchestrated project the planner applies it, together with the paper-identity and evidence-promotion gates in `research-pipeline-planner/SKILL.md`, before work enters or leaves this stage.
+
+- Proceed when the committed claim and decision rule are explicit and the plan targets the declared primary evidence obligation.
+- Revise when the plan mixes multiple claims, changes the central object, or adds optional experiments before the next mandatory evidence artifact.
+- Stop when the evaluation target is undefined or the plan requires an unapproved D3-D4 change.
+- For confirmatory plans, also require a complete loss or outcome contract, explicit case-selection rule, non-vacuity preflight, failure inheritance, and an honest independence statement.
+
 ## References
 
 - `references/iteration-loop-contract.md`: the autonomous keep-or-revert loop (frozen exam, mutable set, ledger, notebook, idea queue, handoff to the auditor).

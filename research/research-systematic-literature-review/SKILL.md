@@ -213,6 +213,16 @@ For major ML conferences hosted on OpenReview, use accepted venue records when v
 - State source and access limitations prominently.
 - A passing validator establishes recorded structural and process consistency, not actual completeness, independent screening, or scientific validity.
 
+## Stage gate
+
+This skill owns its stage gate. Standalone, it is the proceed, revise, or stop test for the request. In an orchestrated project the planner applies it, together with the paper-identity and evidence-promotion gates in `research-pipeline-planner/SKILL.md`, before work enters or leaves this stage.
+
+- Proceed when the review profile, question, scope boundaries, source plan, and expected assurance level are explicit.
+- For `comprehensive-systematic` and `bounded-systematic`, also require a visible seed set, citation-search decisions, recall audit, corpus manifest, and stopping rationale before expensive extraction and synthesis.
+- Revise when the topic is broad enough that search terms collapse into noise, known relevant seeds are missed, citation searching yields material additions that expose a deficient original strategy, or important coverage cells remain unexplained.
+- Stop comprehensive claims when retrieval assurance is insufficient. Continue as a bounded review, critical evidence map, rapid scan, or novelty-oriented prior-art search with an honest label.
+- Never infer adequate recall from PRISMA counts, canonical URLs, file presence, or validator success alone.
+
 ## References
 
 - `references/recall-assurance-contract.md`

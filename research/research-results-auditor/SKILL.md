@@ -184,6 +184,15 @@ Use `pass`, `fail`, `inconclusive`, or `not_assessed`, with a substantive ration
 - Write the JSON record first, then the matching narrative section.
 - Validate before handing the audit to paper planning.
 
+## Stage gate
+
+This skill owns its stage gate. Standalone, it is the proceed, revise, or stop test for the request. In an orchestrated project the planner applies it, together with the paper-identity and evidence-promotion gates in `research-pipeline-planner/SKILL.md`, before work enters or leaves this stage.
+
+- Proceed when there is a real result artifact to inspect and, in an orchestrated project, it corresponds to the declared next mandatory evidence artifact.
+- Revise when the claimed conclusion is broader than the measured evidence.
+- Stop when headline numbers cannot be traced to source artifacts.
+- Do not issue an unqualified pass from file presence, validator success, agreement among shared implementations, or self-attested controls alone.
+
 ## Validation
 
 Structural validation:

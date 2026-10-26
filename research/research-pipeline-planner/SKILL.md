@@ -186,7 +186,7 @@ An experiment-bound episode must additionally record a stable run ID, lineage re
 
 ### 7) Apply paper-identity and stage gates
 
-- Use `references/stage-gates.md` for stage-specific decisions.
+- Apply the cross-stage gates below at every consequential transition, and the owning skill's `## Stage gate` section for stage-specific decisions; `references/stage-gates.md` lists where each gate lives.
 - Use activation conditions to distinguish structural dependency completion from scientific permission to open a later experiment.
 - D0-D2 changes may proceed when documented and consistent with the contract. In a harness suite, record each edit to `research-commitment.json` with `harness_runtime.py commitment-edit --change-class D0|D1|D2 --reason ...`; outside exploration, a commitment that differs from the last recorded one fails validation as drifted identity.
 - D3 requires a pivot request covering the fatal defect or fired trigger, why D0-D2 repair is insufficient, switching cost, discarded evidence, new literature and validation burden, and successor-project feasibility. Record it with `pivot-request`; the owner decides it with `pivot-decision`, which writes the `selection_history` entry and raises `identity_version` in the same event.
@@ -210,6 +210,30 @@ Track task success, verifier reversals, false completion, retries, blocked work,
 Every harness change must state its predicted effect, affected tasks, risk, rollback path, and evaluation result. Maintain regression cases for clean transition, missing artifact, retry, interruption/resume, malformed episode, blocked evidence promotion, predecessor-failure carry-forward, event completeness, unapproved D3-D4 drift, literature-recall failure, failed experiment gates, and lineage replay.
 
 Run recurring entropy-audit work items to remove stale instructions, duplicate schemas, orphan artifacts, dead work, and obsolete workarounds.
+
+## Cross-stage gates
+
+Each stage skill owns its own gate in a `## Stage gate` section; `references/stage-gates.md` indexes them. The planner owns the two gates that apply across stages. In an orchestrated paper-bearing project, read `research-commitment.json` and `references/research-commitment-contract.md` before authorizing any transition.
+
+### Paper-identity gate
+
+Apply this gate before every consequential cross-stage transition.
+
+- Proceed when the work preserves the committed main question, central object or phenomenon, contribution class, minimum publishable claim, and primary evidence obligation, or when the change is an explicitly recorded D0-D2 refinement.
+- Revise when the proposed work is useful but does not produce the declared `next_mandatory_evidence_artifact`.
+- Request a pivot for D3 changes: contribution reconfiguration, central-object replacement, primary-evidence replacement, or route conversion.
+- Close and create a successor lineage for D4 changes: a genuinely different paper identity.
+- Park attractive alternatives by default after commitment. A downstream worker may recommend a pivot but cannot enact D3-D4 changes.
+- Do not treat reframing, renaming, deleting a claim, or changing contribution class as resolution of predecessor failures.
+
+### Evidence-promotion gate
+
+Apply this gate whenever a workflow tries to promote an artifact or result beyond exploratory status. Use `references/epistemic-assurance-contract.md` for the full contract.
+
+- Proceed when the evidence class is explicit, the promotion record is complete, material predecessor failures have evidence-backed dispositions, and the requested level of independence is real rather than nominal.
+- Revise or narrow when the work is useful but remains exploratory, the decision or loss contract is incomplete, the case selection is outcome-informed, the non-vacuity check is missing, or independence is only self-review.
+- Stop the promotion when confirmatory or high-stakes advancement depends on self-attested controls, hidden-truth leakage, omitted failure states, a vacuous comparator, or an unresolved material predecessor failure.
+- Do not stop useful exploration merely because stronger assurance is unavailable. Reclassify the evidence and narrow the claim instead.
 
 ## References
 

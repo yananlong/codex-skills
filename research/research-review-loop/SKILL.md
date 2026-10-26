@@ -132,6 +132,16 @@ Ownership when skills chain: only the skill the user invoked spawns workers, and
 - Record what changed since the prior round and why each formerly-open issue is now resolved, deferred, accepted, narrowed, or still open.
 - List the minimum evidence needed to reach the next stronger evidence class.
 
+## Stage gate
+
+This skill owns its stage gate. Standalone, it is the proceed, revise, or stop test for the request. In an orchestrated project the planner applies it, together with the paper-identity and evidence-promotion gates in `research-pipeline-planner/SKILL.md`, before work enters or leaves this stage.
+
+- Proceed when the artifact is important enough to benefit from iterative review.
+- Revise when the artifact is too incomplete to support adversarial feedback.
+- Stop when there is no concrete artifact to review.
+- Carry material predecessor failures forward until new evidence resolves them; reclassification or omission does not close an issue.
+- Every round must classify identity drift as D0-D4. D3-D4 findings become pivot requests rather than ordinary issue closure.
+
 ## References
 
 - `references/review-checklist.md`

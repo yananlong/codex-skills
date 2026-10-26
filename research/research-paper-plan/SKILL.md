@@ -182,6 +182,15 @@ For theoretical claims, link concrete proof or argument artifacts. For citation 
 - Run structural validation for standalone packs and linked validation for orchestrated packs.
 - Hand the validated pack to `technical-writing-drafter`, which builds its claim ledger from the bindings and writes the manuscript sections under the drafting contract (evidence-bearing sections first, framing last, `[EVIDENCE NEEDED]` markers where a claim is blocked), or to `research-review-loop` when a draft already exists; missing evidence remains a block in either case.
 
+## Stage gate
+
+This skill owns its stage gate. Standalone, it is the proceed, revise, or stop test for the request. In an orchestrated project the planner applies it, together with the paper-identity and evidence-promotion gates in `research-pipeline-planner/SKILL.md`, before work enters or leaves this stage.
+
+- Proceed when supported evidence can sustain the committed minimum publishable claim.
+- Revise when claims outrun evidence or the plan prioritizes optional extensions over the minimum sufficient paper.
+- Stop when there is no credible support for the main claim or when the outline changes the paper identity without authorization.
+- Mark every section and exhibit as `submission-critical`, `defensive`, or `optional`.
+
 ## Validation
 
 Structural validation:

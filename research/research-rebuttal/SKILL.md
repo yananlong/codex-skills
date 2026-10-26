@@ -194,6 +194,14 @@ Implication: This resolves the concern that our gains came only from benchmark s
 - If a disagreement persists after repeated rounds, summarize the positions cleanly and let the committee adjudicate.
 - In multi-round venues, treat the issue board as the source of truth and write delta replies only.
 
+## Stage gate
+
+This skill owns its stage gate. Standalone, it is the proceed, revise, or stop test for the request. In an orchestrated project the planner applies it, together with the paper-identity and evidence-promotion gates in `research-pipeline-planner/SKILL.md`, before work enters or leaves this stage.
+
+- Proceed when there are concrete reviews or decision-relevant committee comments to answer.
+- Revise when the venue route, policy constraints, or supporting evidence remain unclear.
+- Stop when the response would require fabricated results, invented manuscript changes, guessed reviewer positions, or an unapproved paper-identity change.
+
 ## Scripts
 
 - `scripts/init_rebuttal_pack.py`: create deterministic rebuttal scaffolds, including `reviews-raw.md`, in a standalone directory or `./rebuttal/`. `--reviews <file>` copies a verbatim review file (one `## <reviewer handle>` block each) into `reviews-raw.md` and pre-fills one score-matrix row per block.

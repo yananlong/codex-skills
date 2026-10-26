@@ -158,6 +158,15 @@ In orchestrated mode these live under `./ideation/`. Validate tracked artifacts 
 - Default next skill is `research-novelty-review` for selected ideas. Use `research-experiment-plan` only when novelty has already been checked and the claim/evaluation goal are frozen.
 - Use `../research-pipeline-planner/references/epistemic-assurance-contract.md` whenever the handoff requests evidence stronger than exploratory.
 
+## Stage gate
+
+This skill owns its stage gate. Standalone, it is the proceed, revise, or stop test for the request. In an orchestrated project the planner applies it, together with the paper-identity and evidence-promotion gates in `research-pipeline-planner/SKILL.md`, before work enters or leaves this stage.
+
+- Proceed freely while the commitment status is `exploring` and the direction, constraints, and contribution type are specific enough to produce testable candidates.
+- After commitment, route new ideas to the successor parking policy unless a recorded pivot trigger or kill condition has fired.
+- Revise when candidates are mostly slogans, obvious applications, ungrounded combinations, or replacements for the active paper generated merely to escape a local objection.
+- Stop when no surviving idea has a concrete hypothesis, plausible novelty signal, minimum validation path, and credible route to being wrong.
+
 ## Collaboration
 
 - Invoke `research-systematic-literature-review` when broad evidence coverage, citation integrity, or SOTA mapping is the blocker.

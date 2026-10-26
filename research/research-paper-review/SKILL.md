@@ -419,6 +419,15 @@ python3 scripts/save_viz_json.py <review_dir> --slug-suffix _skill [--runtime <n
 - Run `python3 scripts/validate_review_bundle.py --review-dir <review_dir>` before treating the bundle as stable. It prints the inferred provenance family (`openaireview_claude`, `codex_native`, or `review_loop_hybrid`), also on failure, and checks that family's required set: `openaireview_claude` needs the root files and severity-tiered issues and no root `review_summary.json`; `codex_native` needs a root `review_summary.json` and 1-5 ratings; `review_loop_hybrid` needs a resolvable valid round summary. Pass `--family <name>` to validate against a stated family (for example `--family openaireview_claude` to check only the first-pass bundle of a hybrid).
 - Treat `summary.md`, `final_issues.json`, `review_summary.json`, and `overall_assessment.txt` as the canonical handoff bundle for `research-review-loop`, `research-paper-plan`, and `research-rebuttal`.
 
+## Stage gate
+
+This skill owns its stage gate. Standalone, it is the proceed, revise, or stop test for the request. In an orchestrated project the planner applies it, together with the paper-identity and evidence-promotion gates in `research-pipeline-planner/SKILL.md`, before work enters or leaves this stage.
+
+- Proceed when there is a concrete paper artifact or URL worth scrutinizing closely.
+- Revise when the draft is so incomplete that section-level critique would mostly produce noise.
+- Stop when the requested review would require guessing missing paper content or fabricating evidence.
+- Record whether proposed fixes are D0-D2 repairs or D3-D4 pivot requests.
+
 ## References
 
 - `references/chatgpt-native-review.md`
