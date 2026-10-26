@@ -387,6 +387,7 @@
         "ideas.md",
         "program.md",
         "research-brief.md",
+        "results-audit.json",
         "results.tsv",
         "run-blocks.json"
       ],
@@ -420,6 +421,7 @@
           "references/tabmol-ddi-ood-adapter.md"
         ],
         "scripts": [
+          "scripts/check_plan_drift.py",
           "scripts/claim_trajectory.py",
           "scripts/init_experiment_pack.py",
           "scripts/init_iteration_loop.py",
@@ -478,6 +480,7 @@
       "related_skills": [
         "research-experiment-plan",
         "research-novelty-review",
+        "research-paper-review",
         "research-pipeline-planner",
         "research-systematic-literature-review",
         "research-zotero",
@@ -645,11 +648,13 @@
           "references/paper-outline-template.md",
           "references/section-archetypes.md",
           "references/tabmol-ddi-ood-adapter.md",
-          "references/venue-adapters.md"
+          "references/venue-adapters.md",
+          "references/venues.json"
         ],
         "scripts": [
           "scripts/init_paper_pack.py",
-          "scripts/validate_paper_pack.py"
+          "scripts/validate_paper_pack.py",
+          "scripts/venue_table.py"
         ]
       },
       "skill_file": "research/research-paper-plan/SKILL.md"
@@ -798,7 +803,6 @@
           "references/decision-log-template.md",
           "references/epistemic-assurance-contract.md",
           "references/experiment-execution-binding.md",
-          "references/prospective-evaluation-contract.md",
           "references/research-brief-template.md",
           "references/research-commitment-contract.md",
           "references/research-commitment.schema.json",
@@ -814,21 +818,14 @@
           "scripts/claim_trajectory.py",
           "scripts/harness_common.py",
           "scripts/harness_runtime.py",
-          "scripts/init_prospective_evaluation.py",
           "scripts/init_research_commitment.py",
           "scripts/init_research_pack.py",
-          "scripts/prospective_evaluation/__init__.py",
-          "scripts/prospective_evaluation/common.py",
-          "scripts/prospective_evaluation/observations.py",
-          "scripts/prospective_evaluation/protocol.py",
-          "scripts/prospective_evaluation/summary.py",
           "scripts/semantic_assurance/__init__.py",
           "scripts/semantic_assurance/common.py",
           "scripts/semantic_assurance/evidence.py",
           "scripts/semantic_assurance/fixtures.py",
           "scripts/semantic_assurance/literature.py",
           "scripts/semantic_assurance/transitions.py",
-          "scripts/validate_prospective_evaluation.py",
           "scripts/validate_research_commitment.py",
           "scripts/validate_research_pack.py",
           "scripts/validate_semantic_assurance.py"
@@ -894,11 +891,13 @@
           "references/platforms_and_policies.md",
           "references/response_strategies.md",
           "references/venue_rule_matrix.md",
+          "references/venues.json",
           "references/writing_principles.md"
         ],
         "scripts": [
           "scripts/count_limits.sh",
-          "scripts/init_rebuttal_pack.py"
+          "scripts/init_rebuttal_pack.py",
+          "scripts/venue_table.py"
         ]
       },
       "skill_file": "research/research-rebuttal/SKILL.md"
@@ -1102,6 +1101,7 @@
           "scripts/paper_context_artifacts.py",
           "scripts/prisma_flow_md.py",
           "scripts/review_pack_coverage.py",
+          "scripts/search_log_rules.py",
           "scripts/validate_review_pack.py"
         ]
       },
