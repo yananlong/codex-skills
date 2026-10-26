@@ -156,6 +156,59 @@ def validate_context_binding(
             )
 
 
+SEARCH_LOG_COLUMNS = ("date", "query", "tool", "results_inspected", "spot_checked")
+_QUERY_SPLIT = re.compile(r";|<br\s*/?>", re.I)
+
+
+def _column_key(cell: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "_", cell.strip().lower()).strip("_")
+
+
+def check_search_log(
+    markdown: str, status: Any, mode: Any, errors: list[str], warnings: list[str]
+) -> None:
+    """D18: one dated query per row, with the tool used and what was inspected and spot-checked.
+
+    A web-search tool shows a page of results, not a database's hit count, so the log records what
+    was actually looked at. Logs written with the older columns validate with a warning.
+    """
+    lines = [line.strip() for line in markdown.splitlines() if line.strip().startswith("|")]
+    if len(lines) < 2:
+        return
+    header = [_column_key(cell) for cell in lines[0].strip("|").split("|")]
+    rows = []
+    for line in lines[1:]:
+        cells = [cell.strip() for cell in line.strip("|").split("|")]
+        if all(set(cell) <= {"-", ":"} for cell in cells):
+            continue
+        cells += [""] * (len(header) - len(cells))
+        rows.append(dict(zip(header, cells)))
+    real = [(index, row) for index, row in enumerate(rows, 1) if meaningful(row.get("query", ""))]
+    missing = [column for column in SEARCH_LOG_COLUMNS if column not in header]
+    if missing:
+        warnings.append(
+            "search-log.md uses the older columns; add " + ", ".join(missing)
+            + " so each row is one dated query with the tool used, the number of results inspected, "
+            "and the results opened and checked"
+        )
+        return
+    for index, row in real:
+        label = f"search-log.md row {index}"
+        if len([part for part in _QUERY_SPLIT.split(row.get("query", "")) if part.strip()]) > 1:
+            errors.append(f"{label}: one query per row")
+        if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", row.get("date", "")):
+            errors.append(f"{label}.Date must be the search date as YYYY-MM-DD")
+        if not meaningful(row.get("tool", "")):
+            errors.append(f"{label}.Tool must name the search tool or database used")
+        if not re.fullmatch(r"\d+", row.get("results_inspected", "")):
+            errors.append(f"{label}.Results inspected must be the number of results looked at")
+        if not meaningful(row.get("spot_checked", "")) and row.get("spot_checked", "").strip().lower() != "none":
+            errors.append(f"{label}.Spot-checked must list the results opened and checked, or say none")
+    # In context and linked modes the searches live in the bound literature; unlinked mode has only this log.
+    if status == "complete" and mode == "unlinked" and not real:
+        errors.append("a complete unlinked novelty review needs at least one logged search in search-log.md")
+
+
 def meaningful(value: Any) -> bool:
     return isinstance(value, str) and bool(value.strip()) and "todo" not in value.lower()
 
@@ -366,6 +419,7 @@ def parse_args() -> argparse.Namespace:
 def main() -> int:
     args = parse_args()
     errors: list[str] = []
+    warnings: list[str] = []
     decision = read_json(args.decision, "novelty decision", errors)
     report = read_text(args.report, "novelty report", errors)
     prior_art = read_text(args.prior_art_matrix, "prior-art matrix", errors)
@@ -398,6 +452,11 @@ def main() -> int:
         elif decision.get("schema_version") != SCHEMA_VERSION:
             errors.append(f"novelty-decision.schema_version must equal {SCHEMA_VERSION}")
         status = decision.get("status")
+        assurance_block = decision.get("literature_assurance")
+        check_search_log(
+            search_log, status, assurance_block.get("mode") if isinstance(assurance_block, dict) else None,
+            errors, warnings,
+        )
         trajectories = decision.get("claim_trajectory", [])
         if not isinstance(trajectories, list):
             errors.append("novelty-decision.claim_trajectory must be a list of trajectory records")
@@ -505,7 +564,9 @@ def main() -> int:
         print("Validation failed:")
         for error in errors:
             print(f"- {error}")
+        print_warnings(warnings)
         return 1
+    print_warnings(warnings)
     if args.assurance_profile == "linked":
         print(
             "Validation passed: the exact bound literature pack was revalidated and the novelty rating, corpus "
@@ -525,6 +586,11 @@ def main() -> int:
             "establish literature completeness, scientific novelty, empirical validity, or independent review."
         )
     return 0
+
+
+def print_warnings(warnings: list[str]) -> None:
+    for warning in warnings:
+        print(f"warning: {warning}")
 
 
 if __name__ == "__main__":

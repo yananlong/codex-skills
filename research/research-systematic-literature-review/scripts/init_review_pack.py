@@ -182,9 +182,11 @@ def search_log(i: Inputs) -> str:
 
 ## Source queries
 
-| run_id | date | channel | source | coverage_target | question_ids | query_or_seed | filters | records_returned | unique_candidates | included_yield | new_vocabulary | next_repair_action |
-| --- | --- | --- | --- | --- | --- | --- | --- | ---: | ---: | ---: | --- | --- |
-| run-001 | {i.today} | database | TODO | primary question | CQ-001 | TODO | TODO | 0 | 0 | 0 | | |
+One query per row. `tool` is the search tool or database interface used; `results_inspected` is how many results were looked at; `spot_checked` lists the results opened and checked (or says none). Do not record a total hit count the tool did not show.
+
+| run_id | date | channel | tool | source | coverage_target | question_ids | query_or_seed | filters | results_inspected | spot_checked | unique_candidates | included_yield | new_vocabulary | next_repair_action |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | ---: | --- | ---: | ---: | --- | --- |
+| run-001 | {i.today} | database | TODO | TODO | primary question | CQ-001 | TODO | TODO | 0 | TODO | 0 | 0 | | |
 
 ## Seed recovery ledger
 

@@ -12,6 +12,8 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
+from search_log_rules import check_row, is_legacy, legacy_warning, query_count
+
 REQUIRED_FILES = [
     "literature-context.md",
     "literature-context-search-log.md",
@@ -115,9 +117,9 @@ This is a bounded paper-context evidence map, not a full systematic review, unle
 
 Summarize exact sources, queries, filters, retrieval dates, and inclusion decisions. Keep detailed rows in `literature-context-search-log.md`.
 
-| run_id | source | query_string | filters | purpose | records_returned | retained |
-| --- | --- | --- | --- | --- | ---: | ---: |
-| run-001 | TODO | TODO | TODO | evaluate C1 | 0 | 0 |
+| run_id | tool | source | query_string | filters | purpose | results_inspected | retained |
+| --- | --- | --- | --- | --- | --- | ---: | ---: |
+| run-001 | TODO | TODO | TODO | TODO | evaluate C1 | 0 | 0 |
 
 ## Closest Prior Work
 
@@ -166,9 +168,11 @@ def _search_log_md(args: argparse.Namespace) -> str:
 
 ## Search Runs
 
-| run_id | date | source | query_string | filters | purpose | records_returned | retained | notes |
-| --- | --- | --- | --- | --- | --- | ---: | ---: | --- |
-| run-001 | {today} | TODO | TODO | TODO | evaluate target paper claim | 0 | 0 | TODO |
+One query per row. `tool` is the search tool or database interface used, `results_inspected` is how many results were looked at, and `spot_checked` lists the results opened and checked (or says none). Do not record a total hit count the tool did not show.
+
+| run_id | date | tool | source | query_string | filters | purpose | results_inspected | spot_checked | retained | notes |
+| --- | --- | --- | --- | --- | --- | --- | ---: | --- | ---: | --- |
+| run-001 | {today} | TODO | TODO | TODO | TODO | evaluate target paper claim | 0 | TODO | 0 | TODO |
 
 ## Inclusion Decisions
 
@@ -290,9 +294,14 @@ def _section_table_header(markdown: str, section_heading: str) -> list[str]:
     return _first_table_header(markdown[idx:].split("\n## ", 1)[0])
 
 
-def collect_errors(out_dir: Path, draft: bool = False) -> list[str]:
-    """Return every validation error for the four paper-context files in out_dir."""
+def collect_errors(out_dir: Path, draft: bool = False, warnings: list[str] | None = None) -> list[str]:
+    """Return every validation error for the four paper-context files in out_dir.
+
+    Pass a list as `warnings` to collect non-blocking notes, such as a search log written with the
+    older columns.
+    """
     errors: list[str] = []
+    warnings = [] if warnings is None else warnings
     for name in REQUIRED_FILES:
         if not (out_dir / name).exists():
             errors.append(f"Missing required paper-context artifact: {out_dir / name}")
@@ -319,6 +328,7 @@ def collect_errors(out_dir: Path, draft: bool = False) -> list[str]:
         for required in REQUIRED_VERSION_HEADERS:
             if required not in version_header:
                 errors.append(f"literature-context-search-log.md Version Resolution table missing column: {required}")
+        _check_search_runs(search_log_md, draft, errors, warnings)
     evidence_path = out_dir / "literature-context-evidence-table.md"
     if evidence_path.exists():
         evidence_md = evidence_path.read_text(encoding="utf-8")
@@ -354,15 +364,42 @@ def collect_errors(out_dir: Path, draft: bool = False) -> list[str]:
     return errors
 
 
+def _check_search_runs(search_log_md: str, draft: bool, errors: list[str], warnings: list[str]) -> None:
+    """Search Runs rows hold one dated query each, with the tool and what was inspected and checked."""
+    label = "literature-context-search-log.md Search Runs"
+    header, rows = _table_rows(search_log_md, "## Search Runs")
+    if not header:
+        return
+    real = [(index, row) for index, row in enumerate(rows, 1) if _real_cell(row.get("query_string", ""))]
+    if is_legacy(header):
+        warnings.append(legacy_warning(label))
+        for index, row in real:
+            if query_count(row.get("query_string", "")) > 1:
+                warnings.append(f"{label} row {index}.query_string holds more than one query; write one query per row")
+        return
+    if draft:
+        return
+    for index, row in real:
+        row_label = f"{label} row {index}"
+        check_row(row, "query_string", row_label, errors)
+        if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", row.get("date", "").strip()):
+            errors.append(f"{row_label}.date must be the search date as YYYY-MM-DD")
+
+
 def validate_artifacts(args: argparse.Namespace) -> int:
     out_dir = _resolve_out_dir(args)
-    errors = collect_errors(out_dir, draft=bool(getattr(args, "draft", False)))
+    warnings: list[str] = []
+    errors = collect_errors(out_dir, draft=bool(getattr(args, "draft", False)), warnings=warnings)
     if errors:
         print("Paper-context validation failed:")
         for error in errors:
             print(f"- {error}")
+        for warning in warnings:
+            print(f"warning: {warning}")
         return 1
     print(f"Paper-context validation passed: {out_dir}")
+    for warning in warnings:
+        print(f"warning: {warning}")
     return 0
 
 

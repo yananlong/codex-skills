@@ -82,6 +82,39 @@ class PaperContextTests(unittest.TestCase):
         self.assertEqual(cp.returncode, 1, cp.stdout + cp.stderr)
         self.assertIn("literature-context-evidence-table.md still has 1 TODO", cp.stdout)
 
+    def test_search_runs_hold_one_query_with_honest_counts(self) -> None:
+        self.fill()
+        log = self.out / "literature-context-search-log.md"
+        filled = log.read_text()
+        self.assertEqual(self.validate().returncode, 0)
+        log.write_text(filled.replace(
+            "| synthetic entry | synthetic entry | synthetic entry | synthetic entry | evaluate target paper claim |",
+            "| synthetic entry | synthetic entry | query one; query two | synthetic entry | evaluate target paper claim |",
+        ))
+        cp = self.validate()
+        self.assertEqual(cp.returncode, 1, cp.stdout)
+        self.assertIn("one query per row", cp.stdout)
+        log.write_text(filled.replace("| evaluate target paper claim | 0 |", "| evaluate target paper claim | many |"))
+        cp = self.validate()
+        self.assertEqual(cp.returncode, 1, cp.stdout)
+        self.assertIn("results_inspected must be the number", cp.stdout)
+
+    def test_legacy_search_runs_validate_with_a_warning(self) -> None:
+        self.fill()
+        log = self.out / "literature-context-search-log.md"
+        text = log.read_text()
+        start = text.index("## Search Runs")
+        end = text.index("## Inclusion Decisions")
+        legacy = (
+            "## Search Runs\n\n| run_id | date | source | query_string | filters | purpose | records_returned | retained | notes |\n"
+            "| --- | --- | --- | --- | --- | --- | ---: | ---: | --- |\n"
+            "| run-001 | 2024-01-01 | synthetic index | synthetic query | none | evaluate | 40 | 2 | |\n\n"
+        )
+        log.write_text(text[:start] + legacy + text[end:])
+        cp = self.validate()
+        self.assertEqual(cp.returncode, 0, cp.stdout)
+        self.assertIn("warning: literature-context-search-log.md Search Runs uses the older columns", cp.stdout)
+
     def test_list_fields_and_mode_are_type_checked(self) -> None:
         self.fill()
         decision = self.decision()

@@ -24,6 +24,13 @@ description: Generate, filter, rank, and hand off grounded research ideas from a
 - Create an `ideation/` directory only when the task is substantial enough to preserve artifacts; otherwise return a compact ranked list in chat.
 - If web search is unavailable, use the provided corpus and clearly mark novelty signals as unverified.
 
+### Route-level re-ideation
+
+- Use when a live project's route has failed and the ideas would replace it. Set `ideation_mode: route_level` and name the `failing_route` in `ideation-decision.json`.
+- Every selected or shortlisted idea records its evidence class, the predecessor failures it inherits and their disposition, its switching cost, the identity-change class it implies (D0 to D4), and its next skill, which may be `research-paper-review` or `stop`. See `references/idea-score-schema.md`.
+- An idea that implies D3 or D4 is a pivot request, not a plan: route it to `research-pipeline-planner` with `decision: request_pivot`. A new idea does not resolve the failures it inherits.
+- Fresh ideation with no live project may omit these fields; the lightweight path stays as it is.
+
 ### Orchestrated mode
 
 - Prefer canonical directory `./ideation/`.
@@ -146,6 +153,7 @@ In orchestrated mode these live under `./ideation/`. Validate tracked artifacts 
   - `proceed_to_experiment_plan`
   - `revise_scope`
   - `generate_more`
+  - `request_pivot` (route-level ideas that imply a D3 or D4 identity change)
   - `stop`
 - Default next skill is `research-novelty-review` for selected ideas. Use `research-experiment-plan` only when novelty has already been checked and the claim/evaluation goal are frozen.
 - Use `../research-pipeline-planner/references/epistemic-assurance-contract.md` whenever the handoff requests evidence stronger than exploratory.

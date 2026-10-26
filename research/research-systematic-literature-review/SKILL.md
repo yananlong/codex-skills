@@ -153,7 +153,7 @@ Record decisions and yields for:
 - grey literature and repository search
 - Zotero or user-corpus cross-check
 
-For each query or expansion, log the coverage target, linked coverage-question IDs, exact query or seed, filters, retrieval date, records returned, unique candidates, included yield, new vocabulary, and next repair action.
+For each query or expansion, log the coverage target, linked coverage-question IDs, exact query or seed, filters, retrieval date, the tool used, results inspected, the results spot-checked, unique candidates, included yield, new vocabulary, and next repair action. Write one query per row. Record what the tool actually showed: `results_inspected` counts the results looked at and `spot_checked` names the ones opened and checked. A web-search tool does not report a database's total hit count, so the log has no `records_returned` column; older logs that have one validate with a warning. The paper-context search log follows the same rule.
 
 For major ML conferences hosted on OpenReview, use accepted venue records when venue status is clear; do not treat rejected, withdrawn, or merely submitted records as canonical publications.
 

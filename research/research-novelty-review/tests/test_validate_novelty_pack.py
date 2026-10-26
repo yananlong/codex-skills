@@ -25,6 +25,19 @@ def run_python(*args: str) -> subprocess.CompletedProcess[str]:
     return subprocess.run([sys.executable, *args], text=True, capture_output=True)
 
 
+TEMPLATE_SEARCH_ROW = "| YYYY-MM-DD | | | | | falsify framing / method / protocol / artifact / result | 0 | | | |"
+
+
+def log_one_search(pack: Path, row: str | None = None) -> None:
+    """Replace the search-log template row with one dated synthetic search."""
+    row = row or (
+        f"| {date.today().isoformat()} | synthetic ranking objective prior work | web search | general web | "
+        "none | falsify method | 10 | Synthetic Work 1 | Synthetic Work 1 | |"
+    )
+    log = pack / "search-log.md"
+    log.write_text(log.read_text().replace(TEMPLATE_SEARCH_ROW, row))
+
+
 class StandaloneNoveltyTests(unittest.TestCase):
     """Behaviour that must hold with only research-novelty-review installed (QI-03)."""
 
@@ -66,6 +79,7 @@ class StandaloneNoveltyTests(unittest.TestCase):
         if rows is None:
             rows = max((rating or 1) - 1, 0)
         self.add_prior_art_rows(rows)
+        log_one_search(self.pack)
         decision = json.loads(self.decision_path.read_text())
         decision.update(
             status="complete",
@@ -83,6 +97,40 @@ class StandaloneNoveltyTests(unittest.TestCase):
         report = report.replace("- Narrowest defensible positioning:", "- Narrowest defensible positioning: A bounded synthetic contribution.")
         report = report.replace("- What would change the decision:", "- What would change the decision: A closer synthetic prior method.")
         self.report_path.write_text(report)
+
+    def test_search_log_rows_are_dated_single_queries_with_honest_columns(self) -> None:
+        self.complete(2)
+        self.assertEqual(self.validate().returncode, 0)
+        log = self.pack / "search-log.md"
+        good = log.read_text()
+        log.write_text(good.replace(date.today().isoformat(), "last week"))
+        cp = self.validate()
+        self.assertIn("Date must be the search date", cp.stdout)
+        log.write_text(good.replace("synthetic ranking objective prior work", "query one; query two"))
+        cp = self.validate()
+        self.assertIn("one query per row", cp.stdout)
+        log.write_text(good.replace("| 10 |", "| many |"))
+        cp = self.validate()
+        self.assertIn("Results inspected must be the number", cp.stdout)
+
+    def test_complete_unlinked_review_needs_a_logged_search(self) -> None:
+        self.complete(2)
+        log = self.pack / "search-log.md"
+        lines = [line for line in log.read_text().splitlines() if "synthetic ranking objective" not in line]
+        log.write_text("\n".join(lines) + "\n")
+        cp = self.validate()
+        self.assertEqual(cp.returncode, 1)
+        self.assertIn("needs at least one logged search", cp.stdout)
+
+    def test_legacy_search_log_validates_with_a_warning(self) -> None:
+        self.complete(2)
+        (self.pack / "search-log.md").write_text(
+            "# Search Log\n\n| Query | Source | Filters | Purpose | Closest hits | Notes |\n"
+            "| --- | --- | --- | --- | --- | --- |\n| synthetic query | web | none | falsify | Synthetic Work 1 | |\n"
+        )
+        cp = self.validate()
+        self.assertEqual(cp.returncode, 0, cp.stdout)
+        self.assertIn("warning: search-log.md uses the older columns", cp.stdout)
 
     def test_claim_trajectory_records_are_validated(self) -> None:
         self.complete(2)
@@ -230,8 +278,8 @@ class NoveltyPackTests(unittest.TestCase):
         today = date.today().isoformat()
         search = p["search_log"].read_text()
         search = search.replace(
-            f"| run-001 | {today} | database | TODO | primary question | CQ-001 | TODO | TODO | 0 | 0 | 0 | | |",
-            f"| run-001 | {today} | database | Semantic Scholar | core method | CQ-001 | example method | none | 2 | 2 | 1 | alternate term | none |",
+            f"| run-001 | {today} | database | TODO | TODO | primary question | CQ-001 | TODO | TODO | 0 | TODO | 0 | 0 | | |",
+            f"| run-001 | {today} | database | Semantic Scholar API | Semantic Scholar | core method | CQ-001 | example method | none | 2 | doi:10.0000/synthetic.1 | 2 | 1 | alternate term | none |",
         )
         search = search.replace(
             "| seed-001 | TODO | foundation / close anchor / expert seed | | no | TODO | TODO |",
@@ -628,6 +676,7 @@ class ContextModeAndMigrationTests(unittest.TestCase):
         legacy = self.root / "legacy"
         legacy.mkdir()
         self.run_cmd(str(NOVELTY_INIT), str(legacy))
+        log_one_search(legacy)
         decision = {
             "novelty_decision_rating": rating,
             "impact_positioning_rating": 4,

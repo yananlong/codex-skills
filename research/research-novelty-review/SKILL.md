@@ -116,6 +116,7 @@ Reader-facing prose in these artifacts is written under the drafting contract (`
 ### 2) Search with a kill-shot mindset
 
 - Use `references/adversarial-query-patterns.md` and `references/search-log-template.md`.
+- Log one dated query per row in `search-log.md`, with the tool used, the number of results inspected, and the results opened and checked (or none). Do not record a total hit count the tool did not show. A complete unlinked review needs at least one logged search; older logs without these columns validate with a warning.
 - If the user maintains a relevant Zotero library or collection, invoke `research-zotero` first or consume `./zotero/zotero-items.json` as a curated seed corpus.
 - If a `research-systematic-literature-review` paper-context evidence map exists, use it as the first prior-art source and search only for obvious missing overlaps or decision-critical gaps.
 - Search the strongest plausible overlaps first.

@@ -14,9 +14,11 @@ Use this template to document reproducible evidence discovery.
 
 ## Query ledger
 
-| run_id | date | source | query_string | filters | records_returned | notes |
-| --- | --- | --- | --- | --- | ---: | --- |
-| run-001 | YYYY-MM-DD | | | | 0 | |
+One query per row. `results_inspected` counts the results looked at; `spot_checked` names the ones opened and checked, or says none.
+
+| run_id | date | tool | source | query_string | filters | results_inspected | spot_checked | notes |
+| --- | --- | --- | --- | --- | --- | ---: | --- | --- |
+| run-001 | YYYY-MM-DD | | | | | 0 | | |
 
 ## Deduplication ledger
 

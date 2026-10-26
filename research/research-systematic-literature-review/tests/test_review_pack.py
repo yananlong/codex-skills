@@ -67,8 +67,8 @@ class ReviewPackTests(unittest.TestCase):
         today = date.today().isoformat()
         search = p["search"].read_text()
         search = search.replace(
-            f"| run-001 | {today} | database | TODO | primary question | CQ-001 | TODO | TODO | 0 | 0 | 0 | | |",
-            f"| run-001 | {today} | database | Semantic Scholar | core method | CQ-001 | example method | none | 2 | 2 | 1 | alternate term | none |",
+            f"| run-001 | {today} | database | TODO | TODO | primary question | CQ-001 | TODO | TODO | 0 | TODO | 0 | 0 | | |",
+            f"| run-001 | {today} | database | Semantic Scholar API | Semantic Scholar | core method | CQ-001 | example method | none | 2 | doi:10.0000/synthetic.1 | 2 | 1 | alternate term | none |",
         )
         search = search.replace(
             "| seed-001 | TODO | foundation / close anchor / expert seed | | no | TODO | TODO |",
@@ -152,6 +152,40 @@ class ReviewPackTests(unittest.TestCase):
         self.make_valid_bounded()
         cp = self.validate()
         self.assertIn("adequate-for-bounded-claims", cp.stdout)
+
+    def test_one_query_per_source_query_row(self):
+        self.make_valid_bounded()
+        search = self.paths()["search"]
+        search.write_text(search.read_text().replace("| example method |", "| example method; other method |"))
+        cp = self.validate(expect=1)
+        self.assertIn("more than one query", cp.stdout)
+
+    def test_inspected_count_must_be_an_integer(self):
+        self.make_valid_bounded()
+        search = self.paths()["search"]
+        search.write_text(search.read_text().replace("| none | 2 | doi:", "| none | lots | doi:"))
+        cp = self.validate(expect=1)
+        self.assertIn("results_inspected must be the number", cp.stdout)
+
+    def test_legacy_source_queries_validate_with_a_warning(self):
+        self.make_valid_bounded()
+        search = self.paths()["search"]
+        today = date.today().isoformat()
+        text = search.read_text()
+        text = text.replace(
+            "| run_id | date | channel | tool | source | coverage_target | question_ids | query_or_seed | filters | results_inspected | spot_checked | unique_candidates | included_yield | new_vocabulary | next_repair_action |\n"
+            "| --- | --- | --- | --- | --- | --- | --- | --- | --- | ---: | --- | ---: | ---: | --- | --- |",
+            "| run_id | date | channel | source | coverage_target | question_ids | query_or_seed | filters | records_returned | unique_candidates | included_yield | new_vocabulary | next_repair_action |\n"
+            "| --- | --- | --- | --- | --- | --- | --- | --- | ---: | ---: | ---: | --- | --- |",
+        )
+        text = text.replace(
+            f"| run-001 | {today} | database | Semantic Scholar API | Semantic Scholar | core method | CQ-001 | example method | none | 2 | doi:10.0000/synthetic.1 | 2 | 1 | alternate term | none |",
+            f"| run-001 | {today} | database | Semantic Scholar | core method | CQ-001 | example method | none | 2 | 2 | 1 | alternate term | none |",
+        )
+        search.write_text(text)
+        cp = self.validate()
+        self.assertIn("adequate-for-bounded-claims", cp.stdout)
+        self.assertIn("warning: search log source queries uses the older columns", cp.stdout)
 
     def test_placeholder_seed_does_not_satisfy_recall_assurance(self):
         self.make_valid_bounded()
