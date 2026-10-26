@@ -14,9 +14,10 @@
 
 ## Imported paper-review issues
 
-- If `paper-review/final_issues.json` exists, were issue titles, quotes, explanations, impact ratings, confidence ratings, and source sections preserved?
+- If a first-pass bundle's `final_issues.json` exists, were issue titles, quotes, explanations, impact ratings, confidence ratings, and source sections preserved?
 - If the first-pass review came from upstream Claude/OpenAIReview, was its `severity` schema preserved or deliberately normalized rather than silently coerced?
-- If the review pack has `round-N/` folders or metadata round summaries, did the new round continue that structure instead of overwriting or relocating root paper-review artifacts?
+- If the review pack has round folders or metadata round summaries, did the new round go to the next integer `round-<N>/` in the same home (`resolve_review_artifacts.py --next-round`) instead of overwriting or relocating earlier rounds or root paper-review artifacts?
+- Does the new `REVIEW_STATE.json` pass `validate_review_state.py --strict`?
 - Were `impact_rating` values mapped consistently to major, moderate, or minor tracked issues?
 - Does each imported issue still point to its origin file instead of being rewritten as an untraceable summary?
 

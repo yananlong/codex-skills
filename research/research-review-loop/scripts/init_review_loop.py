@@ -8,6 +8,10 @@ import copy
 import json
 from pathlib import Path
 
+import resolve_review_artifacts as resolver
+from review_schema import ISSUE_FIELDS, load_issues, strip_private
+from validate_review_state import validate_state
+
 
 STATE_TEMPLATE = {
     "version": "1.0",
@@ -97,15 +101,17 @@ def parse_args() -> argparse.Namespace:
         "target_dir",
         type=Path,
         nargs="?",
-        help="Directory where the review pack will be created. Optional with --from-state, "
-        "which defaults to a sibling round-<N+1>/ folder.",
+        help="Directory where the review pack will be created. Optional with --from-state or "
+        "--from-paper-review: the default is the next integer round-<N>/ folder in the review's "
+        "workspace, as resolve_review_artifacts.py reports it.",
     )
     parser.add_argument("--force", action="store_true", help="Overwrite existing files.")
     parser.add_argument("--target", default="", help="Short description of the reviewed artifact.")
     parser.add_argument(
         "--from-paper-review",
         type=Path,
-        help="Seed open issues from a paper-review directory or final_issues.json file.",
+        help="Seed open issues from a paper-review bundle, a final_issues.json file, or a project root "
+        "(the newest first-pass bundle under it is used). Any known issue layout is read.",
     )
     parser.add_argument(
         "--from-state",
@@ -120,52 +126,21 @@ def parse_args() -> argparse.Namespace:
         help="Explicit round number for the new state (overrides prior + 1).",
     )
     args = parser.parse_args()
-    if args.target_dir is None and args.from_state is None:
-        parser.error("target_dir is required unless --from-state is given")
+    if args.target_dir is None and args.from_state is None and args.from_paper_review is None:
+        parser.error("target_dir is required unless --from-state or --from-paper-review is given")
     if args.round_number is not None and args.round_number < 1:
         parser.error("--round must be a positive integer")
     return args
 
 
 REQUIRED_SEED_FIELDS = ("title", "source_quote", "evidence", "severity")
-
-FIELD_ALIASES = {
-    "title": ("title",),
-    "source_quote": ("quote", "source_quote"),
-    "evidence": ("explanation", "evidence"),
-    "source_section": ("source_section", "section", "location"),
-    "impact_rating": ("impact_rating", "impact"),
-    "confidence_rating": ("confidence_rating", "confidence"),
+SEED_SOURCES = {
+    "title": "title, issue, risk, or name",
+    "source_quote": "quote or source_quote",
+    "evidence": "explanation, evidence, or rationale",
+    "severity": "severity (major/moderate/minor) or a 1-5 impact_rating/impact",
 }
-
-SEVERITY_VALUES = {"major", "moderate", "minor"}
-
-
-def _first_present(issue: dict, field: str):
-    for key in FIELD_ALIASES[field]:
-        value = issue.get(key)
-        if value not in (None, "", []):
-            return value
-    return None
-
-
-def _rating(value: object) -> int | None:
-    """Return a 1-5 integer rating, or None for prose or out-of-range values."""
-    if isinstance(value, bool):
-        return None
-    if isinstance(value, int) and 1 <= value <= 5:
-        return value
-    return None
-
-
-def _severity_from_impact(value: object) -> str | None:
-    if isinstance(value, int) and not isinstance(value, bool):
-        if value >= 4:
-            return "major"
-        if value <= 2:
-            return "minor"
-        return "moderate"
-    return None
+DEFAULT_ACTION = "Revise the artifact, add evidence, narrow the claim, or explicitly accept the risk."
 
 
 def _resolve_relative_artifact(path: Path, review_dir: Path) -> Path:
@@ -175,10 +150,18 @@ def _resolve_relative_artifact(path: Path, review_dir: Path) -> Path:
 
 
 def _paper_review_issue_path(path: Path) -> Path:
+    """A final_issues.json file, a bundle folder, or a project root holding bundles."""
     path = path.expanduser().resolve()
-    if path.is_dir():
+    if path.is_file():
+        return path
+    if (path / "final_issues.json").is_file():
         return path / "final_issues.json"
-    return path
+    if path.is_dir():
+        bundle = resolver.latest_bundle(resolver.find_units(path))
+        if bundle is not None:
+            print(f"using first-pass bundle {bundle.path} ({bundle.layout})")
+            return Path(bundle.path) / "final_issues.json"
+    return path / "final_issues.json"
 
 
 def _existing_support_artifacts(review_dir: Path) -> list[str]:
@@ -213,22 +196,19 @@ def _seed_from_paper_review(path: Path, taken_ids: set[str] | None = None) -> tu
     issues_path = _paper_review_issue_path(path)
     if not issues_path.exists():
         raise SystemExit(f"paper-review issues file not found: {issues_path}")
-
-    issues = json.loads(issues_path.read_text(encoding="utf-8"))
-    if not isinstance(issues, list):
-        raise SystemExit(f"paper-review issues file must contain a JSON array: {issues_path}")
+    try:
+        layout, issues, _ = load_issues(issues_path)
+    except ValueError as exc:
+        raise SystemExit(f"paper-review issues file must contain a JSON array: {issues_path} ({exc})")
+    print(f"read {len(issues)} issues from {issues_path} ({layout})")
 
     review_dir = issues_path.parent
     taken = set(taken_ids or ())
-    incoming_ids = {
-        str(issue["id"]) for issue in issues if isinstance(issue, dict) and issue.get("id") not in (None, "")
-    }
+    incoming_ids = {str(issue["id"]) for issue in issues if issue.get("id") not in (None, "")}
     next_minted = 1
     seeded: list[dict] = []
     empty: dict[str, list[str]] = {}
-    for idx, issue in enumerate(issues, start=1):
-        if not isinstance(issue, dict):
-            continue
+    for issue in issues:
         issue_id = issue.get("id")
         if issue_id in (None, ""):
             while f"PR{next_minted}" in taken or f"PR{next_minted}" in incoming_ids:
@@ -241,38 +221,32 @@ def _seed_from_paper_review(path: Path, taken_ids: set[str] | None = None) -> tu
             continue
         taken.add(issue_id)
 
-        impact = _rating(_first_present(issue, "impact_rating"))
-        confidence = _rating(_first_present(issue, "confidence_rating"))
-        severity = issue.get("severity")
-        if severity not in SEVERITY_VALUES:
-            severity = _severity_from_impact(impact)
-        entry = {
-            "id": issue_id,
-            "severity": severity,
-            "impact_rating": impact,
-            "confidence_rating": confidence,
-            "title": _first_present(issue, "title") or "",
-            "status": "open",
-            "evidence": _first_present(issue, "evidence") or "",
-            "required_action": issue.get("required_action")
-            or "Revise the artifact, add evidence, narrow the claim, or explicitly accept the risk.",
-            "source_quote": _first_present(issue, "source_quote") or "",
-            "source_section": _first_present(issue, "source_section") or "",
-            "related_sections": issue.get("related_sections", []),
-            "origin": str(issues_path),
-        }
+        canonical = strip_private(issue)
+        entry = {field: canonical.get(field) for field in ISSUE_FIELDS}
+        entry.update(
+            id=issue_id,
+            status="open",
+            title=canonical.get("title") or "",
+            evidence=canonical.get("evidence") or "",
+            required_action=canonical.get("required_action") or DEFAULT_ACTION,
+            source_quote=canonical.get("source_quote") or "",
+            source_section=canonical.get("source_section") or "",
+            related_sections=canonical.get("related_sections") or [],
+            origin=str(issues_path),
+        )
+        entry = {key: value for key, value in entry.items() if value is not None or key in (
+            "severity", "impact_rating", "confidence_rating")}
+        if canonical.get("extra"):
+            entry["extra"] = canonical["extra"]
         for field in REQUIRED_SEED_FIELDS:
-            if entry[field] in (None, ""):
+            if entry.get(field) in (None, ""):
                 empty.setdefault(field, []).append(issue_id)
         seeded.append(entry)
 
     if empty:
         lines = [f"required issue fields resolved empty in {issues_path}:"]
         for field, ids in empty.items():
-            aliases = {
-                "severity": "severity (major/moderate/minor) or a 1-5 impact_rating/impact",
-            }.get(field, " or ".join(FIELD_ALIASES.get(field, (field,))))
-            lines.append(f"  {field} (from {aliases}): {', '.join(ids)}")
+            lines.append(f"  {field} (from {SEED_SOURCES[field]}): {', '.join(ids)}")
         lines.append("Fix the source issues or normalize the field names before seeding; nothing was written.")
         raise SystemExit("\n".join(lines))
 
@@ -305,9 +279,9 @@ def _prior_round(state: dict, state_path: Path) -> int:
 
 
 def _next_round_dir(state_path: Path, round_number: int) -> Path:
-    state_dir = state_path.parent
-    base = state_dir.parent if state_dir.name.startswith("round-") else state_dir
-    return base / f"round-{round_number}"
+    """The integer round folder in the prior state's review home (resolve_review_artifacts.py)."""
+    home, _ = resolver.home_for(state_path)
+    return home / f"round-{round_number}"
 
 
 def main() -> None:
@@ -331,9 +305,16 @@ def main() -> None:
         ]
         target_dir = args.target_dir or _next_round_dir(prior_path, round_number)
     else:
-        round_number = args.round_number or 1
         state["target"] = args.target
         target_dir = args.target_dir
+        if target_dir is None:
+            bundle_dir = _paper_review_issue_path(args.from_paper_review).parent
+            home, units = resolver.home_for(bundle_dir)
+            target_dir = resolver.next_round_dir(home, units)
+            if args.round_number:
+                target_dir = home / f"round-{args.round_number}"
+        default_round = resolver._name_round(target_dir.name)
+        round_number = args.round_number or default_round or 1
     state["round"] = round_number
 
     seeded: list[dict] = []
@@ -372,6 +353,12 @@ def main() -> None:
     state_path = target_dir / "REVIEW_STATE.json"
     state_path.write_text(json.dumps(state, indent=2) + "\n", encoding="utf-8")
     print(f"created {state_path}")
+    errors, _, _ = validate_state(state, strict=True)
+    if errors:
+        print(
+            f"note: the state carries {len(errors)} departure(s) from the canonical schema, usually from a "
+            "legacy prior round; run validate_review_state.py for the list"
+        )
 
     for name, content in FILE_TEMPLATES.items():
         path = target_dir / name

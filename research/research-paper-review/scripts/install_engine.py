@@ -1,12 +1,25 @@
 #!/usr/bin/env python3
-"""Install or update the upstream OpenAIReview engine for this skill."""
+"""Install the pinned upstream OpenAIReview engine outside the skill directory.
+
+Default: OpenAIReview ENGINE_VERSION from the release commit on GitHub, in a versioned virtualenv
+under $XDG_DATA_HOME/codex-skills/ (or ~/.local/share/codex-skills/). --source pypi installs the same
+version from PyPI. Passing another --ref installs an unpinned engine and records that choice.
+"""
 
 from __future__ import annotations
 
 import argparse
 from pathlib import Path
 
-from _engine import DEFAULT_VENV, install_engine, package_dir, packaged_skill_dir
+from _engine import (
+    DEFAULT_VENV,
+    ENGINE_COMMIT,
+    ENGINE_TAG,
+    ENGINE_VERSION,
+    install_engine,
+    package_dir,
+    packaged_skill_dir,
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -15,18 +28,19 @@ def parse_args() -> argparse.Namespace:
         "--venv",
         type=Path,
         default=DEFAULT_VENV,
-        help="Virtualenv path for the upstream engine.",
+        help="Virtualenv path for the upstream engine (default: a versioned folder outside the skill).",
     )
     parser.add_argument(
         "--source",
         choices=["github", "pypi"],
         default="github",
-        help="Install source. Default uses the upstream GitHub repository.",
+        help=f"Install source. github installs the pinned release commit; pypi installs openaireview=={ENGINE_VERSION}.",
     )
     parser.add_argument(
         "--ref",
-        default="main",
-        help="Git ref when --source github is used.",
+        default=ENGINE_COMMIT,
+        help=f"Git ref when --source github is used (default: {ENGINE_TAG} at {ENGINE_COMMIT[:12]}). "
+        "Any other ref installs an unpinned engine.",
     )
     parser.add_argument(
         "--with",
@@ -59,7 +73,7 @@ def main() -> int:
         upgrade=not args.no_upgrade,
         reinstall=args.reinstall,
     )
-    print("OpenAIReview engine is ready.")
+    print(f"OpenAIReview engine is ready (pinned to {ENGINE_VERSION}).")
     print(f"venv: {venv_dir}")
     print(f"package: {package_dir(venv_dir)}")
     print(f"skill assets: {packaged_skill_dir(venv_dir)}")

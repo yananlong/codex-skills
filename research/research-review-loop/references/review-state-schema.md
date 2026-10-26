@@ -1,6 +1,6 @@
 # Review State Schema
 
-Use `REVIEW_STATE.json` to track issue status across rounds.
+Use `REVIEW_STATE.json` to track issue status across rounds. Its issue object is the suite's canonical review issue; `../research-paper-review/references/review-schema.md` lists the aliases older states use and how they map. `scripts/validate_review_state.py --strict` checks a state against this schema.
 
 ## Required top-level fields
 
@@ -27,7 +27,13 @@ Use `REVIEW_STATE.json` to track issue status across rounds.
 - `source_quote`: optional exact quote from the reviewed artifact
 - `source_section`: optional section, table, figure, or file location
 - `related_sections`: optional list of related locations
-- `origin`: optional source such as `paper-review/final_issues.json`, `round-2 internal pass`, or `external verification`
+- `origin`: optional source such as `review_results/<slug>_review/final_issues.json`, `round-2 internal pass`, or `external verification`
+- `resolution`: optional note on how a resolved or accepted issue was closed
+- `comment_type`: optional paper-review comment type
+- `prior_issue_ids`: optional list of earlier IDs this issue continues
+- `extra`: optional object holding source fields this schema does not name, kept verbatim
+
+A resolved or accepted entry may hold only `id`, `status`, and `resolution` when it closes an issue recorded in full earlier; validators treat it as a reference.
 
 ## Example
 
@@ -38,7 +44,7 @@ Use `REVIEW_STATE.json` to track issue status across rounds.
   "round": 1,
   "status": "open",
   "summary": "Two major issues block acceptance.",
-  "source_artifacts": ["paper-review/example_review/final_issues.json"],
+  "source_artifacts": ["review_results/example_review/final_issues.json"],
   "open_issues": [
     {
       "id": "R1",
@@ -52,7 +58,7 @@ Use `REVIEW_STATE.json` to track issue status across rounds.
       "source_quote": "We show that the method generalizes across all settings.",
       "source_section": "Abstract",
       "related_sections": ["Experiments"],
-      "origin": "paper-review/example_review/final_issues.json"
+      "origin": "review_results/example_review/final_issues.json"
     }
   ],
   "resolved_issues": [],

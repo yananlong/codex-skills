@@ -25,7 +25,7 @@ description: Draft venue-aware academic rebuttals and author responses from revi
 ### Orchestrated mode
 
 - Prefer the canonical directory `./rebuttal/`.
-- Read upstream context from `research-brief.md`, `artifact-index.md`, `./paper-plan/`, `./review-loop/`, and relevant result artifacts when present.
+- Read upstream context from `research-brief.md`, `artifact-index.md`, `./paper-plan/`, the internal review that `scripts/resolve_review_artifacts.py --root .` finds (latest round and first-pass bundle, in any layout), and relevant result artifacts when present.
 - Keep outputs legible to later manuscript revision, camera-ready planning, or follow-up review rounds.
 
 ## Relationship to sibling skills
@@ -184,7 +184,7 @@ Implication: This resolves the concern that our gains came only from benchmark s
 - Coverage gate:
   - every Major-Blocking and Major-Addressable issue must be closed, deferred with justification, or explicitly accepted as a risk
 - Verify size limits with `scripts/count_limits.sh <file> [--chars|--words] [--limit N] [--per-section]`. It counts raw text, markup included, because platform limits apply to the pasted field. For per-review limits (one response per reviewer), put each response under its own `##` or `###` heading; the script counts each section and fails if any exceeds `--limit`. `--strip-markup` gives an estimate only and never confirms a limit. PDF page limits cannot be checked from text: compile the venue template and check the PDF.
-- If `paper-review/final_issues.json` or `review-loop/REVIEW_STATE.json` exists, cross-check that the rebuttal does not quietly contradict the internal diagnosis.
+- If `resolve_review_artifacts.py` finds a first-pass `final_issues.json` or a review-loop `REVIEW_STATE.json`, read its issues with `scripts/review_schema.py` (any layout, same schema as the issue board) and cross-check that the rebuttal does not quietly contradict the internal diagnosis. List the matching internal IDs in the issue board's `Internal issue IDs` column.
 
 ### 7) Handle follow-up rounds carefully
 
@@ -205,6 +205,7 @@ This skill owns its stage gate. Standalone, it is the proceed, revise, or stop t
 ## Scripts
 
 - `scripts/init_rebuttal_pack.py`: create deterministic rebuttal scaffolds, including `reviews-raw.md`, in a standalone directory or `./rebuttal/`. `--reviews <file>` copies a verbatim review file (one `## <reviewer handle>` block each) into `reviews-raw.md` and pre-fills one score-matrix row per block.
+- `scripts/resolve_review_artifacts.py` and `scripts/review_schema.py`: shared copies from `research-paper-review`; the first finds the internal review in any layout, the second reads its issues and this pack's `issue-board.md` into one schema (`../research-paper-review/references/review-schema.md`).
 - `scripts/count_limits.sh`: count raw characters or words per file or per `##`/`###` response section; exit 2 when any section exceeds `--limit`, exit 3 for `--pages` (PDF limits are unverifiable from text).
 
 ## References

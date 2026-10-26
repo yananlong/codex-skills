@@ -29,11 +29,11 @@ Choose the smallest route that covers the request, and load only the listed file
 2. Default LLM review to the active agent model in the current runtime. Do not require external LLM API keys for normal review.
 3. Build the full-paper summary and the pass plan first, then pick a depth. Ownership when skills chain: only the skill the user invoked spawns workers, and it sets one budget for the whole chain (quick: no workers, the parent does every pass; standard: up to 3 workers; deep: 5 to 8). A skill reached by handoff never spawns. The budget counts agents, not review checks: a worker runs several planned passes and owns one comments file per pass. Default to standard; use deep when the user asks for a deep, thorough, or venue-grade review or the paper is long; use quick when the user asks for a fast read.
 4. Run serially, with the same pass plan and the same comment files, at quick depth, when this skill was reached by handoff (from `research-review-loop`, `research-pipeline-planner`, or another skill), and when the runtime has no subagents.
-5. Bootstrap the upstream engine with `python3 scripts/install_engine.py` only when deterministic helpers are needed for extraction, workspace preparation, viz output, or explicit upstream provider-backed review.
-6. Use the `/openaireview` workspace convention as the canonical stage root: `./review_results/<slug>_review/`. Record any non-canonical output paths in `artifact-index.md`.
+5. Bootstrap the upstream engine with `python3 scripts/install_engine.py` when deterministic helpers are needed for extraction, workspace preparation, viz output, or explicit upstream provider-backed review. The engine is pinned to OpenAIReview 0.3.0 and installs into a versioned virtualenv outside the skill directory (`references/engine-usage.md`).
+6. Use the `/openaireview` workspace convention as the canonical stage root: `./review_results/<slug>_review/`. Review-loop rounds for the same paper go to integer `round-<N>/` folders inside it. Record any non-canonical output paths in `artifact-index.md`.
 7. Use `references/chatgpt-native-review.md` (the runtime-neutral native review contract), `references/rating-rubric.md`, and the 1-5 issue/output scales.
 8. When review quality depends on novelty, impact, or literature context, route through `research-systematic-literature-review` and `research-novelty-review` instead of limiting the critique to internal paper consistency.
-9. When reusing an existing review workspace, infer its provenance from `metadata.json`, `artifact-index.md`, `final_issues.json`, `review_summary.json`, and any `round-N/` folders before moving files or declaring artifacts missing.
+9. Find existing review artifacts with `scripts/resolve_review_artifacts.py --root .`, which reports every review home, its layout, the latest round, and the next round's path, instead of assuming a `paper-review/` path. When reusing an existing review workspace, infer its provenance from `metadata.json`, `artifact-index.md`, `final_issues.json`, `review_summary.json`, and any `round-N/` folders before moving files or declaring artifacts missing.
 10. Treat `research-systematic-literature-review` as an independent literature-review skill that can either run on its own or attach to this review workspace through `<review_dir>/context/`.
 11. If the user asks for project-level sequencing, current-state inspection, or coordination across multiple research stages, invoke `research-pipeline-planner` first instead of treating paper review as the whole task.
 
@@ -435,15 +435,18 @@ This skill owns its stage gate. Standalone, it is the proceed, revise, or stop t
 - `references/criteria.md`
 - `references/codex-agent-orchestration.md`
 - `references/rating-rubric.md`
+- `references/review-schema.md` (canonical issue and summary schemas, conversion table, known layouts)
 - `references/subagent_templates.md`
 - `../research-pipeline-planner/references/review-stage-contract.md`
 
 ## Scripts
 
-- `scripts/install_engine.py`: create or update a virtualenv with the upstream OpenAIReview engine
+- `scripts/install_engine.py`: install the pinned upstream OpenAIReview engine (0.3.0) into a versioned virtualenv outside the skill directory; the wrappers refuse an installed version that differs from the pin
 - `scripts/run_openaireview.py`: mirror the upstream `openaireview` CLI, with provider-backed `review` opt-in only
 - `scripts/prepare_workspace.py`: delegate to the packaged deep-review workspace preparer
 - `scripts/validate_review_bundle.py`: infer the provenance family, then validate that family's required handoff files, issue schema, and summary; resolves round summaries from `metadata.round_summaries`, `<review_dir>/round-*`, and `<review_dir>/../round-*`, newest valid first; `--family` asserts a family
+- `scripts/review_schema.py`: read issues and summaries in any known layout into the canonical schemas (`references/review-schema.md`); shared, byte-identical, with review-loop and rebuttal
+- `scripts/resolve_review_artifacts.py`: find review artifacts in any known layout under a root, report each review's latest round and first-pass bundle, and print the canonical next round (`--next-round`; `--slug` starts `review_results/<slug>_review/`); read-only, shared with review-loop and rebuttal
 - `scripts/flatten_latex.py`: flatten a LaTeX source tree into `full_text.md` with `latex_source_map.json` and a list of unreferenced `.tex` files (stdlib only, no engine needed)
 - `scripts/consolidate_comments.py`: delegate to the packaged consolidation helper
 - `scripts/save_viz_json.py`: delegate to the packaged viz JSON helper; `--runtime` sets the method key and model label (default `agent`)

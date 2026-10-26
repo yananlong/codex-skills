@@ -7,6 +7,14 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[2]
 SHARED = {
+    "review_schema.py": (
+        "research/research-paper-review/scripts",
+        ["research/research-review-loop/scripts", "research/research-rebuttal/scripts"],
+    ),
+    "resolve_review_artifacts.py": (
+        "research/research-paper-review/scripts",
+        ["research/research-review-loop/scripts", "research/research-rebuttal/scripts"],
+    ),
     "claim_trajectory.py": (
         "research/research-pipeline-planner/scripts",
         [

@@ -7,6 +7,8 @@ import argparse
 import json
 from pathlib import Path
 
+from review_schema import SEVERITIES, normalise_summary
+
 
 REQUIRED_FILES = {
     "summary.md",
@@ -14,13 +16,6 @@ REQUIRED_FILES = {
     "overall_assessment.txt",
     "metadata.json",
     "full_text.md",
-}
-
-REQUIRED_SUMMARY_KEYS = {
-    "overall_paper_rating",
-    "decision_relevance_rating",
-    "rating_confidence",
-    "top_blockers",
 }
 
 REQUIRED_ISSUE_KEYS = {
@@ -35,7 +30,7 @@ REQUIRED_RATING_KEYS = {
     "confidence_rating",
 }
 
-SEVERITY_VALUES = {"major", "moderate", "minor"}
+SEVERITY_VALUES = set(SEVERITIES)
 
 
 def _load_json(path: Path, label: str, errors: list[str]):
@@ -121,17 +116,14 @@ def _round_summary_candidates(review_dir: Path) -> list[tuple[int, str, Path]]:
 
 
 def _summary_errors(summary, label: str) -> list[str]:
-    errors: list[str] = []
+    """Check a summary through the shared review schema; aliased key names are accepted."""
     if not isinstance(summary, dict):
         return [f"{label} is missing, unreadable, or not a JSON object"]
-    missing = sorted(REQUIRED_SUMMARY_KEYS - set(summary))
+    _, _, problems = normalise_summary(summary)
+    missing = [problem for problem in problems if problem.startswith("missing required keys")]
     if missing:
-        return [f"{label} missing required keys: {', '.join(missing)}"]
-    for key in ("overall_paper_rating", "decision_relevance_rating", "rating_confidence"):
-        _check_rating(summary.get(key), f"{label}.{key}", errors)
-    if not isinstance(summary.get("top_blockers"), list):
-        errors.append(f"{label}.top_blockers must be a list")
-    return errors
+        return [f"{label} {missing[0]}"]
+    return [f"{label}.{problem}" for problem in problems]
 
 
 def _resolve_round_summary(review_dir: Path) -> tuple[Path | None, list[str], list[str]]:
