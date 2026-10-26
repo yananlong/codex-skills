@@ -226,7 +226,7 @@ Run recurring entropy-audit work items to remove stale instructions, duplicate s
 - `references/research-brief-template.md`
 - `references/task-board-template.md`
 - `references/decision-log-template.md`
-- `references/tabmol-ddi-ood-adapter.md`
+- `references/domain-adapters.md`: optional checks for LLM evaluation, Bayesian measurement, recomputation audits, theory, conceptual work, and the TabMol DDI/OOD agenda, with the rule for choosing one
 
 ## Scripts
 

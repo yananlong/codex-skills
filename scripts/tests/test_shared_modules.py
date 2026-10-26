@@ -15,6 +15,16 @@ SHARED = {
             "research/research-novelty-review/scripts",
         ],
     ),
+    "domain-adapters.md": (
+        "research/research-pipeline-planner/references",
+        [
+            "research/research-experiment-plan/references",
+            "research/research-results-auditor/references",
+            "research/research-novelty-review/references",
+            "research/research-paper-plan/references",
+            "research/research-review-loop/references",
+        ],
+    ),
     "venues.json": ("research/research-paper-plan/references", ["research/research-rebuttal/references"]),
     "venue_table.py": ("research/research-paper-plan/scripts", ["research/research-rebuttal/scripts"]),
 }

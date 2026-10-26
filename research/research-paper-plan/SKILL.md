@@ -223,7 +223,7 @@ A passing validator establishes declared linkage and consistency, not scientific
 - `references/venue-adapters.md`
 - `references/exhibit-plan-checklist.md`
 - `references/citation-verification-rules.md`
-- `references/tabmol-ddi-ood-adapter.md`
+- `references/domain-adapters.md`: optional checks for LLM evaluation, Bayesian measurement, recomputation audits, theory, conceptual work, and the TabMol DDI/OOD agenda, with the rule for choosing one
 - `../research-pipeline-planner/references/result-audit-paper-binding-contract.md`
 
 ## Scripts

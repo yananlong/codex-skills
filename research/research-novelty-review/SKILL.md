@@ -189,7 +189,7 @@ Reader-facing prose in these artifacts is written under the drafting contract (`
 - `references/decision-scale.md`
 - `references/overlap-scoring-rubric.md`
 - `references/reviewer-objection-rubric.md`
-- `references/tabmol-ddi-ood-adapter.md`
+- `references/domain-adapters.md`: optional checks for LLM evaluation, Bayesian measurement, recomputation audits, theory, conceptual work, and the TabMol DDI/OOD agenda, with the rule for choosing one
 - `references/paper-review-integration.md`
 - `references/literature-assurance-contract.md`
 - `../research-pipeline-planner/references/epistemic-assurance-contract.md`

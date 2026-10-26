@@ -276,7 +276,7 @@ Record the result in `decision-gates.md` and in each affected block's `non_vacui
 - `references/execution-bridge-template.md`
 - `references/control-and-ablation-checklist.md`
 - `references/risk-confound-checklist.md`
-- `references/tabmol-ddi-ood-adapter.md`
+- `references/domain-adapters.md`: optional checks for LLM evaluation, Bayesian measurement, recomputation audits, theory, conceptual work, and the TabMol DDI/OOD agenda, with the rule for choosing one
 - `../research-pipeline-planner/references/experiment-execution-binding.md`
 - `../research-pipeline-planner/references/epistemic-assurance-contract.md`
 

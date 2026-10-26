@@ -412,13 +412,13 @@
           "references/claim-evidence-map-template.md",
           "references/control-and-ablation-checklist.md",
           "references/decision-gates-template.md",
+          "references/domain-adapters.md",
           "references/execution-bridge-template.md",
           "references/experiment-block-schema.md",
           "references/experiment-plan-template.md",
           "references/iteration-loop-contract.md",
           "references/risk-confound-checklist.md",
-          "references/run-order-template.md",
-          "references/tabmol-ddi-ood-adapter.md"
+          "references/run-order-template.md"
         ],
         "scripts": [
           "scripts/check_plan_drift.py",
@@ -564,14 +564,14 @@
         "references": [
           "references/adversarial-query-patterns.md",
           "references/decision-scale.md",
+          "references/domain-adapters.md",
           "references/literature-assurance-contract.md",
           "references/novelty-checklist.md",
           "references/overlap-scoring-rubric.md",
           "references/paper-review-integration.md",
           "references/prior-art-matrix-template.md",
           "references/reviewer-objection-rubric.md",
-          "references/search-log-template.md",
-          "references/tabmol-ddi-ood-adapter.md"
+          "references/search-log-template.md"
         ],
         "scripts": [
           "scripts/claim_trajectory.py",
@@ -644,10 +644,10 @@
           "references/citation-verification-rules.md",
           "references/claim-evidence-binding-schema.md",
           "references/claims-evidence-matrix-template.md",
+          "references/domain-adapters.md",
           "references/exhibit-plan-checklist.md",
           "references/paper-outline-template.md",
           "references/section-archetypes.md",
-          "references/tabmol-ddi-ood-adapter.md",
           "references/venue-adapters.md",
           "references/venues.json"
         ],
@@ -801,6 +801,7 @@
         "references": [
           "references/agentic-harness-contract.md",
           "references/decision-log-template.md",
+          "references/domain-adapters.md",
           "references/epistemic-assurance-contract.md",
           "references/experiment-execution-binding.md",
           "references/research-brief-template.md",
@@ -811,7 +812,6 @@
           "references/semantic-assurance-contract.md",
           "references/stage-gates.md",
           "references/suite-contract.md",
-          "references/tabmol-ddi-ood-adapter.md",
           "references/task-board-template.md"
         ],
         "scripts": [
@@ -945,10 +945,10 @@
         "assets": [],
         "prompts": [],
         "references": [
+          "references/domain-adapters.md",
           "references/metrics-and-tests-checklist.md",
           "references/results-audit-schema.md",
-          "references/results-audit-template.md",
-          "references/tabmol-ddi-ood-adapter.md"
+          "references/results-audit-template.md"
         ],
         "scripts": [
           "scripts/claim_trajectory.py",
@@ -1012,10 +1012,10 @@
         "assets": [],
         "prompts": [],
         "references": [
+          "references/domain-adapters.md",
           "references/report-template.md",
           "references/review-checklist.md",
-          "references/review-state-schema.md",
-          "references/tabmol-ddi-ood-adapter.md"
+          "references/review-state-schema.md"
         ],
         "scripts": [
           "scripts/init_review_loop.py"

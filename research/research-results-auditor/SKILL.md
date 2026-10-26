@@ -216,7 +216,7 @@ A passing validator establishes declared repository consistency, not scientific 
 - `references/results-audit-template.md`
 - `references/results-audit-schema.md`
 - `references/metrics-and-tests-checklist.md`
-- `references/tabmol-ddi-ood-adapter.md`
+- `references/domain-adapters.md`: optional checks for LLM evaluation, Bayesian measurement, recomputation audits, theory, conceptual work, and the TabMol DDI/OOD agenda, with the rule for choosing one
 - `../research-pipeline-planner/references/experiment-execution-binding.md`
 - `../research-pipeline-planner/references/result-audit-paper-binding-contract.md`
 - `../research-pipeline-planner/references/epistemic-assurance-contract.md`

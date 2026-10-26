@@ -137,7 +137,7 @@ Ownership when skills chain: only the skill the user invoked spawns workers, and
 - `references/review-checklist.md`
 - `references/report-template.md`
 - `references/review-state-schema.md`
-- `references/tabmol-ddi-ood-adapter.md`
+- `references/domain-adapters.md`: optional checks for LLM evaluation, Bayesian measurement, recomputation audits, theory, conceptual work, and the TabMol DDI/OOD agenda, with the rule for choosing one
 - `../research-pipeline-planner/references/review-stage-contract.md`
 - `../research-pipeline-planner/references/epistemic-assurance-contract.md`
 
