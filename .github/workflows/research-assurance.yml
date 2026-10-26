@@ -6,6 +6,7 @@ on:
       - "research/**"
       - "writing/**"
       - "documents/adversarial-doc-review/**"
+      - "evals/prospective/**"
       - ".github/workflows/research-assurance.yml"
   push:
     branches: [main]
@@ -13,6 +14,7 @@ on:
       - "research/**"
       - "writing/**"
       - "documents/adversarial-doc-review/**"
+      - "evals/prospective/**"
       - ".github/workflows/research-assurance.yml"
 
 permissions:
@@ -29,12 +31,12 @@ jobs:
           python-version: "3.12"
       - name: Compile every skill script
         run: |
-          find research documents writing -path '*/scripts/*' -name '*.py' -not -path '*/__pycache__/*' -print0 \
+          find research documents writing evals -path '*/scripts/*' -name '*.py' -not -path '*/__pycache__/*' -print0 \
             | xargs -0 python -m py_compile
       - name: Run every skill test suite
         run: |
           status=0
-          for tests_dir in $(find research documents writing -type d -name tests -not -path '*/__pycache__/*' | sort); do
+          for tests_dir in $(find research documents writing evals -type d -name tests -not -path '*/__pycache__/*' | sort); do
             echo "::group::$tests_dir"
             if ! python -m unittest discover -s "$tests_dir" -p 'test_*.py' -v; then
               status=1
@@ -47,7 +49,7 @@ jobs:
           python-version: "3.11"
       - name: Compile every skill script under the oldest supported Python
         run: |
-          find research documents writing -path '*/scripts/*' -name '*.py' -not -path '*/__pycache__/*' -print0 \
+          find research documents writing evals -path '*/scripts/*' -name '*.py' -not -path '*/__pycache__/*' -print0 \
             | xargs -0 python3.11 -m py_compile
       - uses: actions/setup-python@v5
         with:
@@ -59,10 +61,10 @@ jobs:
           python "$tmp/research-novelty-review/scripts/validate_novelty_pack.py" --help
       - name: Validate Study 001 draft pack
         run: |
-          python research/research-pipeline-planner/scripts/validate_prospective_evaluation.py \
-            --protocol research/research-pipeline-planner/prospective-studies/study-001-category-theory/prospective-protocol.json \
-            --observations research/research-pipeline-planner/prospective-studies/study-001-category-theory/prospective-observations.json \
-            --summary research/research-pipeline-planner/prospective-studies/study-001-category-theory/prospective-summary.json \
+          python evals/prospective/scripts/validate_prospective_evaluation.py \
+            --protocol evals/prospective/studies/study-001-category-theory/prospective-protocol.json \
+            --observations evals/prospective/studies/study-001-category-theory/prospective-observations.json \
+            --summary evals/prospective/studies/study-001-category-theory/prospective-summary.json \
             --assurance-profile structural
       # Archives are release artifacts; generated Python bytecode is forbidden.
       - name: Archive changed skills

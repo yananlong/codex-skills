@@ -222,7 +222,6 @@ Run recurring entropy-audit work items to remove stale instructions, duplicate s
 - `references/review-stage-contract.md`
 - `references/result-audit-paper-binding-contract.md`: authority map when audited results move into paper claims; read for a results-to-paper handoff.
 - `references/semantic-assurance-contract.md`: commitment-transition ledger and identity anchors; read when recording D0-D4 transitions in `commitment-transitions.json`.
-- `references/prospective-evaluation-contract.md`: maintainer study protocol for evaluating the suite itself; not needed for project work.
 - `references/research-brief-template.md`
 - `references/task-board-template.md`
 - `references/decision-log-template.md`
@@ -235,5 +234,4 @@ Run recurring entropy-audit work items to remove stale instructions, duplicate s
 - `scripts/validate_research_commitment.py`: validate commitment structure, optional `identity_anchors`, and D3-D4 authorization records (which must name the current `to_identity_version`; legacy unversioned entries pass with a warning) without claiming scientific validity.
 - `scripts/harness_runtime.py`: single-writer event-sourced runtime for work items, experiment bindings, lineage, gate-conditioned activation, episodes, verification, checkpoints, pause/resume, retries, replay, and status. `status` and `experiment-lineage` are read-only; `replay` is the only command that rewrites projections; all three refuse a root without `harness-events.jsonl`. Owner decisions also enter the chain: `reapprove` (`--path` or `--all-drifted`) accepts the current version of a file whose recorded digest drifted, `withhold` records that an anchored file is kept out of the repository, `pivot-request` and `pivot-decision` carry D3-D4 changes, and `commitment-edit` records edits to the commitment. See `references/agentic-harness-contract.md` and `references/research-commitment-contract.md`.
 - `scripts/validate_semantic_assurance.py`: validate the commitment-transition ledger, literature semantics, and evidence semantics against `references/semantic-assurance-contract.md`.
-- `scripts/init_prospective_evaluation.py` and `scripts/validate_prospective_evaluation.py`: maintainer tooling for prospective studies of the suite under `references/prospective-evaluation-contract.md`; not used in project work.
 - `scripts/validate_research_pack.py`: validate legacy or harness profiles, commitment structure, event-chain integrity, replayed projection consistency, experiment bindings, submission snapshots, and gate/lineage references. A recorded digest that no longer matches its file fails as drift until the owner re-approves or withholds the path; stage and harness directories are optional, since git does not keep empty ones.

@@ -43,3 +43,8 @@ the skill (or with the previous version of the skill), save outputs side by side
 objective assertions where the output is checkable (a validator exits 0, a file exists, a number
 matches), and judge subjective outputs by reading them. Fixtures committed here must be
 structure-only, with synthetic names and no manuscript text or real results.
+
+## prospective/
+
+Maintainer studies of the research suite itself, moved out of `research-pipeline-planner` so skill
+packages no longer carry them. See `prospective/README.md`.
