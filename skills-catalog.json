@@ -730,6 +730,7 @@
           "references/criteria.md",
           "references/engine-usage.md",
           "references/rating-rubric.md",
+          "references/review-schema.md",
           "references/subagent_templates.md"
         ],
         "scripts": [
@@ -738,6 +739,8 @@
           "scripts/flatten_latex.py",
           "scripts/install_engine.py",
           "scripts/prepare_workspace.py",
+          "scripts/resolve_review_artifacts.py",
+          "scripts/review_schema.py",
           "scripts/run_openaireview.py",
           "scripts/save_viz_json.py",
           "scripts/validate_review_bundle.py"
@@ -897,6 +900,8 @@
         "scripts": [
           "scripts/count_limits.sh",
           "scripts/init_rebuttal_pack.py",
+          "scripts/resolve_review_artifacts.py",
+          "scripts/review_schema.py",
           "scripts/venue_table.py"
         ]
       },
@@ -985,11 +990,9 @@
         "AUTO_REVIEW.md",
         "NARRATIVE_REPORT.md",
         "REVIEW_STATE.json",
-        "artifact-index.md",
         "final_issues.json",
         "metadata.json",
         "overall_assessment.txt",
-        "review_dir-or-final_issues.json",
         "review_summary.json",
         "summary.md"
       ],
@@ -1018,7 +1021,10 @@
           "references/review-state-schema.md"
         ],
         "scripts": [
-          "scripts/init_review_loop.py"
+          "scripts/init_review_loop.py",
+          "scripts/resolve_review_artifacts.py",
+          "scripts/review_schema.py",
+          "scripts/validate_review_state.py"
         ]
       },
       "skill_file": "research/research-review-loop/SKILL.md"
