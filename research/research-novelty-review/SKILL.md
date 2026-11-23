@@ -72,6 +72,7 @@ description: Run a stringent, adversarial novelty review over a concrete researc
 - Stop if the proposed contribution is too vague to search.
 - If the user wants to find or generate ideas rather than evaluate a concrete one, route to `research-idea-discovery`.
 - Stop if browsing or a usable corpus is unavailable.
+  - If a PDF you need is blocked by a Cloudflare Turnstile browser check (typically OpenReview) after the cheaper routes have failed (api2 notes/search metadata, an arXiv or published version, a user-supplied copy), offer `openreview-pdf-fetch` (`documents/openreview-pdf-fetch`). It needs the owner's explicit authorization in the current conversation each time, so ask and do not run it silently. Otherwise mark the affected prior-art comparison as based on abstract or metadata only.
 - Stop if the claim bundles so many moving parts that a fair novelty comparison is impossible.
 - In standalone mode, do not force suite initialization when a direct adversarial review will do.
 - Do not change cases, comparators, contribution boundaries, or search interpretation merely to preserve a desired novelty rating after unfavorable evidence appears.

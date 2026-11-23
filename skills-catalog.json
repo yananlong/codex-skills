@@ -14,7 +14,7 @@
     "Optional per-skill catalog.json sidecars may add or override structured metadata; an explicit capabilities, inputs, or outputs list replaces the inferred one."
   ],
   "open_catalog": true,
-  "skill_count": 21,
+  "skill_count": 22,
   "skills": [
     {
       "agent_metadata": {
@@ -269,6 +269,48 @@
         ]
       },
       "skill_file": "documents/exposition-to-notebook/SKILL.md"
+    },
+    {
+      "agent_metadata": {
+        "interface": {
+          "default_prompt": "Use $openreview-pdf-fetch only with the owner's explicit authorization in this conversation, after metadata search, arXiv or published versions, and user-supplied copies have failed, to fetch a small batch of publicly readable OpenReview PDFs.",
+          "display_name": "OpenReview PDF Fetch",
+          "short_description": "Owner-authorized fetch of a few public OpenReview PDFs past a browser check"
+        }
+      },
+      "capabilities": [
+        "literature-review",
+        "pdf-processing",
+        "validation"
+      ],
+      "description": "Record of how OpenReview PDFs were downloaded past its Cloudflare Turnstile browser check from a cloud VM with a datacenter IP (observed once, 2026-11-22). Use only when the repo owner has explicitly authorized this in the current conversation, for a small batch of publicly readable PDFs needed for literature review, after metadata search, arXiv and user-supplied copies have been tried.",
+      "domain": "documents",
+      "frontmatter": {
+        "description": "Record of how OpenReview PDFs were downloaded past its Cloudflare Turnstile browser check from a cloud VM with a datacenter IP (observed once, 2026-11-22). Use only when the repo owner has explicitly authorized this in the current conversation, for a small batch of publicly readable PDFs needed for literature review, after metadata search, arXiv and user-supplied copies have been tried.",
+        "name": "openreview-pdf-fetch"
+      },
+      "inputs": [],
+      "name": "openreview-pdf-fetch",
+      "outputs": [
+        "manifest.tsv"
+      ],
+      "path": "documents/openreview-pdf-fetch",
+      "primary_intent": "review",
+      "related_skills": [],
+      "resources": {
+        "agents": [
+          "agents/openai.yaml"
+        ],
+        "assets": [],
+        "prompts": [],
+        "references": [],
+        "scripts": [
+          "scripts/fetch_pdfs.sh",
+          "scripts/init.js",
+          "scripts/launch_chrome.sh"
+        ]
+      },
+      "skill_file": "documents/openreview-pdf-fetch/SKILL.md"
     },
     {
       "agent_metadata": {
@@ -544,6 +586,7 @@
       "path": "research/research-novelty-review",
       "primary_intent": "review",
       "related_skills": [
+        "openreview-pdf-fetch",
         "research-experiment-plan",
         "research-idea-discovery",
         "research-paper-plan",
@@ -708,6 +751,7 @@
       "primary_intent": "review",
       "related_skills": [
         "adversarial-doc-review",
+        "openreview-pdf-fetch",
         "prose-flow-improver",
         "research-novelty-review",
         "research-paper-plan",
@@ -1073,6 +1117,7 @@
       "path": "research/research-systematic-literature-review",
       "primary_intent": "review",
       "related_skills": [
+        "openreview-pdf-fetch",
         "research-idea-discovery",
         "research-novelty-review",
         "research-paper-plan",

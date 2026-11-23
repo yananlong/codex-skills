@@ -225,6 +225,7 @@ Reader-facing prose in these artifacts is written under the drafting contract (`
 ### 1) Prepare or extract the paper text
 
 - If a readable artifact or extracted text is already available, use it directly.
+- If the paper's PDF is blocked by a Cloudflare Turnstile browser check (typically OpenReview), follow the `openreview-pdf-fetch` pointer in the literature-context step: offer it only after the cheaper routes fail, and only with the owner's explicit authorization in the current conversation.
 - If extraction is needed and the upstream engine is available, use:
 
 ```bash
@@ -356,6 +357,7 @@ python3 scripts/prepare_workspace.py "<input>" \
 - Invoke `research-novelty-review` when novelty or impact positioning matters. It should consume `summary.md`, `<review_dir>/context/literature-context.md` when present, and any recorded `systematic_review_artifact_dir`. Write or copy its bottom-line decision to `<review_dir>/context/novelty-context.md`.
 - Add any context-derived findings to the raw comments set before consolidation, preferably in `comments/cross_literature_context.json` and `comments/cross_novelty_positioning.json`.
 - Do not invent literature evidence. If search/corpus access is unavailable, mark context-dependent claims as externally unverified and state what evidence would resolve them.
+- If a PDF you need is blocked by a Cloudflare Turnstile browser check (typically OpenReview) after the cheaper routes have failed (api2 notes/search metadata, an arXiv or published version, a user-supplied copy), offer `openreview-pdf-fetch` (`documents/openreview-pdf-fetch`). It needs the owner's explicit authorization in the current conversation each time, so ask and do not run it silently.
 
 ### 8) Consolidate and tier findings
 
