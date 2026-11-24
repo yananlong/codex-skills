@@ -307,6 +307,7 @@
         "scripts": [
           "scripts/fetch_pdfs.sh",
           "scripts/init.js",
+          "scripts/install.sh",
           "scripts/launch_chrome.sh"
         ]
       },

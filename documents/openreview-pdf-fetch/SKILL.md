@@ -30,6 +30,7 @@ Reference notes for retrieving a few open-access PDFs from OpenReview, or a simi
 
 ## Files
 
+- `scripts/install.sh`: `--check` (default) or `--install` for the dependencies, pinned versions at the top.
 - `scripts/launch_chrome.sh`: starts Xvfb and a headed Chrome with a local-only CDP port, or stops them (`stop`).
 - `scripts/init.js`: init script that removes automation signals and reports a plausible GPU.
 - `scripts/fetch_pdfs.sh`: downloads PDFs listed in a `record<TAB>forum_id` file using the clearance cookie from the attached browser, and stops at the first non-PDF response.
@@ -50,15 +51,10 @@ The scripts and the commands below take these settings. Set them once in your sh
 
 ## Setup
 
-- **agent-browser** (vercel-labs, Rust CLI). Version 0.43 was used. Install it per its README and point `AGENT_BROWSER` at it if it is not on PATH.
-- **Chrome for Testing**, installed through agent-browser or downloaded directly. Version 158.0.8127.36 was used. Point `CHROME` at the binary.
-- **Chromium runtime libraries** (Debian/Ubuntu apt): `libasound2 libatk1.0-0 libatk-bridge2.0-0 libatspi2.0-0 libgbm1 libwayland-server0 libxcb-randr0 libxcomposite1 libxdamage1 libxfixes3 libxrandr2 libxkbcommon0`. Package names vary by release (for example `libasound2t64`).
-- **xvfb** (apt) for the virtual display, plus `curl` and `jq`.
+Run `bash $K/scripts/install.sh --check` to list what is missing and the exact commands to fix it; it installs nothing. `--install` runs them (sudo only when not root; `DRY_RUN=1` prints instead). It covers xvfb, poppler-utils, curl, jq, unzip, the Chromium runtime libraries, agent-browser 0.43.0 (npm, needs Node 22 or newer) and Chrome for Testing 158.0.8127.36, and prints the `AGENT_BROWSER` and `CHROME` lines to export. Parts of it are unverified; the script header lists them.
+
 - **tcmalloc preload.** If your shell preloads tcmalloc (`LD_PRELOAD=.../libtcmalloc.so.4`), Chrome crashes with "tcmalloc.cc:333 Attempt to free invalid pointer". Run every command that starts Chrome or agent-browser under `env -u LD_PRELOAD`.
-
-## Observed environment
-
-agent-browser 0.43, Chrome for Testing 158.0.8127.36, Xvfb, on a Linux cloud VM with a datacenter IP and no GPU, with the libraries listed under Setup.
+- **Observed with:** agent-browser 0.43, Chrome for Testing 158.0.8127.36, Xvfb, a Linux cloud VM with a datacenter IP and no GPU.
 
 ## Procedure
 
@@ -126,7 +122,7 @@ The datacenter IP was not the blocker: the same IP passed later, so the failures
 | Chrome dies at start; "tcmalloc.cc:333 Attempt to free invalid pointer" | `LD_PRELOAD=libtcmalloc.so.4` from the shell | Run under `env -u LD_PRELOAD`. `launch_chrome.sh` does this itself. |
 | "Verification hiccup, retrying...", console `[Cloudflare Turnstile] Error: 600010` | The browser looks automated | Check that Chrome came from `launch_chrome.sh` (not agent-browser's launcher), that `init.js` was passed with `--init-script` on the first `open`, and that WebGL works (next row). Retry at most about 6 times, 10 s or more apart, then stop and report. Do not switch to solving services, proxies or other tools. |
 | 403 or an HTML body partway through a batch | Clearance token expired (about 5 minutes) | `fetch_pdfs.sh` stops and deletes the partial file. Re-pass the check on another forum page, then rerun; finished files are skipped. |
-| No WebGL (`$AB eval "!!document.createElement('canvas').getContext('webgl')"` returns false) | Missing SwiftShader flags, or the apt libraries are absent | Relaunch with `launch_chrome.sh`; check `$S/chrome.log` and the apt library list under Setup. |
+| No WebGL (`$AB eval "!!document.createElement('canvas').getContext('webgl')"` returns false) | Missing SwiftShader flags, or the apt libraries are absent | Relaunch with `launch_chrome.sh`; check `$S/chrome.log` and `install.sh --check` for missing libraries. |
 | agent-browser still crashes, or ignores a new Chrome | A stale daemon with the old environment | `env -u LD_PRELOAD "${AGENT_BROWSER:-agent-browser}" close --all`, then relaunch. |
 | `fetch_pdfs.sh`: "no openreview.clearanceToken cookie" | The check was not passed, or the cookie output has a different shape than the script expects | Pass the check first. If it still fails, run `$AB --json cookies get` and adjust the `jq` filter in the script. |
 
