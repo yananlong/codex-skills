@@ -1,0 +1,4 @@
+interface:
+  display_name: "OpenReview PDF Fetch"
+  short_description: "Owner-authorized fetch of a few public OpenReview PDFs past a browser check"
+  default_prompt: "Use $openreview-pdf-fetch only with the owner's explicit authorization in this conversation, after metadata search, arXiv or published versions, and user-supplied copies have failed, to fetch a small batch of publicly readable OpenReview PDFs."

@@ -183,6 +183,7 @@ For major ML conferences hosted on OpenReview, use accepted venue records when v
 - Deduplicate across databases and publication versions.
 - Resolve preprints to accepted or published versions using DOI, journal references, venue pages, title-author search, and citation indexes.
 - Preserve the canonical publication URL and any supplemental open-access link.
+- If a source PDF is blocked by a Cloudflare Turnstile browser check (typically OpenReview) after the cheaper routes have failed (api2 notes/search metadata, an arXiv or published version, a user-supplied copy), offer `openreview-pdf-fetch` (`documents/openreview-pdf-fetch`). It needs the owner's explicit authorization in the current conversation each time, so ask and do not run it silently. Without that authorization, record the source as `abstract-only` or `not-fetched`.
 - Maintain exact PRISMA accounting.
 
 ### 7) Extract structured evidence

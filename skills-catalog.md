@@ -2,7 +2,7 @@
 
 Generated from `**/SKILL.md`. This is an open catalog: new skills are included by rerunning `scripts/generate_skill_catalog.py`.
 
-- Skill count: 21
+- Skill count: 22
 - Domains: commercialization, documents, research, writing
 
 | Domain | Skill | Primary intent | Capabilities | Path |
@@ -12,6 +12,7 @@ Generated from `**/SKILL.md`. This is an open catalog: new skills are included b
 | documents | `adversarial-doc-review` | review | literature-review, paper-review, stage-routing | `documents/adversarial-doc-review` |
 | documents | `document-memory-builder` | analysis | document-memory | `documents/document-memory-builder` |
 | documents | `exposition-to-notebook` | execution | notebook-generation | `documents/exposition-to-notebook` |
+| documents | `openreview-pdf-fetch` | review | literature-review, pdf-processing, validation | `documents/openreview-pdf-fetch` |
 | documents | `pdf-book-assembler` | execution | pdf-processing | `documents/pdf-book-assembler` |
 | documents | `proportional-pdf-trimmer` | specialized-workflow | pdf-processing | `documents/proportional-pdf-trimmer` |
 | research | `research-experiment-plan` | planning | experiment-design, research-planning, results-audit, stage-routing | `research/research-experiment-plan` |
